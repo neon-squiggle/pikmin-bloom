@@ -9,14 +9,17 @@ import {
   ToggleButton,
 } from "@mui/material";
 import ToggleOnIcon from "@mui/icons-material/ToggleOn";
+import RadioButtonCheckedIcon from "@mui/icons-material/RadioButtonChecked";
+import { Mode } from "./types";
 import LockIcon from "@mui/icons-material/Lock";
 import MushCalcLock from "./MushCalcLock";
 import MushCalcToggle from "./MushCalcToggle";
+import MushCalcRadio from "./MushCalcRadio";
 
 const Calculator = () => {
-  const [mode, setMode] = useState<"toggle" | "lock">("toggle");
+  const [mode, setMode] = useState<Mode>("radio");
 
-  const handleModeChange = (e: any, value: "toggle" | "lock" | null) => {
+  const handleModeChange = (e: any, value: Mode) => {
     if (value) setMode(value);
   };
 
@@ -33,6 +36,9 @@ const Calculator = () => {
           exclusive
           orientation="vertical"
         >
+          <ToggleButton value="radio">
+            <RadioButtonCheckedIcon />
+          </ToggleButton>
           <ToggleButton value="toggle">
             <ToggleOnIcon />
           </ToggleButton>
@@ -44,6 +50,7 @@ const Calculator = () => {
       <Box sx={{ width: 650 }}>
         {mode === "lock" && <MushCalcLock />}
         {mode === "toggle" && <MushCalcToggle />}
+        {mode === "radio" && <MushCalcRadio />}
       </Box>
     </Box>
   );

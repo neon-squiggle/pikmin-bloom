@@ -4,6 +4,8 @@ export interface Mushroom {
 }
 
 export type Estimate = "health" | "time" | "ap";
+export type RadioEstimate = "health" | "startTime" | "endTime" | "ap";
+export const calculationTypes: Estimate[] = ["health", "time", "ap"];
 
 export const mushrooms: Mushroom[] = [
   { label: "Small Red", value: 87400 },
@@ -48,3 +50,5 @@ export const mushrooms: Mushroom[] = [
 export const higherBaseAp = ["Yellow", "Purple", "Pink", "Ice Blue"];
 
 export const elementals = ["Fire", "Water", "Crystal", "Electric", "Poisonous"];
+
+export type Mode = "toggle" | "lock" | "radio";

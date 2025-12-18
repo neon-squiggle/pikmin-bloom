@@ -6,13 +6,39 @@ export const calculateTime = (health: number, ap: number) => {
   return dayjs().add(timeEstimate, "second");
 };
 
-export const calculateAp = (health: number, time: Dayjs) => {
-  const timeEstimate = dayjs(time).diff(dayjs(), "second");
+export const calculateStartTime = (
+  health: number,
+  ap: number,
+  endTime: Dayjs
+) => {
+  const timeEstimate = (health * 100) / ap;
+  return endTime.subtract(timeEstimate, "second");
+};
+
+export const calculateEndTime = (
+  health: number,
+  ap: number,
+  startTime: Dayjs
+) => {
+  const timeEstimate = (health * 100) / ap;
+  return startTime.add(timeEstimate, "second");
+};
+
+export const calculateAp = (
+  health: number,
+  endTime: Dayjs,
+  startTime: Dayjs = dayjs()
+) => {
+  const timeEstimate = dayjs(endTime).diff(startTime, "second");
   return Math.ceil((health * 100) / timeEstimate);
 };
 
-export const calculateHealth = (ap: number, time: Dayjs) => {
-  const timeEstimate = dayjs(time).diff(dayjs(), "second");
+export const calculateHealth = (
+  ap: number,
+  endTime: Dayjs,
+  startTime: Dayjs = dayjs()
+) => {
+  const timeEstimate = dayjs(endTime).diff(startTime, "second");
   return Math.ceil((ap * timeEstimate) / 100);
 };
 
