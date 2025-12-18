@@ -1,13 +1,5 @@
 import React, { useState } from "react";
-import {
-  Card,
-  CardHeader,
-  CardContent,
-  Divider,
-  Box,
-  ToggleButtonGroup,
-  ToggleButton,
-} from "@mui/material";
+import { Box, ToggleButtonGroup, ToggleButton } from "@mui/material";
 import ToggleOnIcon from "@mui/icons-material/ToggleOn";
 import RadioButtonCheckedIcon from "@mui/icons-material/RadioButtonChecked";
 import { Mode } from "./types";

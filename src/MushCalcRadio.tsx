@@ -19,10 +19,10 @@ import NumberSpinner from "./NumberSpinner";
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
 import { mushrooms, Mushroom, RadioEstimate } from "./types";
 import Footer from "./Footer";
-import dayjs, { Dayjs } from "dayjs";
+import { Dayjs } from "dayjs";
 import {
-  calculateAp,
-  calculateHealth,
+  calculateApTimeRange,
+  calculateHealthTimeRange,
   calculateStartTime,
   calculateEndTime,
 } from "./helpers";
@@ -32,60 +32,86 @@ const MushCalcRadio = () => {
   const [mush, setMush] = useState<Mushroom | null>(null);
   const [health, setHealth] = useState<number>(1);
   const [pikminAp, setPikminAp] = useState<number>(2);
-  const [startTime, setStartTime] = useState<Dayjs | null>();
+  const [startTime, setStartTime] = useState<Dayjs | null>(null);
   const [endTime, setEndTime] = useState<Dayjs | null>(null);
 
   const handleDerivedChange = (value: RadioEstimate | null) => {
     setDerived(value);
   };
 
-  const handleMushChange = (mush: Mushroom) => {
-    setMush(mush);
-    setHealth(mush.value);
+  const recomputeDerived = ({
+    health,
+    pikminAp,
+    startTime,
+    endTime,
+  }: {
+    health: number;
+    pikminAp: number;
+    startTime: Dayjs | null;
+    endTime: Dayjs | null;
+  }) => {
     if (derived === "ap" && startTime && endTime) {
-      setPikminAp(calculateAp(mush.value, endTime, startTime));
+      setPikminAp(calculateApTimeRange(health, startTime, endTime));
+    } else if (derived === "health" && startTime && endTime) {
+      setHealth(calculateHealthTimeRange(pikminAp, startTime, endTime));
     } else if (derived === "startTime" && endTime) {
-      setStartTime(calculateStartTime(mush.value, pikminAp, endTime));
+      setStartTime(calculateStartTime(health, pikminAp, endTime));
     } else if (derived === "endTime" && startTime) {
-      setEndTime(calculateEndTime(mush.value, pikminAp, startTime));
+      setEndTime(calculateEndTime(health, pikminAp, startTime));
     }
   };
 
   const handleHealthChange = (value: number | null) => {
     const newHealth = value ?? 1;
     setHealth(newHealth);
-    if (derived === "ap" && startTime && endTime) {
-      setPikminAp(calculateAp(newHealth, endTime, startTime));
-    } else if (derived === "startTime" && endTime) {
-      setStartTime(calculateStartTime(newHealth, pikminAp, endTime));
-    } else if (derived === "endTime" && startTime) {
-      setEndTime(calculateEndTime(newHealth, pikminAp, startTime));
-    }
+    recomputeDerived({ health: newHealth, pikminAp, startTime, endTime });
   };
 
   const handleApChange = (value: number | null) => {
     const newAp = value ?? 2;
     setPikminAp(newAp);
-    if (derived === "health" && startTime && endTime) {
-      setHealth(calculateHealth(newAp, endTime, startTime));
-    } else if (derived === "startTime" && endTime) {
-      setStartTime(calculateStartTime(health, newAp, endTime));
-    } else if (derived === "endTime" && startTime) {
-      setEndTime(calculateEndTime(health, newAp, startTime));
-    }
+    recomputeDerived({ health, pikminAp: newAp, startTime, endTime });
+  };
+
+  const handleMushChange = (mush: Mushroom) => {
+    setMush(mush);
+    setHealth(mush.value);
+    recomputeDerived({
+      health: mush.value,
+      pikminAp,
+      startTime,
+      endTime,
+    });
   };
 
   const handleStartTimeChange = (value: Dayjs | null) => {
     setStartTime(value);
+    recomputeDerived({
+      health,
+      pikminAp,
+      startTime: value,
+      endTime,
+    });
   };
 
   const handleEndTimeChange = (value: Dayjs | null) => {
     setEndTime(value);
+    recomputeDerived({
+      health,
+      pikminAp,
+      startTime,
+      endTime: value,
+    });
   };
 
   return (
     <Card variant="elevation">
-      <CardHeader title="Mushroom calculator" subheader={""} />
+      <CardHeader
+        title="Mushroom calculator"
+        subheader={
+          "after picking a mode, you'll have to fill out the other fields"
+        }
+      />
       <CardContent>
         <FormControl>
           <FormLabel>I want to calculate: </FormLabel>

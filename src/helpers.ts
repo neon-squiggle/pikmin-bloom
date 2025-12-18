@@ -24,21 +24,31 @@ export const calculateEndTime = (
   return startTime.add(timeEstimate, "second");
 };
 
-export const calculateAp = (
-  health: number,
-  endTime: Dayjs,
-  startTime: Dayjs = dayjs()
+export const calculateHealthTimeRange = (
+  ap: number,
+  startTime: Dayjs,
+  endTime: Dayjs
 ) => {
-  const timeEstimate = dayjs(endTime).diff(startTime, "second");
+  const timeEstimate = endTime.diff(startTime, "second");
+  return Math.ceil((ap * timeEstimate) / 100);
+};
+
+export const calculateApTimeRange = (
+  health: number,
+  startTime: Dayjs,
+  endTime: Dayjs
+) => {
+  const timeEstimate = endTime.diff(startTime, "second");
   return Math.ceil((health * 100) / timeEstimate);
 };
 
-export const calculateHealth = (
-  ap: number,
-  endTime: Dayjs,
-  startTime: Dayjs = dayjs()
-) => {
-  const timeEstimate = dayjs(endTime).diff(startTime, "second");
+export const calculateAp = (health: number, time: Dayjs) => {
+  const timeEstimate = dayjs().diff(time, "second");
+  return Math.ceil((health * 100) / timeEstimate);
+};
+
+export const calculateHealth = (ap: number, time: Dayjs) => {
+  const timeEstimate = dayjs().diff(time, "second");
   return Math.ceil((ap * timeEstimate) / 100);
 };
 
