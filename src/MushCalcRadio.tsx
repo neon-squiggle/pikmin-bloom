@@ -5,6 +5,7 @@ import {
   RadioGroup,
   FormControlLabel,
   Radio,
+  IconButton,
 } from "@mui/material";
 import {
   CardContent,
@@ -15,6 +16,7 @@ import {
   Autocomplete,
   Box,
 } from "@mui/material";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import NumberSpinner from "./NumberSpinner";
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
 import { mushrooms, Mushroom, RadioEstimate } from "./types";
@@ -34,6 +36,8 @@ const MushCalcRadio = () => {
   const [pikminAp, setPikminAp] = useState<number>(2);
   const [startTime, setStartTime] = useState<Dayjs | null>(null);
   const [endTime, setEndTime] = useState<Dayjs | null>(null);
+  const [startTimeUnix, setStartTimeUnix] = useState<string>("");
+  const [endTimeUnix, setEndTimeUnix] = useState<string>("");
 
   const handleDerivedChange = (value: RadioEstimate | null) => {
     setDerived(value);
@@ -86,6 +90,7 @@ const MushCalcRadio = () => {
 
   const handleStartTimeChange = (value: Dayjs | null) => {
     setStartTime(value);
+    setStartTimeUnix(`<t:${value?.unix()}:R>`);
     recomputeDerived({
       health,
       pikminAp,
@@ -96,6 +101,7 @@ const MushCalcRadio = () => {
 
   const handleEndTimeChange = (value: Dayjs | null) => {
     setEndTime(value);
+    setEndTimeUnix(`<t:${value?.unix()}:R>`);
     recomputeDerived({
       health,
       pikminAp,
@@ -243,6 +249,54 @@ const MushCalcRadio = () => {
               },
             }}
           />
+        </Box>
+        <Box
+          sx={{
+            p: 2,
+            gap: 8,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          {startTime && (
+            <TextField
+              label="discord start time timestamp"
+              value={startTimeUnix}
+              slotProps={{
+                input: {
+                  readOnly: true,
+                  endAdornment: (
+                    <IconButton
+                      onClick={() =>
+                        navigator.clipboard.writeText(startTimeUnix)
+                      }
+                    >
+                      <ContentCopyIcon />
+                    </IconButton>
+                  ),
+                },
+              }}
+            />
+          )}
+          {endTime && (
+            <TextField
+              label="discord end time timestamp"
+              value={endTimeUnix}
+              slotProps={{
+                input: {
+                  readOnly: true,
+                  endAdornment: (
+                    <IconButton
+                      onClick={() => navigator.clipboard.writeText(endTimeUnix)}
+                    >
+                      <ContentCopyIcon />
+                    </IconButton>
+                  ),
+                },
+              }}
+            />
+          )}
         </Box>
         {<Footer />}
       </CardContent>
