@@ -15,8 +15,10 @@ import {
   TextField,
   Autocomplete,
   Box,
+  Button,
 } from "@mui/material";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import RefreshIcon from "@mui/icons-material/Refresh";
 import NumberSpinner from "./NumberSpinner";
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
 import { mushrooms, Mushroom, RadioEstimate } from "./types";
@@ -59,9 +61,13 @@ const MushCalcRadio = () => {
     } else if (derived === "health" && startTime && endTime) {
       setHealth(calculateHealthTimeRange(pikminAp, startTime, endTime));
     } else if (derived === "startTime" && endTime) {
-      setStartTime(calculateStartTime(health, pikminAp, endTime));
+      const start = calculateStartTime(health, pikminAp, endTime);
+      setStartTime(start);
+      setStartTimeUnix(`<t:${start.unix()}:R>`);
     } else if (derived === "endTime" && startTime) {
-      setEndTime(calculateEndTime(health, pikminAp, startTime));
+      const end = calculateEndTime(health, pikminAp, startTime);
+      setEndTime(end);
+      setEndTimeUnix(`<t:${end.unix()}:R>`);
     }
   };
 
@@ -110,12 +116,32 @@ const MushCalcRadio = () => {
     });
   };
 
+  const handleReset = () => {
+    setDerived(null);
+    setMush(null);
+    setHealth(1);
+    setPikminAp(2);
+    setStartTime(null);
+    setEndTime(null);
+    setStartTimeUnix("");
+    setEndTimeUnix("");
+  };
+
   return (
     <Card variant="elevation">
       <CardHeader
         title="Mushroom calculator"
         subheader={
           "after picking a mode, you'll have to fill out the other fields"
+        }
+        action={
+          <Button
+            startIcon={<RefreshIcon />}
+            size="small"
+            onClick={handleReset}
+          >
+            clear
+          </Button>
         }
       />
       <CardContent>
@@ -220,6 +246,7 @@ const MushCalcRadio = () => {
             readOnly={derived === "startTime"}
             value={startTime}
             onChange={(value) => handleStartTimeChange(value)}
+            localeText={{ todayButtonLabel: "Now" }}
             slotProps={{
               textField: {
                 sx: {
@@ -246,6 +273,9 @@ const MushCalcRadio = () => {
                     borderColor: derived === "endTime" ? "green" : "primary",
                   },
                 },
+              },
+              actionBar: {
+                actions: [],
               },
             }}
           />
