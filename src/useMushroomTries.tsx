@@ -22,10 +22,18 @@ export function useMushroomTries() {
   }, [events]);
 
   function addEvent(event: MushroomTry) {
-    setEvents((prev) =>
-      [...prev, event].sort((a, b) => a.endTime.valueOf() - b.endTime.valueOf())
-    );
+    setEvents((prev) => {
+      const next = [...prev, event].sort(
+        (a, b) => a.endTime.valueOf() - b.endTime.valueOf()
+      );
+
+      const newMonth = event.endTime.format("YYYY-MM");
+      setSelectedMonth(newMonth);
+
+      return next;
+    });
   }
+
   function updateEvent(id: string, updated: Partial<MushroomTry>) {
     setEvents((prev) =>
       prev
