@@ -48,18 +48,6 @@ const MoreInfo = ({ mushEvent, onDelete }: MoreInfoProps) => {
     setDraftId(mushEvent?.id ?? null);
   }, [mushEvent]);
 
-  const handleRevert = () => {
-    setName(mushEvent?.name ?? "");
-    setMush(mushEvent?.mush ?? null);
-    setPikminAp(mushEvent?.pikminAp ?? 2);
-    setEndTime(mushEvent?.endTime ?? dayjs());
-    setTimeLeft(
-      mushEvent?.endTime
-        ? diffToTimeRemaining(mushEvent.endTime)
-        : DEFAULT_TIMELEFT
-    );
-  };
-
   const applyTimeDelta = (
     value: number | null,
     field: keyof TimeRemaining,
@@ -178,9 +166,6 @@ const MoreInfo = ({ mushEvent, onDelete }: MoreInfoProps) => {
             Delete
           </Button>
         )}
-        <Button variant="outlined" onClick={handleRevert}>
-          Revert
-        </Button>
         <Button
           variant="contained"
           disabled={
