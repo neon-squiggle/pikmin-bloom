@@ -7,12 +7,10 @@ import {
   mushrooms,
   TimeRemaining,
   MushroomData,
+  TimeUnit,
 } from "./types";
-import {
-  diffToTimeRemaining,
-  durationFromNowToEndDate,
-  isInvalidDuration,
-} from "./helpers";
+import { diffToTimeRemaining, isInvalidDuration } from "./helpers";
+import dayjs, { Dayjs } from "dayjs";
 import { useSharedMushroomTries } from "./Provider";
 
 import NumberSpinner from "./NumberSpinner";
@@ -28,13 +26,19 @@ const MoreInfo = ({ mushEvent, onDelete }: MoreInfoProps) => {
   const [name, setName] = useState<string>(mushEvent?.name ?? "");
   const [mush, setMush] = useState<Mushroom | null>(mushEvent?.mush ?? null);
   const [pikminAp, setPikminAp] = useState<number>(mushEvent?.pikminAp ?? 2);
+  const [endTime, setEndTime] = useState<Dayjs>(mushEvent?.endTime ?? dayjs());
   const [timeLeft, setTimeLeft] = useState<TimeRemaining>(() =>
     mushEvent?.endTime
       ? diffToTimeRemaining(mushEvent?.endTime)
-      : { days: 0, hours: 0, minutes: 0, seconds: 0 }
+      : DEFAULT_TIMELEFT
   );
+  const [draftId, setDraftId] = useState<string | null>(mushEvent?.id ?? null);
 
   const { addEvent, updateEvent, deleteEvent } = useSharedMushroomTries();
+
+  useEffect(() => {
+    setDraftId(mushEvent?.id ?? null);
+  }, [mushEvent]);
 
   useEffect(() => {
     setName(mushEvent?.name ?? "");
@@ -62,6 +66,27 @@ const MoreInfo = ({ mushEvent, onDelete }: MoreInfoProps) => {
     setPikminAp(value);
   };
 
+  const applyTimeDelta = (
+    value: number | null,
+    field: keyof TimeRemaining,
+    unit: TimeUnit,
+    setTimeLeft: React.Dispatch<React.SetStateAction<TimeRemaining>>,
+    setEndTime: React.Dispatch<React.SetStateAction<Dayjs>>
+  ) => {
+    if (value == null) return;
+
+    setTimeLeft((prev) => {
+      const delta = value - prev[field];
+
+      setEndTime((t) => (t ? t.add(delta, unit) : t));
+
+      return {
+        ...prev,
+        [field]: value,
+      };
+    });
+  };
+
   const handleRevert = () => {
     setName(mushEvent?.name ?? "");
     setMush(mushEvent?.mush ?? null);
@@ -72,8 +97,6 @@ const MoreInfo = ({ mushEvent, onDelete }: MoreInfoProps) => {
         : DEFAULT_TIMELEFT
     );
   };
-
-  const eventId = mushEvent?.id;
 
   return (
     <Box
@@ -119,15 +142,15 @@ const MoreInfo = ({ mushEvent, onDelete }: MoreInfoProps) => {
           <NumberSpinner
             label="Days"
             value={timeLeft.days}
-            onValueChange={(value) =>
-              setTimeLeft((prev) => ({ ...prev, days: value ?? prev.days }))
-            }
+            onValueChange={(value) => {
+              applyTimeDelta(value, "days", "day", setTimeLeft, setEndTime);
+            }}
           />
           <NumberSpinner
             label="Hours"
             value={timeLeft.hours}
             onValueChange={(value) =>
-              setTimeLeft((prev) => ({ ...prev, hours: value ?? prev.hours }))
+              applyTimeDelta(value, "hours", "hour", setTimeLeft, setEndTime)
             }
           />
         </Box>
@@ -136,20 +159,26 @@ const MoreInfo = ({ mushEvent, onDelete }: MoreInfoProps) => {
             label="Minutes"
             value={timeLeft.minutes}
             onValueChange={(value) =>
-              setTimeLeft((prev) => ({
-                ...prev,
-                minutes: value ?? prev.minutes,
-              }))
+              applyTimeDelta(
+                value,
+                "minutes",
+                "minute",
+                setTimeLeft,
+                setEndTime
+              )
             }
           />
           <NumberSpinner
             label="Seconds"
             value={timeLeft.seconds}
             onValueChange={(value) =>
-              setTimeLeft((prev) => ({
-                ...prev,
-                seconds: value ?? prev.seconds,
-              }))
+              applyTimeDelta(
+                value,
+                "seconds",
+                "second",
+                setTimeLeft,
+                setEndTime
+              )
             }
           />
         </Box>
@@ -163,12 +192,12 @@ const MoreInfo = ({ mushEvent, onDelete }: MoreInfoProps) => {
           p: 1,
         }}
       >
-        {eventId && (
+        {draftId && (
           <Button
             variant="outlined"
             color="error"
             onClick={() => {
-              deleteEvent(eventId);
+              deleteEvent(draftId);
               onDelete();
             }}
           >
@@ -180,24 +209,30 @@ const MoreInfo = ({ mushEvent, onDelete }: MoreInfoProps) => {
         </Button>
         <Button
           variant="contained"
-          onClick={() =>
-            mushEvent && mushEvent.id
-              ? updateEvent(mushEvent.id, {
-                  name,
-                  pikminAp,
-                  mush: mush ?? mushEvent.mush,
-                  endTime: durationFromNowToEndDate(timeLeft),
-                })
-              : addEvent({
-                  id: crypto.randomUUID(),
-                  name,
-                  pikminAp,
-                  mush: mush as Mushroom,
-                  health: (mush as Mushroom).value,
-                  endTime: durationFromNowToEndDate(timeLeft),
-                })
+          onClick={() => {
+            if (draftId) {
+              updateEvent(draftId, {
+                name,
+                pikminAp,
+                mush: mush ?? mushEvent?.mush,
+                endTime,
+              });
+            } else {
+              const id = crypto.randomUUID();
+              addEvent({
+                id,
+                name,
+                pikminAp,
+                mush: mush as Mushroom,
+                health: (mush as Mushroom).value,
+                endTime,
+              });
+              setDraftId(id);
+            }
+          }}
+          disabled={
+            !mush || !pikminAp || isInvalidDuration(timeLeft) || !endTime
           }
-          disabled={!mush || !pikminAp || isInvalidDuration(timeLeft)}
         >
           Save
         </Button>

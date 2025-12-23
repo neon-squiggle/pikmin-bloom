@@ -123,8 +123,6 @@ export const decodeEvent = (code: string): MushroomData | null => {
     return null;
   }
 
-  console.log(startTime, endTime);
-
   return {
     mush,
     health,

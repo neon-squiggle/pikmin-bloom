@@ -79,3 +79,5 @@ export interface MushroomData {
   startTime: Dayjs;
   endTime: Dayjs;
 }
+
+export type TimeUnit = "day" | "hour" | "minute" | "second";
