@@ -119,11 +119,14 @@ const MoreInfo = ({ mushEvent, onDelete }: MoreInfoProps) => {
           <NumberSpinner
             label="Days"
             value={timeLeft.days}
+            min={0}
             onValueChange={(v) => applyTimeDelta(v, "days", "day")}
           />
           <NumberSpinner
             label="Hours"
             value={timeLeft.hours}
+            min={0}
+            max={23}
             onValueChange={(v) => applyTimeDelta(v, "hours", "hour")}
           />
         </Box>
@@ -131,11 +134,15 @@ const MoreInfo = ({ mushEvent, onDelete }: MoreInfoProps) => {
           <NumberSpinner
             label="Minutes"
             value={timeLeft.minutes}
+            min={0}
+            max={59}
             onValueChange={(v) => applyTimeDelta(v, "minutes", "minute")}
           />
           <NumberSpinner
             label="Seconds"
             value={timeLeft.seconds}
+            min={0}
+            max={59}
             onValueChange={(v) => applyTimeDelta(v, "seconds", "second")}
           />
         </Box>
