@@ -1,3 +1,5 @@
+import { Dayjs } from "dayjs";
+
 export interface Mushroom {
   label: string;
   value: number;
@@ -51,4 +53,21 @@ export const higherBaseAp = ["Yellow", "Purple", "Pink", "Ice Blue"];
 
 export const elementals = ["Fire", "Water", "Crystal", "Electric", "Poisonous"];
 
-export type Mode = "toggle" | "lock" | "radio";
+export type Mode = "calculator" | "calendar";
+
+export interface TimeRemaining {
+  days: number;
+  hours: number;
+  minutes: number;
+  seconds: number;
+}
+
+export interface MushroomTry {
+  id: string;
+  name?: string;
+  mush: Mushroom;
+  health: number;
+  pikminAp: number;
+  startTime?: Dayjs;
+  endTime: Dayjs;
+}

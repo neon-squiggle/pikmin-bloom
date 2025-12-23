@@ -6,8 +6,8 @@ import {
   FormControlLabel,
   Radio,
   IconButton,
-} from "@mui/material";
-import {
+  Typography,
+  Snackbar,
   CardContent,
   CardHeader,
   Divider,
@@ -21,15 +21,16 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import NumberSpinner from "./NumberSpinner";
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
-import { mushrooms, Mushroom, RadioEstimate } from "./types";
-import Footer from "./Footer";
+import { mushrooms, Mushroom, RadioEstimate, MushroomTry } from "./types";
 import { Dayjs } from "dayjs";
 import {
   calculateApTimeRange,
   calculateHealthTimeRange,
   calculateStartTime,
   calculateEndTime,
+  encodeForm,
 } from "./helpers";
+import { useSharedMushroomTries } from "./Provider";
 
 const MushCalcRadio = () => {
   const [derived, setDerived] = useState<RadioEstimate | null>(null);
@@ -40,21 +41,25 @@ const MushCalcRadio = () => {
   const [endTime, setEndTime] = useState<Dayjs | null>(null);
   const [startTimeUnix, setStartTimeUnix] = useState<string>("");
   const [endTimeUnix, setEndTimeUnix] = useState<string>("");
-
-  const handleDerivedChange = (value: RadioEstimate | null) => {
-    setDerived(value);
-  };
+  const [valid, setValid] = useState<boolean>(false);
+  const [eventId, setEventId] = useState<string>("");
+  const [snackbarOpen, setSnackbarOpen] = useState<boolean>(false);
+  const { addEvent } = useSharedMushroomTries();
 
   const recomputeDerived = ({
+    mush,
     health,
     pikminAp,
     startTime,
     endTime,
+    derived,
   }: {
+    mush?: Mushroom;
     health: number;
     pikminAp: number;
     startTime: Dayjs | null;
     endTime: Dayjs | null;
+    derived: RadioEstimate | null;
   }) => {
     if (derived === "ap" && startTime && endTime) {
       setPikminAp(calculateApTimeRange(health, startTime, endTime));
@@ -68,30 +73,59 @@ const MushCalcRadio = () => {
       const end = calculateEndTime(health, pikminAp, startTime);
       setEndTime(end);
       setEndTimeUnix(`<t:${end.unix()}:R>`);
+    } else {
+      return;
     }
+    if (mush) {
+      setValid(true);
+      // setEventId(encodeForm({ health, pikminAp, endTime, mush }));
+    }
+  };
+
+  const handleDerivedChange = (value: RadioEstimate | null) => {
+    setDerived(value);
+    recomputeDerived({
+      health,
+      pikminAp,
+      startTime,
+      endTime,
+      derived: value,
+    });
   };
 
   const handleHealthChange = (value: number | null) => {
     const newHealth = value ?? 1;
     setHealth(newHealth);
-    recomputeDerived({ health: newHealth, pikminAp, startTime, endTime });
+    recomputeDerived({
+      health: newHealth,
+      pikminAp,
+      startTime,
+      endTime,
+      derived,
+    });
   };
 
   const handleApChange = (value: number | null) => {
     const newAp = value ?? 2;
     setPikminAp(newAp);
-    recomputeDerived({ health, pikminAp: newAp, startTime, endTime });
+    recomputeDerived({ health, pikminAp: newAp, startTime, endTime, derived });
   };
 
   const handleMushChange = (mush: Mushroom) => {
     setMush(mush);
-    setHealth(mush.value);
-    recomputeDerived({
-      health: mush.value,
-      pikminAp,
-      startTime,
-      endTime,
-    });
+    if (mush) {
+      setHealth(mush.value);
+      recomputeDerived({
+        mush,
+        health: mush.value,
+        pikminAp,
+        startTime,
+        endTime,
+        derived,
+      });
+    } else {
+      setHealth(1);
+    }
   };
 
   const handleStartTimeChange = (value: Dayjs | null) => {
@@ -102,6 +136,7 @@ const MushCalcRadio = () => {
       pikminAp,
       startTime: value,
       endTime,
+      derived,
     });
   };
 
@@ -113,6 +148,7 @@ const MushCalcRadio = () => {
       pikminAp,
       startTime,
       endTime: value,
+      derived,
     });
   };
 
@@ -125,6 +161,18 @@ const MushCalcRadio = () => {
     setEndTime(null);
     setStartTimeUnix("");
     setEndTimeUnix("");
+  };
+
+  const handleSave = () => {
+    addEvent({
+      id: crypto.randomUUID(),
+      mush: mush as Mushroom,
+      health,
+      pikminAp,
+      startTime: startTime as Dayjs,
+      endTime: endTime as Dayjs,
+    });
+    setSnackbarOpen(true);
   };
 
   return (
@@ -185,6 +233,7 @@ const MushCalcRadio = () => {
           <Box sx={{ display: "flex", gap: 2 }}>
             <Autocomplete
               disablePortal
+              disableClearable
               readOnly={derived === "health"}
               options={mushrooms}
               sx={{
@@ -199,7 +248,7 @@ const MushCalcRadio = () => {
               onChange={(e: any, mush: Mushroom | null) =>
                 handleMushChange(mush!)
               }
-              value={mush}
+              value={mush ?? undefined}
               renderInput={(params: any) => (
                 <TextField {...params} label={`Mushroom Type`} />
               )}
@@ -217,10 +266,6 @@ const MushCalcRadio = () => {
         <Box
           sx={{
             p: 2,
-            gap: 8,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
           }}
         >
           <NumberSpinner
@@ -238,7 +283,6 @@ const MushCalcRadio = () => {
             gap: 8,
             display: "flex",
             alignItems: "center",
-            justifyContent: "space-between",
           }}
         >
           <DateTimePicker
@@ -286,13 +330,13 @@ const MushCalcRadio = () => {
             gap: 8,
             display: "flex",
             alignItems: "center",
-            justifyContent: "space-between",
           }}
         >
           {startTime && (
             <TextField
               label="discord start time timestamp"
               value={startTimeUnix}
+              sx={{ minWidth: 246 }}
               slotProps={{
                 input: {
                   readOnly: true,
@@ -313,6 +357,7 @@ const MushCalcRadio = () => {
             <TextField
               label="discord end time timestamp"
               value={endTimeUnix}
+              sx={{ minWidth: 246 }}
               slotProps={{
                 input: {
                   readOnly: true,
@@ -328,7 +373,47 @@ const MushCalcRadio = () => {
             />
           )}
         </Box>
-        {<Footer />}
+        <Divider />
+        <Box
+          sx={{
+            display: "flex",
+            gap: 8,
+            p: 2,
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <Typography variant="caption" gutterBottom>
+            * All numbers are rounded up
+          </Typography>
+          {/* <TextField
+            label="event ID"
+            // value={}
+            sx={{ minWidth: 246 }}
+            slotProps={{
+              input: {
+                readOnly: true,
+                endAdornment: (
+                  <IconButton
+                    onClick={() => navigator.clipboard.writeText(endTimeUnix)}
+                  >
+                    <ContentCopyIcon />
+                  </IconButton>
+                ),
+              },
+            }}
+          /> */}
+          <Button variant="contained" disabled={!valid} onClick={handleSave}>
+            Save to calendar
+          </Button>
+          <Snackbar
+            open={snackbarOpen}
+            autoHideDuration={1000}
+            onClose={() => setSnackbarOpen(false)}
+            message="Result saved"
+            action={<></>}
+          />
+        </Box>
       </CardContent>
     </Card>
   );
