@@ -213,6 +213,7 @@ const Timeline = () => {
             />
             <IconButton
               onClick={() => {
+                setShowMoreInfo(false);
                 setSelectedEvent(null);
                 setInputEventId("");
                 setShowMoreInfo(true);
@@ -223,6 +224,7 @@ const Timeline = () => {
           </Box>
           {showMoreInfo && (
             <MoreInfo
+              key={selectedEvent?.id ?? "new"}
               mushEvent={selectedEvent}
               onDelete={() => setShowMoreInfo(false)}
             />
