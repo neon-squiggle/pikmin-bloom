@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Box, Button, TextField, Autocomplete } from "@mui/material";
 import dayjs, { Dayjs } from "dayjs";
 
@@ -28,27 +28,36 @@ const DEFAULT_TIMELEFT: TimeRemaining = {
 const MoreInfo = ({ mushEvent, onDelete }: MoreInfoProps) => {
   const { addEvent, updateEvent, deleteEvent } = useSharedMushroomTries();
 
-  const [name, setName] = useState<string>(mushEvent?.name ?? "");
-  const [mush, setMush] = useState<Mushroom | null>(mushEvent?.mush ?? null);
-  const [pikminAp, setPikminAp] = useState<number>(mushEvent?.pikminAp ?? 2);
-  const [endTime, setEndTime] = useState<Dayjs>(mushEvent?.endTime ?? dayjs());
-  const [timeLeft, setTimeLeft] = useState<TimeRemaining>(
-    mushEvent?.endTime
-      ? diffToTimeRemaining(mushEvent.endTime)
-      : DEFAULT_TIMELEFT
-  );
-  const [draftId, setDraftId] = useState<string | null>(mushEvent?.id ?? null);
+  const [name, setName] = useState("");
+  const [mush, setMush] = useState<Mushroom | null>(null);
+  const [pikminAp, setPikminAp] = useState(2);
+  const [endTime, setEndTime] = useState<Dayjs>(dayjs());
+  const [timeLeft, setTimeLeft] = useState<TimeRemaining>(DEFAULT_TIMELEFT);
+  const [draftId, setDraftId] = useState<string | null>(null);
 
-  const handleRevert = () => {
+  useEffect(() => {
     setName(mushEvent?.name ?? "");
     setMush(mushEvent?.mush ?? null);
     setPikminAp(mushEvent?.pikminAp ?? 2);
+    setEndTime(mushEvent?.endTime ?? dayjs());
     setTimeLeft(
       mushEvent?.endTime
         ? diffToTimeRemaining(mushEvent.endTime)
         : DEFAULT_TIMELEFT
     );
+    setDraftId(mushEvent?.id ?? null);
+  }, [mushEvent]);
+
+  const handleRevert = () => {
+    setName(mushEvent?.name ?? "");
+    setMush(mushEvent?.mush ?? null);
+    setPikminAp(mushEvent?.pikminAp ?? 2);
     setEndTime(mushEvent?.endTime ?? dayjs());
+    setTimeLeft(
+      mushEvent?.endTime
+        ? diffToTimeRemaining(mushEvent.endTime)
+        : DEFAULT_TIMELEFT
+    );
   };
 
   const applyTimeDelta = (
@@ -103,7 +112,7 @@ const MoreInfo = ({ mushEvent, onDelete }: MoreInfoProps) => {
         <Autocomplete
           disablePortal
           options={mushrooms}
-          onChange={(e, val) => val && setMush(val)}
+          onChange={(e, val) => setMush(val)}
           value={mush}
           renderInput={(params) => (
             <TextField {...params} label="Mushroom Type" />
@@ -113,7 +122,7 @@ const MoreInfo = ({ mushEvent, onDelete }: MoreInfoProps) => {
           label="Total AP"
           min={2}
           value={pikminAp}
-          onValueChange={(val) => val && setPikminAp(val)}
+          onValueChange={(val) => val != null && setPikminAp(val)}
         />
         <Box sx={{ display: "flex", gap: 2 }}>
           <NumberSpinner

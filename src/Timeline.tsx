@@ -1,8 +1,7 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import dayjs from "dayjs";
 import {
   Box,
-  Button,
   IconButton,
   List,
   ListSubheader,
@@ -10,11 +9,9 @@ import {
   ListItemText,
   Card,
   CardContent,
-  Typography,
   Select,
   MenuItem,
   Collapse,
-  Fab,
   TextField,
 } from "@mui/material";
 import ExpandLess from "@mui/icons-material/ExpandLess";
@@ -23,32 +20,43 @@ import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
 import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
 import AddIcon from "@mui/icons-material/Add";
 
-import { MushroomTry, MushroomData } from "./types";
-import { encodeEvent, decodeEvent } from "./helpers";
 import DateMonogram from "./DateMonogram";
 import MoreInfo from "./MoreInfo";
 import { useSharedMushroomTries } from "./Provider";
+import { MushroomTry, MushroomData } from "./types";
+import { decodeEvent } from "./helpers";
 
 const Timeline = () => {
-  const { events, days, monthsWithEvents, selectedMonth, setSelectedMonth } =
+  const { days, monthsWithEvents, selectedMonth, setSelectedMonth } =
     useSharedMushroomTries();
+
   const [selectedEvent, setSelectedEvent] = useState<MushroomTry | null>(null);
-  const [showMoreInfo, setShowMoreInfo] = useState<boolean>(false);
-  const [inputEventId, setInputEventId] = useState<string>("");
+  const [showMoreInfo, setShowMoreInfo] = useState(false);
+  const [inputEventId, setInputEventId] = useState("");
+  const [formKey, setFormKey] = useState<string>(crypto.randomUUID());
 
-  const defaultExpandedDays = useMemo(() => {
-    return days.reduce((acc, day) => {
-      acc[day.date] = true;
-      return acc;
-    }, {} as Record<string, boolean>);
-  }, [days]);
+  const defaultExpandedDays = useMemo(
+    () =>
+      days.reduce((acc, day) => {
+        acc[day.date] = true;
+        return acc;
+      }, {} as Record<string, boolean>),
+    [days]
+  );
+  const [expandedDays, setExpandedDays] = useState(defaultExpandedDays);
 
-  const [expandedDays, setExpandedDays] =
-    useState<Record<string, boolean>>(defaultExpandedDays);
+  const handleToggleDay = (date: string) => {
+    setExpandedDays((prev) => ({ ...prev, [date]: !prev[date] }));
+  };
 
-  useEffect(() => {
-    setExpandedDays(defaultExpandedDays);
-  }, [defaultExpandedDays]);
+  const handleToggleAll = () => {
+    const allExpanded = Object.values(expandedDays).every(Boolean);
+    setExpandedDays(
+      Object.fromEntries(
+        Object.keys(expandedDays).map((k) => [k, !allExpanded])
+      )
+    );
+  };
 
   const handleInputEvent = (value: string) => {
     setInputEventId(value);
@@ -63,41 +71,22 @@ const Timeline = () => {
         endTime,
         pikminAp,
       });
+      setFormKey(crypto.randomUUID());
       setShowMoreInfo(true);
     }
   };
 
-  const handleToggleDay = (date: string) => {
-    setExpandedDays((prev) => ({ ...prev, [date]: !prev[date] }));
-  };
-
-  const handleToggleAll = () => {
-    setExpandedDays((prev) => {
-      const allExpanded = Object.values(prev).every(Boolean);
-      return Object.fromEntries(
-        Object.keys(prev).map((key) => [key, !allExpanded])
-      );
-    });
+  const handleAddNew = () => {
+    setSelectedEvent(null);
+    setInputEventId("");
+    setFormKey(crypto.randomUUID());
+    setShowMoreInfo(true);
   };
 
   return (
-    <Card
-      variant="elevation"
-      sx={{
-        display: "flex",
-        position: "relative",
-        flexDirection: "row",
-        height: "80vh",
-      }}
-    >
+    <Card sx={{ display: "flex", flexDirection: "row", height: "80vh" }}>
       <CardContent sx={{ display: "flex", flex: 1, minHeight: 0 }}>
-        <Box
-          sx={{
-            width: 330,
-            overflowY: "auto",
-            minHeight: 0,
-          }}
-        >
+        <Box sx={{ width: 330, overflowY: "auto", minHeight: 0 }}>
           <List
             component="nav"
             sx={{ width: "100%" }}
@@ -113,11 +102,7 @@ const Timeline = () => {
                 >
                   <Select
                     value={selectedMonth}
-                    onChange={(e) => {
-                      setSelectedEvent(null);
-                      setInputEventId("");
-                      setSelectedMonth(e.target.value);
-                    }}
+                    onChange={(e) => setSelectedMonth(e.target.value)}
                     sx={{ flex: 1 }}
                   >
                     {Object.entries(monthsWithEvents).map(([key, value]) => (
@@ -127,9 +112,7 @@ const Timeline = () => {
                     ))}
                   </Select>
                   <IconButton onClick={handleToggleAll} size="small">
-                    {Object.values(expandedDays).every(
-                      (day) => day === true
-                    ) ? (
+                    {Object.values(expandedDays).every(Boolean) ? (
                       <UnfoldLessIcon />
                     ) : (
                       <UnfoldMoreIcon />
@@ -140,11 +123,11 @@ const Timeline = () => {
             }
           >
             {days.map((day) => (
-              <>
+              <React.Fragment key={day.date}>
                 <ListItemButton onClick={() => handleToggleDay(day.date)}>
                   <DateMonogram
-                    day={dayjs(day.date, "YYYY-MM-DD").format("ddd")}
-                    date={dayjs(day.date, "YYYY-MM-DD").format("D")}
+                    day={dayjs(day.date).format("ddd")}
+                    date={dayjs(day.date).format("D")}
                   />
                   <ListItemText
                     primary={`${day.tries.length} mushroom${
@@ -160,17 +143,20 @@ const Timeline = () => {
                   unmountOnExit
                 >
                   <List component="div" disablePadding>
-                    {day.tries.map((mushEvent: MushroomTry) => (
+                    {day.tries.map((mushEvent) => (
                       <ListItemButton
+                        key={mushEvent.id}
                         sx={{ pl: 10, py: 0.25, minHeight: "auto" }}
                         onClick={() => {
                           setSelectedEvent(mushEvent);
+                          setFormKey(crypto.randomUUID());
                           setShowMoreInfo(true);
                         }}
                       >
                         <ListItemText
                           primary={
-                            (mushEvent?.name || mushEvent?.mush?.label) ??
+                            mushEvent.name ||
+                            mushEvent.mush?.label ||
                             "Untitled"
                           }
                           secondary={mushEvent.endTime.format("HH:mm")}
@@ -179,10 +165,11 @@ const Timeline = () => {
                     ))}
                   </List>
                 </Collapse>
-              </>
+              </React.Fragment>
             ))}
           </List>
         </Box>
+
         <Box
           sx={{
             flex: 1,
@@ -208,23 +195,17 @@ const Timeline = () => {
             <TextField
               label="input event ID"
               value={inputEventId}
-              onChange={(event) => handleInputEvent(event.target.value)}
+              onChange={(e) => handleInputEvent(e.target.value)}
               sx={{ minWidth: 246 }}
             />
-            <IconButton
-              onClick={() => {
-                setShowMoreInfo(false);
-                setSelectedEvent(null);
-                setInputEventId("");
-                setShowMoreInfo(true);
-              }}
-            >
+            <IconButton onClick={handleAddNew}>
               <AddIcon />
             </IconButton>
           </Box>
+
           {showMoreInfo && (
             <MoreInfo
-              key={selectedEvent?.id ?? "new"}
+              key={formKey}
               mushEvent={selectedEvent}
               onDelete={() => setShowMoreInfo(false)}
             />
