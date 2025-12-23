@@ -23,7 +23,8 @@ import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
 import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
 import AddIcon from "@mui/icons-material/Add";
 
-import { MushroomTry } from "./types";
+import { MushroomTry, MushroomData } from "./types";
+import { encodeEvent, decodeEvent } from "./helpers";
 import DateMonogram from "./DateMonogram";
 import MoreInfo from "./MoreInfo";
 import { useSharedMushroomTries } from "./Provider";
@@ -33,6 +34,7 @@ const Timeline = () => {
     useSharedMushroomTries();
   const [selectedEvent, setSelectedEvent] = useState<MushroomTry | null>(null);
   const [showMoreInfo, setShowMoreInfo] = useState<boolean>(false);
+  const [inputEventId, setInputEventId] = useState<string>("");
 
   const defaultExpandedDays = useMemo(() => {
     return days.reduce((acc, day) => {
@@ -47,6 +49,23 @@ const Timeline = () => {
   useEffect(() => {
     setExpandedDays(defaultExpandedDays);
   }, [defaultExpandedDays]);
+
+  const handleInputEvent = (value: string) => {
+    setInputEventId(value);
+    const decoded: MushroomData | null = decodeEvent(value);
+    if (decoded) {
+      const { mush, health, startTime, endTime, pikminAp } = decoded;
+      setSelectedEvent({
+        name: "",
+        mush,
+        health,
+        startTime,
+        endTime,
+        pikminAp,
+      });
+      setShowMoreInfo(true);
+    }
+  };
 
   const handleToggleDay = (date: string) => {
     setExpandedDays((prev) => ({ ...prev, [date]: !prev[date] }));
@@ -94,7 +113,11 @@ const Timeline = () => {
                 >
                   <Select
                     value={selectedMonth}
-                    onChange={(e) => setSelectedMonth(e.target.value)}
+                    onChange={(e) => {
+                      setSelectedEvent(null);
+                      setInputEventId("");
+                      setSelectedMonth(e.target.value);
+                    }}
                     sx={{ flex: 1 }}
                   >
                     {Object.entries(monthsWithEvents).map(([key, value]) => (
@@ -147,7 +170,7 @@ const Timeline = () => {
                       >
                         <ListItemText
                           primary={
-                            (mushEvent.name || mushEvent.mush.label) ??
+                            (mushEvent?.name || mushEvent?.mush?.label) ??
                             "Untitled"
                           }
                           secondary={mushEvent.endTime.format("HH:mm")}
@@ -182,8 +205,19 @@ const Timeline = () => {
               mb: 2,
             }}
           >
-            {/* <TextField label="event ID"></TextField> */}
-            <IconButton onClick={() => setShowMoreInfo(true)}>
+            <TextField
+              label="input event ID"
+              value={inputEventId}
+              onChange={(event) => handleInputEvent(event.target.value)}
+              sx={{ minWidth: 246 }}
+            />
+            <IconButton
+              onClick={() => {
+                setSelectedEvent(null);
+                setInputEventId("");
+                setShowMoreInfo(true);
+              }}
+            >
               <AddIcon />
             </IconButton>
           </Box>

@@ -1,7 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { Box, Button, TextField, Autocomplete } from "@mui/material";
 
-import { MushroomTry, Mushroom, mushrooms, TimeRemaining } from "./types";
+import {
+  MushroomTry,
+  Mushroom,
+  mushrooms,
+  TimeRemaining,
+  MushroomData,
+} from "./types";
 import {
   diffToTimeRemaining,
   durationFromNowToEndDate,
@@ -66,6 +72,8 @@ const MoreInfo = ({ mushEvent, onDelete }: MoreInfoProps) => {
         : DEFAULT_TIMELEFT
     );
   };
+
+  const eventId = mushEvent?.id;
 
   return (
     <Box
@@ -155,12 +163,12 @@ const MoreInfo = ({ mushEvent, onDelete }: MoreInfoProps) => {
           p: 1,
         }}
       >
-        {mushEvent && (
+        {eventId && (
           <Button
             variant="outlined"
             color="error"
             onClick={() => {
-              deleteEvent(mushEvent.id);
+              deleteEvent(eventId);
               onDelete();
             }}
           >
@@ -173,7 +181,7 @@ const MoreInfo = ({ mushEvent, onDelete }: MoreInfoProps) => {
         <Button
           variant="contained"
           onClick={() =>
-            mushEvent
+            mushEvent && mushEvent.id
               ? updateEvent(mushEvent.id, {
                   name,
                   pikminAp,

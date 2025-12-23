@@ -7,7 +7,7 @@ import MushCalcRadio from "./MushCalcRadio";
 import Timeline from "./Timeline";
 
 const View = () => {
-  const [mode, setMode] = useState<Mode>("calendar");
+  const [mode, setMode] = useState<Mode>("calculator");
 
   const handleModeChange = (e: any, value: Mode) => {
     if (value) setMode(value);

@@ -1,5 +1,5 @@
 import dayjs, { Dayjs } from "dayjs";
-import { Estimate, Mushroom, MushroomTry, TimeRemaining } from "./types";
+import { Mushroom, MushroomData, TimeRemaining, mushrooms } from "./types";
 
 export const calculateTime = (health: number, ap: number) => {
   const timeEstimate = (health * 100) / ap;
@@ -88,12 +88,48 @@ export const isInvalidDuration = ({
 }: TimeRemaining): boolean =>
   [days, hours, minutes, seconds].every((v) => Number(v) === 0);
 
-export function encodeForm(state: MushroomTry): string {
-  const json = JSON.stringify(state);
-  return btoa(json);
-}
+export const encodeEvent = (event: MushroomData) => {
+  const m = event.mush.key;
+  const h = event.health.toString(36);
+  const ap = event.pikminAp.toString(36);
+  const st = event.startTime.unix().toString(36);
+  const et = event.endTime.unix().toString(36);
 
-export function decodeForm(encoded: string): MushroomTry {
-  const json = atob(encoded);
-  return JSON.parse(json) as MushroomTry;
-}
+  console.log(event.startTime, event.endTime);
+  return `${m}-${h}-${ap}-${st}-${et}`;
+};
+
+export const decodeEvent = (code: string): MushroomData | null => {
+  if (!code) return null;
+  const parts = code.split("-");
+  if (parts.length !== 5) return null;
+
+  const [mKey, hStr, apStr, stStr, etStr] = code.split("-");
+
+  const mush: Mushroom | undefined = mushrooms.find((m) => m.key === mKey);
+  if (!mush) return null;
+
+  const health = parseInt(hStr, 36);
+  const pikminAp = parseInt(apStr, 36);
+  const startTime = parseInt(stStr, 36);
+  const endTime = parseInt(etStr, 36);
+
+  if (
+    Number.isNaN(health) ||
+    Number.isNaN(pikminAp) ||
+    Number.isNaN(startTime) ||
+    Number.isNaN(endTime)
+  ) {
+    return null;
+  }
+
+  console.log(startTime, endTime);
+
+  return {
+    mush,
+    health,
+    pikminAp,
+    startTime: dayjs(startTime * 1000),
+    endTime: dayjs(endTime * 1000),
+  };
+};

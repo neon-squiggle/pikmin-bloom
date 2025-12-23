@@ -1,6 +1,7 @@
 import { Dayjs } from "dayjs";
 
 export interface Mushroom {
+  key: string;
   label: string;
   value: number;
 }
@@ -10,43 +11,42 @@ export type RadioEstimate = "health" | "startTime" | "endTime" | "ap";
 export const calculationTypes: Estimate[] = ["health", "time", "ap"];
 
 export const mushrooms: Mushroom[] = [
-  { label: "Small Red", value: 87400 },
-  { label: "Small Yellow", value: 84200 },
-  { label: "Small Blue", value: 84200 },
-  { label: "Small Purple", value: 93900 },
-  { label: "Small White", value: 81000 },
-  { label: "Small Pink", value: 81000 },
-  { label: "Small Gray", value: 90700 },
-  { label: "Small Ice Blue", value: 81000 },
-  { label: "Normal Red", value: 670600 },
-  { label: "Normal Yellow", value: 645800 },
-  { label: "Normal Blue", value: 645800 },
-  { label: "Normal Purple", value: 720300 },
-  { label: "Normal White", value: 621000 },
-  { label: "Normal Pink", value: 621000 },
-  { label: "Normal Gray", value: 695500 },
-  { label: "Normal Ice Blue", value: 621000 },
-  { label: "Normal Fire", value: 3850200 },
-  { label: "Normal Water", value: 3816700 },
-  { label: "Normal Crystal", value: 3883600 },
-  { label: "Normal Electric", value: 3816700 },
-  { label: "Normal Poisonous", value: 3783200 },
-  { label: "Large Red", value: 2916000 },
-  { label: "Large Yellow", value: 2808000 },
-  { label: "Large Blue", value: 2808000 },
-  { label: "Large Purple", value: 3132000 },
-  { label: "Large White", value: 2700000 },
-  { label: "Large Pink", value: 2700000 },
-  { label: "Large Gray", value: 3024000 },
-  { label: "Large Ice Blue", value: 2700000 },
-  { label: "Large Fire", value: 13662000 },
-  { label: "Large Water", value: 13543200 },
-  { label: "Large Crystal", value: 13780800 },
-  { label: "Large Electric", value: 13543200 },
-  { label: "Large Poisonous", value: 13424400 },
-  { label: "Normal Event", value: 648000 },
-  { label: "Giant Event", value: 2880000 },
-  { label: "Super Giant Event", value: 3456000 },
+  { key: "sr", label: "Small Red", value: 87400 },
+  { key: "sy", label: "Small Yellow", value: 84200 },
+  { key: "sb", label: "Small Blue", value: 84200 },
+  { key: "spe", label: "Small Purple", value: 93900 },
+  { key: "sw", label: "Small White", value: 81000 },
+  { key: "spk", label: "Small Pink", value: 81000 },
+  { key: "sg", label: "Small Gray", value: 90700 },
+  { key: "sib", label: "Small Ice Blue", value: 81000 },
+  { key: "nr", label: "Normal Red", value: 670600 },
+  { key: "ny", label: "Normal Yellow", value: 645800 },
+  { key: "nb", label: "Normal Blue", value: 645800 },
+  { key: "npe", label: "Normal Purple", value: 720300 },
+  { key: "nw", label: "Normal White", value: 621000 },
+  { key: "npk", label: "Normal Pink", value: 621000 },
+  { key: "ng", label: "Normal Gray", value: 695500 },
+  { key: "nib", label: "Normal Ice Blue", value: 621000 },
+  { key: "nf", label: "Normal Fire", value: 3850200 },
+  { key: "nw", label: "Normal Water", value: 3816700 },
+  { key: "nc", label: "Normal Crystal", value: 3883600 },
+  { key: "ne", label: "Normal Electric", value: 3816700 },
+  { key: "nps", label: "Normal Poisonous", value: 3783200 },
+  { key: "lr", label: "Large Red", value: 2916000 },
+  { key: "ly", label: "Large Yellow", value: 2808000 },
+  { key: "lb", label: "Large Blue", value: 2808000 },
+  { key: "lpe", label: "Large Purple", value: 3132000 },
+  { key: "lw", label: "Large White", value: 2700000 },
+  { key: "lpk", label: "Large Pink", value: 2700000 },
+  { key: "lg", label: "Large Gray", value: 3024000 },
+  { key: "lib", label: "Large Ice Blue", value: 2700000 },
+  { key: "lf", label: "Large Fire", value: 13662000 },
+  { key: "lw", label: "Large Water", value: 13543200 },
+  { key: "lc", label: "Large Crystal", value: 13780800 },
+  { key: "le", label: "Large Electric", value: 13543200 },
+  { key: "lps", label: "Large Poisonous", value: 13424400 },
+  { key: "nm", label: "Normal Event", value: 648000 },
+  { key: "gm", label: "Giant Event", value: 2880000 },
 ];
 
 export const higherBaseAp = ["Yellow", "Purple", "Pink", "Ice Blue"];
@@ -63,11 +63,19 @@ export interface TimeRemaining {
 }
 
 export interface MushroomTry {
-  id: string;
+  id?: string;
   name?: string;
   mush: Mushroom;
   health: number;
   pikminAp: number;
   startTime?: Dayjs;
+  endTime: Dayjs;
+}
+
+export interface MushroomData {
+  mush: Mushroom;
+  health: number;
+  pikminAp: number;
+  startTime: Dayjs;
   endTime: Dayjs;
 }
