@@ -22,7 +22,9 @@ export function useMushroomTries() {
   }, [events]);
 
   function addEvent(event: MushroomTry) {
-    setEvents((prev) => [...prev, event]);
+    setEvents((prev) =>
+      [...prev, event].sort((a, b) => a.endTime.valueOf() - b.endTime.valueOf())
+    );
   }
   function updateEvent(id: string, updated: Partial<MushroomTry>) {
     setEvents((prev) =>
