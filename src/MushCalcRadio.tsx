@@ -89,11 +89,11 @@ const MushCalcRadio = () => {
     } else if (derivedVal === "startTime" && calcEnd && calcMush && calcAp) {
       calcStart = calculateStartTime(calcHealth, calcAp, calcEnd);
       setStartTime(calcStart);
-      setStartTimeUnix(`<t:${calcStart.unix()}:R>`);
+      setStartTimeUnix(`<t:${calcStart.unix()}:f>`);
     } else if (derivedVal === "endTime" && calcStart && calcMush && calcStart) {
       calcEnd = calculateEndTime(calcHealth, calcAp, calcStart);
       setEndTime(calcEnd);
-      setEndTimeUnix(`<t:${calcEnd.unix()}:R>`);
+      setEndTimeUnix(`<t:${calcEnd.unix()}:f>`);
     } else {
       return;
     }
@@ -119,8 +119,8 @@ const MushCalcRadio = () => {
       setPikminAp(pikminAp);
       setStartTime(startTime);
       setEndTime(endTime);
-      setStartTimeUnix(`<t:${startTime.unix()}:R>`);
-      setEndTimeUnix(`<t:${endTime.unix()}:R>`);
+      setStartTimeUnix(`<t:${startTime.unix()}:f>`);
+      setEndTimeUnix(`<t:${endTime.unix()}:f>`);
     }
   };
 
@@ -181,7 +181,7 @@ const MushCalcRadio = () => {
 
   const handleStartTimeChange = (value: Dayjs | null) => {
     setStartTime(value);
-    setStartTimeUnix(`<t:${value?.unix()}:R>`);
+    setStartTimeUnix(`<t:${value?.unix()}:f>`);
     recomputeDerived({
       mushVal: mush,
       healthVal: health,
@@ -194,7 +194,7 @@ const MushCalcRadio = () => {
 
   const handleEndTimeChange = (value: Dayjs | null) => {
     setEndTime(value);
-    setEndTimeUnix(`<t:${value?.unix()}:R>`);
+    setEndTimeUnix(`<t:${value?.unix()}:f>`);
     recomputeDerived({
       mushVal: mush,
       healthVal: health,
