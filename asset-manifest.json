@@ -1,13 +1,13 @@
 {
   "files": {
     "main.css": "/pikmin-bloom/static/css/main.f3637df0.css",
-    "main.js": "/pikmin-bloom/static/js/main.01ba02e5.js",
+    "main.js": "/pikmin-bloom/static/js/main.a60df38d.js",
     "index.html": "/pikmin-bloom/index.html",
     "main.f3637df0.css.map": "/pikmin-bloom/static/css/main.f3637df0.css.map",
-    "main.01ba02e5.js.map": "/pikmin-bloom/static/js/main.01ba02e5.js.map"
+    "main.a60df38d.js.map": "/pikmin-bloom/static/js/main.a60df38d.js.map"
   },
   "entrypoints": [
     "static/css/main.f3637df0.css",
-    "static/js/main.01ba02e5.js"
+    "static/js/main.a60df38d.js"
   ]
 }
