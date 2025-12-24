@@ -161,11 +161,12 @@ const MushCalcRadio = () => {
     if (mush) {
       setHealth(mush.value);
       const minAp = mushrooms.find((m) => m.label === mush.label)?.minimum ?? 2;
-      setPikminAp(minAp);
+      const setAp = pikminAp !== 2 ? pikminAp : minAp;
+      setPikminAp(setAp);
       recomputeDerived({
         mushVal: mush,
         healthVal: mush.value,
-        pikminApVal: pikminAp !== 2 ? pikminAp : minAp,
+        pikminApVal: setAp,
         startTimeVal: startTime,
         endTimeVal: endTime,
         derivedVal: derived,
