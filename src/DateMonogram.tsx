@@ -1,5 +1,5 @@
 import React from "react";
-import { ListItemIcon, Avatar, Typography } from "@mui/material";
+import { ListItemAvatar, Avatar, Typography } from "@mui/material";
 
 interface DateMonogramProps {
   day: string;
@@ -7,7 +7,7 @@ interface DateMonogramProps {
 }
 
 const DateMonogram = ({ day, date }: DateMonogramProps) => (
-  <ListItemIcon>
+  <ListItemAvatar>
     <Avatar
       sx={{
         bgcolor: "primary.light",
@@ -27,7 +27,7 @@ const DateMonogram = ({ day, date }: DateMonogramProps) => (
         {date}
       </Typography>
     </Avatar>
-  </ListItemIcon>
+  </ListItemAvatar>
 );
 
 export default DateMonogram;

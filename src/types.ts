@@ -50,6 +50,20 @@ export const mushrooms: Mushroom[] = [
   { key: "gm", label: "Giant Event", value: 2880000, minimum: 2 * 20 },
 ];
 
+export const mushStages: { stage: string; tries: number }[] = [
+  { stage: "1-4", tries: 2 },
+  { stage: "2-2", tries: 2 },
+  { stage: "2-3", tries: 3 },
+  { stage: "2-4", tries: 4 },
+  { stage: "3-2", tries: 3 },
+  { stage: "3-3", tries: 4 },
+  { stage: "3-4", tries: 5 },
+  { stage: "4-1", tries: 3 },
+  { stage: "4-2", tries: 4 },
+  { stage: "4-3", tries: 4 },
+  { stage: "4-4", tries: 5 },
+];
+
 export const higherBaseAp = ["Yellow", "Purple", "Pink", "Ice Blue"];
 
 export const elementals = ["Fire", "Water", "Crystal", "Electric", "Poisonous"];

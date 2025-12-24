@@ -84,7 +84,7 @@ const Timeline = () => {
   };
 
   return (
-    <Card sx={{ display: "flex", flexDirection: "row", height: "80vh" }}>
+    <Card sx={{ display: "flex", flexDirection: "row", height: "85vh" }}>
       <CardContent sx={{ display: "flex", flex: 1, minHeight: 0 }}>
         <Box sx={{ width: 330, overflowY: "auto", minHeight: 0 }}>
           <List
