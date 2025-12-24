@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Box, ToggleButtonGroup, ToggleButton } from "@mui/material";
 import CalculateIcon from "@mui/icons-material/Calculate";
 import EventIcon from "@mui/icons-material/Event";
-import { MushroomTry, Mode } from "./types";
+import { Mode } from "./types";
 import MushCalcRadio from "./MushCalcRadio";
 import Timeline from "./Timeline";
 

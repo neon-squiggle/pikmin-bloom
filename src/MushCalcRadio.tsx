@@ -21,14 +21,8 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import NumberSpinner from "./NumberSpinner";
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
-import {
-  mushrooms,
-  Mushroom,
-  RadioEstimate,
-  MushroomTry,
-  MushroomData,
-} from "./types";
-import dayjs, { Dayjs } from "dayjs";
+import { mushrooms, Mushroom, RadioEstimate, MushroomData } from "./types";
+import { Dayjs } from "dayjs";
 import {
   calculateApTimeRange,
   calculateHealthTimeRange,
@@ -166,10 +160,12 @@ const MushCalcRadio = () => {
     setMush(mush);
     if (mush) {
       setHealth(mush.value);
+      const minAp = mushrooms.find((m) => m.label === mush.label)?.minimum ?? 2;
+      setPikminAp(minAp);
       recomputeDerived({
         mushVal: mush,
         healthVal: mush.value,
-        pikminApVal: pikminAp,
+        pikminApVal: pikminAp !== 2 ? pikminAp : minAp,
         startTimeVal: startTime,
         endTimeVal: endTime,
         derivedVal: derived,
@@ -216,6 +212,7 @@ const MushCalcRadio = () => {
     setEndTimeUnix("");
     setInputEventId("");
     setOutputEventId("");
+    setValid(false);
   };
 
   const handleSave = () => {
