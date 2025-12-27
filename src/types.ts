@@ -1,4 +1,14 @@
 import { Dayjs } from "dayjs";
+import {
+  red,
+  orange,
+  yellow,
+  green,
+  blue,
+  purple,
+  pink,
+  teal,
+} from "@mui/material/colors";
 
 export interface Mushroom {
   key: string;
@@ -50,7 +60,12 @@ export const mushrooms: Mushroom[] = [
   { key: "gm", label: "Giant Event", value: 2880000, minimum: 2 * 20 },
 ];
 
-export const mushStages: { stage: string; tries: number }[] = [
+export interface ChallengeStage {
+  stage: string;
+  tries: number;
+}
+
+export const mushStages: ChallengeStage[] = [
   { stage: "1-4", tries: 2 },
   { stage: "2-2", tries: 2 },
   { stage: "2-3", tries: 3 },
@@ -96,3 +111,18 @@ export interface MushroomData {
 }
 
 export type TimeUnit = "day" | "hour" | "minute" | "second";
+
+export interface Segment {
+  px: number;
+  color: string;
+}
+
+const shade = 700;
+
+export const colorPalette: string[] = [
+  blue[shade],
+  orange[shade],
+  green[shade],
+  purple[shade],
+  red[shade],
+];

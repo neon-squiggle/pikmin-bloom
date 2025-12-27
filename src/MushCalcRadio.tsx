@@ -370,7 +370,7 @@ const MushCalcRadio = () => {
             readOnly={derived === "endTime"}
             value={endTime}
             onChange={handleEndTimeChange}
-            minDateTime={startTime ?? undefined}
+            minDateTime={startTime?.add(1, "minute") ?? undefined}
             slotProps={{
               textField: {
                 sx: {
