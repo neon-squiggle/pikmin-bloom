@@ -473,7 +473,6 @@ const MushCalcRadio = () => {
             autoHideDuration={1000}
             onClose={() => setSnackbarOpen(false)}
             message="Result saved"
-            action={<></>}
           />
         </Box>
       </CardContent>

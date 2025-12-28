@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Box, Button, TextField, Autocomplete } from "@mui/material";
+import { Box, Button, TextField, Autocomplete, Snackbar } from "@mui/material";
 import dayjs, { Dayjs } from "dayjs";
 
 import {
@@ -34,6 +34,7 @@ const MoreInfo = ({ mushEvent, onDelete }: MoreInfoProps) => {
   const [endTime, setEndTime] = useState<Dayjs>(dayjs());
   const [timeLeft, setTimeLeft] = useState<TimeRemaining>(DEFAULT_TIMELEFT);
   const [draftId, setDraftId] = useState<string | null>(null);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
 
   useEffect(() => {
     setName(mushEvent?.name ?? "");
@@ -74,6 +75,7 @@ const MoreInfo = ({ mushEvent, onDelete }: MoreInfoProps) => {
       addEvent({ id, name, pikminAp, mush, health: mush.value, endTime });
       setDraftId(id);
     }
+    setSnackbarOpen(true);
   };
 
   return (
@@ -197,6 +199,13 @@ const MoreInfo = ({ mushEvent, onDelete }: MoreInfoProps) => {
           Save
         </Button>
       </Box>
+
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={1000}
+        onClose={() => setSnackbarOpen(false)}
+        message="Result saved"
+      />
     </Box>
   );
 };
