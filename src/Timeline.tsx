@@ -4,6 +4,7 @@ import {
   Box,
   IconButton,
   List,
+  Fab,
   ListSubheader,
   ListItemButton,
   ListItemText,
@@ -121,15 +122,21 @@ const Timeline = () => {
                 sx={{
                   display: "flex",
                   alignItems: "center",
+                  justifyContent: "space-between",
                   borderBottom: 1,
                   borderColor: "divider",
                   px: 1,
                 }}
               >
-                <IconButton onClick={() => setShowMoreInfo(false)}>
-                  <ArrowBackIcon />
+                <Box sx={{ display: "flex", alignItems: "center" }}>
+                  <IconButton onClick={() => setShowMoreInfo(false)}>
+                    <ArrowBackIcon />
+                  </IconButton>
+                  <Typography variant="subtitle1">Event</Typography>
+                </Box>
+                <IconButton onClick={handleAddNew} aria-label="Add event">
+                  <AddIcon />
                 </IconButton>
-                <Typography variant="subtitle1">Event</Typography>
               </Box>
               <Box sx={{ flex: 1, overflowY: "auto", minHeight: 0, mt: 2 }}>
                 <MoreInfo
@@ -232,6 +239,20 @@ const Timeline = () => {
                   </React.Fragment>
                 ))}
               </List>
+              {isSmall && !showMoreInfo && (
+                <Box
+                  sx={{
+                    position: "fixed",
+                    right: 16,
+                    bottom: 16,
+                    zIndex: (theme) => theme.zIndex.tooltip + 1,
+                  }}
+                >
+                  <Fab color="primary" size="small" onClick={handleAddNew}>
+                    <AddIcon />
+                  </Fab>
+                </Box>
+              )}
             </Box>
           )
         ) : (
