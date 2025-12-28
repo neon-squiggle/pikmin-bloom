@@ -84,6 +84,11 @@ const MoreInfo = ({ mushEvent, onDelete }: MoreInfoProps) => {
         flexDirection: "column",
         p: 1,
         overflowY: "auto",
+        minWidth: 0,
+        minHeight: 0,
+        maxHeight: "100%",
+        width: "100%",
+        boxSizing: "border-box",
       }}
     >
       <Box
@@ -112,36 +117,52 @@ const MoreInfo = ({ mushEvent, onDelete }: MoreInfoProps) => {
           value={pikminAp}
           onValueChange={(val) => val != null && setPikminAp(val)}
         />
-        <Box sx={{ display: "flex", gap: 2 }}>
-          <NumberSpinner
-            label="Days"
-            value={timeLeft.days}
-            min={0}
-            onValueChange={(v) => applyTimeDelta(v, "days", "day")}
-          />
-          <NumberSpinner
-            label="Hours"
-            value={timeLeft.hours}
-            min={0}
-            max={23}
-            onValueChange={(v) => applyTimeDelta(v, "hours", "hour")}
-          />
-        </Box>
-        <Box sx={{ display: "flex", gap: 2 }}>
-          <NumberSpinner
-            label="Minutes"
-            value={timeLeft.minutes}
-            min={0}
-            max={59}
-            onValueChange={(v) => applyTimeDelta(v, "minutes", "minute")}
-          />
-          <NumberSpinner
-            label="Seconds"
-            value={timeLeft.seconds}
-            min={0}
-            max={59}
-            onValueChange={(v) => applyTimeDelta(v, "seconds", "second")}
-          />
+        <Box
+          sx={{
+            display: "grid",
+            gap: 2,
+            gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+            alignItems: "start",
+          }}
+        >
+          <Box sx={{ width: "100%" }}>
+            <NumberSpinner
+              label="Days"
+              value={timeLeft.days}
+              min={0}
+              onValueChange={(v) => applyTimeDelta(v, "days", "day")}
+            />
+          </Box>
+
+          <Box sx={{ width: "100%" }}>
+            <NumberSpinner
+              label="Hours"
+              value={timeLeft.hours}
+              min={0}
+              max={23}
+              onValueChange={(v) => applyTimeDelta(v, "hours", "hour")}
+            />
+          </Box>
+
+          <Box sx={{ width: "100%" }}>
+            <NumberSpinner
+              label="Minutes"
+              value={timeLeft.minutes}
+              min={0}
+              max={59}
+              onValueChange={(v) => applyTimeDelta(v, "minutes", "minute")}
+            />
+          </Box>
+
+          <Box sx={{ width: "100%" }}>
+            <NumberSpinner
+              label="Seconds"
+              value={timeLeft.seconds}
+              min={0}
+              max={59}
+              onValueChange={(v) => applyTimeDelta(v, "seconds", "second")}
+            />
+          </Box>
         </Box>
       </Box>
 

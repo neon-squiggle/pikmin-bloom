@@ -241,8 +241,8 @@ const MushCalcRadio = () => {
               label="input event ID"
               value={inputEventId}
               onChange={(event) => handleInputEvent(event.target.value)}
-              sx={{ minWidth: 246 }}
-            />{" "} */}
+              sx={{ minWidth: { xs: "100%", sm: 246 } }}
+            /> */}
             <Button
               startIcon={<RefreshIcon />}
               size="small"
@@ -285,7 +285,7 @@ const MushCalcRadio = () => {
         <Box
           sx={{
             display: "flex",
-            gap: 8,
+            gap: { xs: 2, md: 4 },
             p: 2,
             alignItems: "center",
             justifyContent: "flex-start",
@@ -313,15 +313,23 @@ const MushCalcRadio = () => {
               <TextField {...params} label={`Mushroom Type`} />
             )}
           />
-          <NumberSpinner
-            label={`Mushroom Health`}
-            min={1}
-            readOnly={derived === "health"}
-            disabled={!mush}
-            value={health}
-            onValueChange={handleHealthChange}
-            isToggled={derived === "health"}
-          />
+          <Box
+            sx={{
+              width: { xs: "100%", md: "auto" },
+              display: "flex",
+              alignItems: { xs: "flex-start", md: "center" },
+            }}
+          >
+            <NumberSpinner
+              label={`Mushroom Health`}
+              min={1}
+              readOnly={derived === "health"}
+              disabled={!mush}
+              value={health}
+              onValueChange={handleHealthChange}
+              isToggled={derived === "health"}
+            />
+          </Box>
         </Box>
         <Box
           sx={{
@@ -341,7 +349,7 @@ const MushCalcRadio = () => {
           sx={{
             p: 2,
             display: "flex",
-            gap: 8,
+            gap: { xs: 2, sm: 4 },
             flexDirection: { xs: "column", sm: "row" },
           }}
         >
@@ -447,7 +455,7 @@ const MushCalcRadio = () => {
         <Box
           sx={{
             display: "flex",
-            gap: 8,
+            gap: { xs: 2, md: 4 },
             p: 2,
             alignItems: "center",
             justifyContent: "space-between",

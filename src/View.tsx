@@ -51,7 +51,13 @@ const View = () => {
         </ToggleButtonGroup>
         {mode === "calendar" && !isSmall && <MushStages />}
       </Box>
-      <Box sx={{ width: { xs: "100%", md: 800 }, flexGrow: 1 }}>
+      <Box
+        sx={{
+          width: { xs: "100%", md: "800px" },
+          maxWidth: { md: "800px" },
+          flexGrow: 1,
+        }}
+      >
         {mode === "calculator" && <MushCalcRadio />}
         {mode === "calendar" && <Timeline />}
       </Box>

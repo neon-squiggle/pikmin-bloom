@@ -13,11 +13,13 @@ function App() {
       <LocalizationProvider dateAdapter={AdapterDayjs}>
         <Container
           sx={{
-            p: 3,
+            p: { xs: 2, md: 3 },
             display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
+            flexDirection: { xs: "column", md: "row" },
+            justifyContent: { xs: "flex-start", md: "center" },
+            alignItems: { xs: "stretch", md: "center" },
             overflow: "hidden",
+            width: "100%",
           }}
         >
           <CssBaseline />

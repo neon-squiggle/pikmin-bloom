@@ -96,6 +96,7 @@ const Timeline = () => {
         display: "flex",
         flexDirection: { xs: "column", md: "row" },
         height: { xs: "auto", md: "85vh" },
+        minHeight: 0,
       }}
     >
       <CardContent
@@ -130,7 +131,7 @@ const Timeline = () => {
                 </IconButton>
                 <Typography variant="subtitle1">Event</Typography>
               </Box>
-              <Box sx={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
+              <Box sx={{ flex: 1, overflowY: "auto", minHeight: 0, mt: 2 }}>
                 <MoreInfo
                   key={formKey}
                   mushEvent={selectedEvent}
@@ -160,8 +161,8 @@ const Timeline = () => {
                       >
                         {Object.entries(monthsWithEvents).map(
                           ([key, value]) => (
-                            <MenuItem key={key} value={value.key}>
-                              {value.label}
+                            <MenuItem key={key} value={(value as any).key}>
+                              {(value as any).label}
                             </MenuItem>
                           )
                         )}
@@ -237,9 +238,12 @@ const Timeline = () => {
           <>
             <Box
               sx={{
-                width: { xs: "100%", md: 330 },
+                width: { xs: "100%", md: "34%" },
                 overflowY: "auto",
                 minHeight: 0,
+                flex: { xs: "0 0 auto", md: "0 0 34%" },
+                flexShrink: 0,
+                maxWidth: { md: "40%" },
               }}
             >
               <List
@@ -262,8 +266,8 @@ const Timeline = () => {
                       >
                         {Object.entries(monthsWithEvents).map(
                           ([key, value]) => (
-                            <MenuItem key={key} value={value.key}>
-                              {value.label}
+                            <MenuItem key={key} value={(value as any).key}>
+                              {(value as any).label}
                             </MenuItem>
                           )
                         )}
@@ -337,13 +341,14 @@ const Timeline = () => {
 
             <Box
               sx={{
-                flex: 1,
+                flex: "1 1 0",
                 flexDirection: "column",
                 ml: { xs: 0, md: 2 },
                 mt: { xs: 2, md: 0 },
                 minWidth: 0,
                 minHeight: 0,
                 display: "flex",
+                width: "100%",
               }}
             >
               <Box

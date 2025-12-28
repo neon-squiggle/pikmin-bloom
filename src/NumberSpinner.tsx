@@ -57,10 +57,7 @@ export default function NumberSpinner({
     >
       <BaseNumberField.ScrubArea
         render={
-          <Box
-            component="span"
-            sx={{ userSelect: "none", width: "max-content" }}
-          />
+          <Box component="span" sx={{ userSelect: "none", width: "auto" }} />
         }
       >
         <FormLabel
@@ -133,7 +130,7 @@ export default function NumberSpinner({
                 pr: 0,
                 borderRadius: 0,
                 flex: 1,
-                maxWidth: { xs: "100%", sm: 300 },
+                maxWidth: "100%",
                 width: "100%",
               }}
             />
