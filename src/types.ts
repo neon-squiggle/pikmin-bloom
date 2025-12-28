@@ -1,14 +1,5 @@
 import { Dayjs } from "dayjs";
-import {
-  red,
-  orange,
-  yellow,
-  green,
-  blue,
-  purple,
-  pink,
-  teal,
-} from "@mui/material/colors";
+import { red, orange, yellow, blue, purple, teal } from "@mui/material/colors";
 
 export interface Mushroom {
   key: string;
@@ -79,10 +70,6 @@ export const mushStages: ChallengeStage[] = [
   { stage: "4-4", tries: 5 },
 ];
 
-export const higherBaseAp = ["Yellow", "Purple", "Pink", "Ice Blue"];
-
-export const elementals = ["Fire", "Water", "Crystal", "Electric", "Poisonous"];
-
 export type Mode = "calculator" | "calendar";
 
 export interface TimeRemaining {
@@ -122,7 +109,8 @@ const shade = 700;
 export const colorPalette: string[] = [
   blue[shade],
   orange[shade],
-  green[shade],
   purple[shade],
+  teal[shade],
+  yellow[shade],
   red[shade],
 ];

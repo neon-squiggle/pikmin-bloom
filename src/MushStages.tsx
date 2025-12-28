@@ -3,11 +3,11 @@ import { Stack, Box, Typography } from "@mui/material";
 import { mushStages, ChallengeStage, colorPalette } from "./types";
 import { useSharedMushroomTries } from "./Provider";
 
-const BOX_LENGTH = 48; // Fixed bucket height
-const STRIPE_WIDTH = 4; // Left border width
+const BOX_LENGTH = 48;
+const STRIPE_WIDTH = 4;
 
 interface BucketSegment {
-  fraction: number; // 0-1
+  fraction: number;
   color: string;
 }
 
@@ -19,7 +19,6 @@ const MushStages = () => {
   const { days } = useSharedMushroomTries();
   const tasksPerDay = days.map((d) => d.tries.length + 3);
 
-  // Repeat buckets until total tasks are covered
   const repeatedBuckets = useMemo<BucketWithSegments[]>(() => {
     const totalTasks = tasksPerDay.reduce((a, b) => a + b, 0);
     const bucketSum = mushStages.reduce((a, b) => a + b.tries, 0);
@@ -32,7 +31,7 @@ const MushStages = () => {
         const [start, end] = bucket.stage.split("-").map(Number);
         buckets.push({
           ...bucket,
-          stage: `${start + r * mushStages.length}-${end}`,
+          stage: `${start + r * 4}-${end}`,
           segments: [],
         });
       });
@@ -41,7 +40,6 @@ const MushStages = () => {
     return buckets;
   }, [tasksPerDay]);
 
-  // Assign segments to each bucket based on tasks completed per day
   useMemo(() => {
     let currentBucketIndex = 0;
     let bucketRemaining = repeatedBuckets[0]?.tries ?? 0;
@@ -115,7 +113,6 @@ const MushStages = () => {
               {bucket.tries}
             </Typography>
 
-            {/* Left stripe representing tasks completed per day */}
             {bucket.segments.map((seg, idx) => (
               <Box
                 key={idx}

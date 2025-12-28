@@ -1,15 +1,8 @@
 import React, { useState } from "react";
-import {
-  Box,
-  ToggleButtonGroup,
-  ToggleButton,
-  Typography,
-  Stack,
-  Divider,
-} from "@mui/material";
+import { Box, ToggleButtonGroup, ToggleButton } from "@mui/material";
 import CalculateIcon from "@mui/icons-material/Calculate";
 import EventIcon from "@mui/icons-material/Event";
-import { Mode, mushStages } from "./types";
+import { Mode } from "./types";
 import MushCalcRadio from "./MushCalcRadio";
 import Timeline from "./Timeline";
 import MushStages from "./MushStages";

@@ -23,7 +23,7 @@ import AddIcon from "@mui/icons-material/Add";
 import DateMonogram from "./DateMonogram";
 import MoreInfo from "./MoreInfo";
 import { useSharedMushroomTries } from "./Provider";
-import { MushroomTry, MushroomData } from "./types";
+import { MushroomTry, MushroomData, colorPalette } from "./types";
 import { decodeEvent } from "./helpers";
 
 const Timeline = () => {
@@ -122,12 +122,16 @@ const Timeline = () => {
               </ListSubheader>
             }
           >
-            {days.map((day) => (
+            {days.map((day, i) => (
               <React.Fragment key={day.date}>
-                <ListItemButton onClick={() => handleToggleDay(day.date)}>
+                <ListItemButton
+                  onClick={() => handleToggleDay(day.date)}
+                  disabled={day.tries.length === 0}
+                >
                   <DateMonogram
                     day={dayjs(day.date).format("ddd")}
                     date={dayjs(day.date).format("D")}
+                    color={colorPalette[i % colorPalette.length]}
                   />
                   <ListItemText
                     primary={`${day.tries.length} mushroom${
@@ -135,7 +139,11 @@ const Timeline = () => {
                     }`}
                     sx={{ ml: 1 }}
                   />
-                  {expandedDays[day.date] ? <ExpandLess /> : <ExpandMore />}
+                  {expandedDays[day.date] && day.tries.length > 0 ? (
+                    <ExpandLess />
+                  ) : day.tries.length > 0 ? (
+                    <ExpandMore />
+                  ) : null}
                 </ListItemButton>
                 <Collapse
                   in={expandedDays[day.date]}
@@ -185,19 +193,19 @@ const Timeline = () => {
               height: 64,
               display: "flex",
               alignItems: "center",
-              justifyContent: "space-between",
+              justifyContent: "flex-end",
               borderBottom: 1,
               borderColor: "divider",
               px: 2,
               mb: 2,
             }}
           >
-            <TextField
+            {/* <TextField
               label="input event ID"
               value={inputEventId}
               onChange={(e) => handleInputEvent(e.target.value)}
               sx={{ minWidth: 246 }}
-            />
+            /> */}
             <IconButton onClick={handleAddNew}>
               <AddIcon />
             </IconButton>

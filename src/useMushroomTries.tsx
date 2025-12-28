@@ -69,18 +69,25 @@ export function useMushroomTries() {
   }, [monthsWithEvents, selectedMonth]);
 
   const days: { date: string; tries: MushroomTry[] }[] = useMemo(() => {
-    const filtered = events.filter(
-      (e) => e.endTime.format("YYYY-MM") === selectedMonth
-    );
+    const daysInMonth = dayjs(selectedMonth).daysInMonth();
+
     const map = new Map<string, MushroomTry[]>();
-    filtered.forEach((e) => {
-      const day = dayjs(e.endTime).format("YYYY-MM-DD");
-      if (!map.has(day)) map.set(day, []);
-      map.get(day)!.push(e);
+    for (let d = 1; d <= daysInMonth; d++) {
+      const date = dayjs(`${selectedMonth}-${d}`).format("YYYY-MM-DD");
+      map.set(date, []);
+    }
+
+    events.forEach((e) => {
+      if (e.endTime.format("YYYY-MM") !== selectedMonth) return;
+
+      const day = e.endTime.format("YYYY-MM-DD");
+      map.get(day)?.push(e);
     });
-    return Array.from(map.entries())
-      .map(([date, tries]) => ({ date, tries }))
-      .sort((a, b) => (a.date > b.date ? 1 : -1));
+
+    return Array.from(map.entries()).map(([date, tries]) => ({
+      date,
+      tries,
+    }));
   }, [events, selectedMonth]);
 
   return {

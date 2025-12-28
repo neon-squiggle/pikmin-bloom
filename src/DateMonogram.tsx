@@ -4,13 +4,14 @@ import { ListItemAvatar, Avatar, Typography } from "@mui/material";
 interface DateMonogramProps {
   day: string;
   date: string;
+  color: string;
 }
 
-const DateMonogram = ({ day, date }: DateMonogramProps) => (
+const DateMonogram = ({ day, date, color }: DateMonogramProps) => (
   <ListItemAvatar>
     <Avatar
       sx={{
-        bgcolor: "primary.light",
+        bgcolor: color,
         width: 48,
         height: 48,
         display: "flex",

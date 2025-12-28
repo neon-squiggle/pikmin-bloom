@@ -237,12 +237,12 @@ const MushCalcRadio = () => {
         }
         action={
           <Box>
-            <TextField
+            {/* <TextField
               label="input event ID"
               value={inputEventId}
               onChange={(event) => handleInputEvent(event.target.value)}
               sx={{ minWidth: 246 }}
-            />{" "}
+            />{" "} */}
             <Button
               startIcon={<RefreshIcon />}
               size="small"
@@ -447,7 +447,7 @@ const MushCalcRadio = () => {
           <Typography variant="caption" gutterBottom>
             * All numbers are rounded up
           </Typography>
-          <TextField
+          {/* <TextField
             label="generated event ID"
             value={outputEventId}
             sx={{ minWidth: 246 }}
@@ -463,7 +463,7 @@ const MushCalcRadio = () => {
                 ),
               },
             }}
-          />
+          /> */}
           <Button variant="contained" disabled={!valid} onClick={handleSave}>
             Save to calendar
           </Button>
