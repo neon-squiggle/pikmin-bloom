@@ -116,7 +116,6 @@ export default function NumberSpinner({
               onKeyUp={props.onKeyUp}
               onKeyDown={props.onKeyDown}
               onFocus={props.onFocus}
-              style={{ maxWidth: 300 }}
               slotProps={{
                 input: {
                   ...props,
@@ -130,7 +129,13 @@ export default function NumberSpinner({
                   },
                 },
               }}
-              sx={{ pr: 0, borderRadius: 0, flex: 1 }}
+              sx={{
+                pr: 0,
+                borderRadius: 0,
+                flex: 1,
+                maxWidth: { xs: "100%", sm: 300 },
+                width: "100%",
+              }}
             />
           )}
         />

@@ -12,13 +12,13 @@ const DateMonogram = ({ day, date, color }: DateMonogramProps) => (
     <Avatar
       sx={{
         bgcolor: color,
-        width: 48,
-        height: 48,
+        width: { xs: 40, sm: 48 },
+        height: { xs: 40, sm: 48 },
         display: "flex",
         flexDirection: "column",
         justifyContent: "center",
         alignItems: "center",
-        fontSize: 12,
+        fontSize: { xs: 11, sm: 12 },
       }}
     >
       <Typography variant="caption" sx={{ lineHeight: 1 }}>

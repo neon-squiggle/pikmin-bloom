@@ -4,6 +4,7 @@ import { mushStages, ChallengeStage, colorPalette } from "./types";
 import { useSharedMushroomTries } from "./Provider";
 
 const BOX_LENGTH = 48;
+const BOX_LENGTH_SM = 32;
 const STRIPE_WIDTH = 4;
 
 interface BucketSegment {
@@ -77,7 +78,7 @@ const MushStages = () => {
       display="flex"
       alignItems="stretch"
       sx={{
-        height: "70vh",
+        height: { xs: "auto", md: "70vh" },
         overflowY: "auto",
         outline: "1px solid",
         outlineColor: "divider",
@@ -93,8 +94,8 @@ const MushStages = () => {
             key={i}
             sx={{
               position: "relative",
-              width: BOX_LENGTH,
-              height: BOX_LENGTH,
+              width: { xs: BOX_LENGTH_SM, sm: BOX_LENGTH },
+              height: { xs: BOX_LENGTH_SM, sm: BOX_LENGTH },
               flexShrink: 0,
               display: "flex",
               flexDirection: "column",

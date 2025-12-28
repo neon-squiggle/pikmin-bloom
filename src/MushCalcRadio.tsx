@@ -288,41 +288,40 @@ const MushCalcRadio = () => {
             gap: 8,
             p: 2,
             alignItems: "center",
-            justifyContent: "space-between",
+            justifyContent: "flex-start",
+            flexDirection: { xs: "column", md: "row" },
           }}
         >
-          <Box sx={{ display: "flex", gap: 2 }}>
-            <Autocomplete
-              disablePortal
-              readOnly={derived === "health"}
-              options={mushrooms}
-              sx={{
-                width: 300,
-                mt: 3.5,
-                "& .MuiOutlinedInput-root": {
-                  "& fieldset": {
-                    borderColor: derived === "health" ? "green" : "primary",
-                  },
+          <Autocomplete
+            disablePortal
+            readOnly={derived === "health"}
+            options={mushrooms}
+            sx={{
+              width: { xs: "100%", md: 300 },
+              mt: 3.5,
+              "& .MuiOutlinedInput-root": {
+                "& fieldset": {
+                  borderColor: derived === "health" ? "green" : "primary",
                 },
-              }}
-              onChange={(e: any, mush: Mushroom | null) =>
-                handleMushChange(mush!)
-              }
-              value={mush}
-              renderInput={(params: any) => (
-                <TextField {...params} label={`Mushroom Type`} />
-              )}
-            />
-            <NumberSpinner
-              label={`Mushroom Health`}
-              min={1}
-              readOnly={derived === "health"}
-              disabled={!mush}
-              value={health}
-              onValueChange={handleHealthChange}
-              isToggled={derived === "health"}
-            />
-          </Box>
+              },
+            }}
+            onChange={(e: any, mush: Mushroom | null) =>
+              handleMushChange(mush!)
+            }
+            value={mush}
+            renderInput={(params: any) => (
+              <TextField {...params} label={`Mushroom Type`} />
+            )}
+          />
+          <NumberSpinner
+            label={`Mushroom Health`}
+            min={1}
+            readOnly={derived === "health"}
+            disabled={!mush}
+            value={health}
+            onValueChange={handleHealthChange}
+            isToggled={derived === "health"}
+          />
         </Box>
         <Box
           sx={{
@@ -341,98 +340,108 @@ const MushCalcRadio = () => {
         <Box
           sx={{
             p: 2,
-            gap: 8,
             display: "flex",
-            alignItems: "center",
+            gap: 8,
+            flexDirection: { xs: "column", sm: "row" },
           }}
         >
-          <DateTimePicker
-            label={`Desired Start Time`}
-            readOnly={derived === "startTime"}
-            value={startTime}
-            onChange={(value) => handleStartTimeChange(value)}
-            localeText={{ todayButtonLabel: "Now" }}
-            slotProps={{
-              textField: {
-                sx: {
-                  "& fieldset": {
-                    borderColor: derived === "startTime" ? "green" : "primary",
-                  },
-                },
-              },
-              actionBar: {
-                actions: ["today"],
-              },
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 2,
+              width: { xs: "100%", sm: 246 },
             }}
-          />
-          <DateTimePicker
-            label={`Desired End Time`}
-            readOnly={derived === "endTime"}
-            value={endTime}
-            onChange={handleEndTimeChange}
-            minDateTime={startTime?.add(1, "minute") ?? undefined}
-            slotProps={{
-              textField: {
-                sx: {
-                  "& fieldset": {
-                    borderColor: derived === "endTime" ? "green" : "primary",
-                  },
-                },
-              },
-              actionBar: {
-                actions: [],
-              },
-            }}
-          />
-        </Box>
-        <Box
-          sx={{
-            p: 2,
-            gap: 8,
-            display: "flex",
-            alignItems: "center",
-          }}
-        >
-          {startTime && (
-            <TextField
-              label="discord start time timestamp"
-              value={startTimeUnix}
-              sx={{ minWidth: 246 }}
+          >
+            <DateTimePicker
+              label={`Desired Start Time`}
+              readOnly={derived === "startTime"}
+              value={startTime}
+              onChange={(value) => handleStartTimeChange(value)}
+              localeText={{ todayButtonLabel: "Now" }}
               slotProps={{
-                input: {
-                  readOnly: true,
-                  endAdornment: (
-                    <IconButton
-                      onClick={() =>
-                        navigator.clipboard.writeText(startTimeUnix)
-                      }
-                    >
-                      <ContentCopyIcon />
-                    </IconButton>
-                  ),
+                textField: {
+                  sx: {
+                    width: "100%",
+                    "& fieldset": {
+                      borderColor:
+                        derived === "startTime" ? "green" : "primary",
+                    },
+                  },
+                },
+                actionBar: { actions: ["today"] },
+              }}
+            />
+            {startTime && (
+              <TextField
+                label="discord start time timestamp"
+                value={startTimeUnix}
+                sx={{ width: "100%" }}
+                slotProps={{
+                  input: {
+                    readOnly: true,
+                    endAdornment: (
+                      <IconButton
+                        onClick={() =>
+                          navigator.clipboard.writeText(startTimeUnix)
+                        }
+                      >
+                        <ContentCopyIcon />
+                      </IconButton>
+                    ),
+                  },
+                }}
+              />
+            )}
+          </Box>
+
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 2,
+              width: { xs: "100%", sm: 246 },
+            }}
+          >
+            <DateTimePicker
+              label={`Desired End Time`}
+              readOnly={derived === "endTime"}
+              value={endTime}
+              onChange={handleEndTimeChange}
+              minDateTime={startTime?.add(1, "minute") ?? undefined}
+              slotProps={{
+                textField: {
+                  sx: {
+                    width: "100%",
+                    "& fieldset": {
+                      borderColor: derived === "endTime" ? "green" : "primary",
+                    },
+                  },
                 },
               }}
             />
-          )}
-          {endTime && (
-            <TextField
-              label="discord end time timestamp"
-              value={endTimeUnix}
-              sx={{ minWidth: 246 }}
-              slotProps={{
-                input: {
-                  readOnly: true,
-                  endAdornment: (
-                    <IconButton
-                      onClick={() => navigator.clipboard.writeText(endTimeUnix)}
-                    >
-                      <ContentCopyIcon />
-                    </IconButton>
-                  ),
-                },
-              }}
-            />
-          )}
+            {endTime && (
+              <TextField
+                label="discord end time timestamp"
+                value={endTimeUnix}
+                sx={{ width: "100%" }}
+                slotProps={{
+                  input: {
+                    readOnly: true,
+                    endAdornment: (
+                      <IconButton
+                        onClick={() =>
+                          navigator.clipboard.writeText(endTimeUnix)
+                        }
+                      >
+                        <ContentCopyIcon />
+                      </IconButton>
+                    ),
+                  },
+                }}
+              />
+            )}
+          </Box>
         </Box>
         <Divider />
         <Box
@@ -447,23 +456,7 @@ const MushCalcRadio = () => {
           <Typography variant="caption" gutterBottom>
             * All numbers are rounded up
           </Typography>
-          {/* <TextField
-            label="generated event ID"
-            value={outputEventId}
-            sx={{ minWidth: 246 }}
-            slotProps={{
-              input: {
-                readOnly: true,
-                endAdornment: (
-                  <IconButton
-                    onClick={() => navigator.clipboard.writeText(outputEventId)}
-                  >
-                    <ContentCopyIcon />
-                  </IconButton>
-                ),
-              },
-            }}
-          /> */}
+          {/* generated output ID removed for responsive layout; reinstate with fullWidth if needed */}
           <Button variant="contained" disabled={!valid} onClick={handleSave}>
             Save to calendar
           </Button>
