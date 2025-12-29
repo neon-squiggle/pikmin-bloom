@@ -30,7 +30,7 @@ const MoreInfo = ({ mushEvent, onDelete }: MoreInfoProps) => {
 
   const [name, setName] = useState("");
   const [mush, setMush] = useState<Mushroom | null>(null);
-  const [pikminAp, setPikminAp] = useState(2);
+  const [pikminAp, setPikminAp] = useState(0);
   const [endTime, setEndTime] = useState<Dayjs>(dayjs());
   const [timeLeft, setTimeLeft] = useState<TimeRemaining>(DEFAULT_TIMELEFT);
   const [draftId, setDraftId] = useState<string | null>(null);
@@ -40,7 +40,7 @@ const MoreInfo = ({ mushEvent, onDelete }: MoreInfoProps) => {
   useEffect(() => {
     setName(mushEvent?.name ?? "");
     setMush(mushEvent?.mush ?? null);
-    setPikminAp(mushEvent?.pikminAp ?? 2);
+    setPikminAp(mushEvent?.pikminAp ?? 0);
     setEndTime(mushEvent?.endTime ?? dayjs());
     setTimeLeft(
       mushEvent?.endTime
