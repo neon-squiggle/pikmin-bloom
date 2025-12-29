@@ -1,8 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
 import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
 import { MushroomTry } from "./types";
 
 const STORAGE_KEY = "pikminBloomMushroomEvents";
+dayjs.extend(utc);
 
 export function useMushroomTries() {
   const [events, setEvents] = useState<MushroomTry[]>(() => {
@@ -12,7 +14,7 @@ export function useMushroomTries() {
     return JSON.parse(stored).map((e: any) => ({
       ...e,
       startTime: e.startTime ? dayjs(e.startTime) : undefined,
-      endTime: dayjs(e.endTime),
+      endTime: dayjs.utc(e.endTime).local(),
     }));
   });
   const [selectedMonth, setSelectedMonth] = useState<string>("");

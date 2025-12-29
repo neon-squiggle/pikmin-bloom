@@ -34,6 +34,7 @@ const MoreInfo = ({ mushEvent, onDelete }: MoreInfoProps) => {
   const [endTime, setEndTime] = useState<Dayjs>(dayjs());
   const [timeLeft, setTimeLeft] = useState<TimeRemaining>(DEFAULT_TIMELEFT);
   const [draftId, setDraftId] = useState<string | null>(null);
+  const [touchedTime, setTouchedTime] = useState<boolean>(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
 
   useEffect(() => {
@@ -68,7 +69,7 @@ const MoreInfo = ({ mushEvent, onDelete }: MoreInfoProps) => {
         name,
         pikminAp,
         mush: mush ?? mushEvent?.mush,
-        endTime,
+        endTime: touchedTime ? endTime : mushEvent?.endTime,
       });
     } else if (mush) {
       const id = crypto.randomUUID();
