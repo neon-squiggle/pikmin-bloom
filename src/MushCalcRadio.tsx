@@ -237,7 +237,7 @@ const MushCalcRadio = () => {
   return (
     <Card
       variant="elevation"
-      sx={{ height: `calc(100dvh - ${navbarHeight}px)`, overflowY: "auto" }}
+      sx={{ maxHeight: `calc(100dvh - ${navbarHeight}px)`, overflowY: "auto" }}
     >
       <CardHeader
         title="Mushroom calculator"
@@ -259,7 +259,13 @@ const MushCalcRadio = () => {
           </Box>
         }
       />
-      <CardContent>
+      <CardContent
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          height: "100%",
+        }}
+      >
         <FormControl>
           <FormLabel>I want to calculate: </FormLabel>
           <RadioGroup
@@ -465,6 +471,7 @@ const MushCalcRadio = () => {
             p: 2,
             alignItems: "center",
             justifyContent: "space-between",
+            mt: "auto",
           }}
         >
           <Typography variant="caption" gutterBottom>
