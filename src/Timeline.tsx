@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import dayjs from "dayjs";
 import {
   Box,
@@ -53,6 +53,14 @@ const Timeline = () => {
   );
   const [expandedDays, setExpandedDays] = useState(defaultExpandedDays);
 
+  useEffect(() => {
+    const today = dayjs().format("YYYY-MM-DD");
+    const element = document.getElementById(`day-${today}`);
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [days]);
+
   const handleToggleDay = (date: string) => {
     setExpandedDays((prev) => ({ ...prev, [date]: !prev[date] }));
   };
@@ -98,6 +106,7 @@ const Timeline = () => {
   const listItems = days.map((day, i) => (
     <React.Fragment key={day.date}>
       <ListItemButton
+        id={`day-${day.date}`}
         onClick={() => handleToggleDay(day.date)}
         disabled={day.tries.length === 0}
       >
@@ -140,7 +149,14 @@ const Timeline = () => {
   ));
 
   const subheader = (
-    <ListSubheader disableSticky sx={{ p: 0 }}>
+    <ListSubheader
+      sx={{
+        p: 0,
+        bgcolor: "background.paper",
+        backgroundImage:
+          "linear-gradient(rgba(255, 255, 255, 0.051), rgba(255, 255, 255, 0.051))",
+      }}
+    >
       <Box
         sx={{
           display: "flex",
@@ -176,7 +192,7 @@ const Timeline = () => {
       sx={{
         display: "flex",
         flexDirection: { xs: "column", md: "row" },
-        height: { xs: "auto", md: "85vh" },
+        height: "100vh",
         minHeight: 0,
       }}
     >
