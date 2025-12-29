@@ -28,7 +28,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import DateMonogram from "./DateMonogram";
 import MoreInfo from "./MoreInfo";
 import { useSharedMushroomTries } from "./Provider";
-import { MushroomTry, MushroomData, colorPalette } from "./types";
+import { MushroomTry, MushroomData, colorPalette, navbarHeight } from "./types";
 import { decodeEvent } from "./helpers";
 
 const Timeline = () => {
@@ -192,7 +192,7 @@ const Timeline = () => {
       sx={{
         display: "flex",
         flexDirection: { xs: "column", md: "row" },
-        height: "100vh",
+        height: `calc(100dvh - ${navbarHeight}px)`,
         minHeight: 0,
       }}
     >
@@ -230,9 +230,11 @@ const Timeline = () => {
                   </IconButton>
                   <Typography variant="subtitle1">Event</Typography>
                 </Box>
-                <IconButton onClick={handleAddNew} aria-label="Add event">
-                  <AddIcon />
-                </IconButton>
+                {!isSmall && (
+                  <IconButton onClick={handleAddNew} aria-label="Add event">
+                    <AddIcon />
+                  </IconButton>
+                )}
               </Box>
               <Box sx={{ flex: 1, overflowY: "auto", minHeight: 0, mt: 2 }}>
                 <MoreInfo
@@ -240,6 +242,18 @@ const Timeline = () => {
                   mushEvent={selectedEvent}
                   onDelete={() => setShowMoreInfo(false)}
                 />
+              </Box>
+              <Box
+                sx={{
+                  position: "fixed",
+                  right: 16,
+                  bottom: 16 + navbarHeight,
+                  zIndex: (theme) => theme.zIndex.tooltip + 1,
+                }}
+              >
+                <Fab color="primary" size="small" onClick={handleAddNew}>
+                  <AddIcon />
+                </Fab>
               </Box>
             </Box>
           ) : (
@@ -251,20 +265,18 @@ const Timeline = () => {
               >
                 {listItems}
               </List>
-              {isSmall && !showMoreInfo && (
-                <Box
-                  sx={{
-                    position: "fixed",
-                    right: 16,
-                    bottom: 16,
-                    zIndex: (theme) => theme.zIndex.tooltip + 1,
-                  }}
-                >
-                  <Fab color="primary" size="small" onClick={handleAddNew}>
-                    <AddIcon />
-                  </Fab>
-                </Box>
-              )}
+              <Box
+                sx={{
+                  position: "fixed",
+                  right: 16,
+                  bottom: 16 + navbarHeight,
+                  zIndex: (theme) => theme.zIndex.tooltip + 1,
+                }}
+              >
+                <Fab color="primary" size="small" onClick={handleAddNew}>
+                  <AddIcon />
+                </Fab>
+              </Box>
             </Box>
           )
         ) : (

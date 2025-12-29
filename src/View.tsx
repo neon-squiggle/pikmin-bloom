@@ -3,12 +3,14 @@ import {
   Box,
   ToggleButtonGroup,
   ToggleButton,
+  BottomNavigation,
   useMediaQuery,
   useTheme,
+  BottomNavigationAction,
 } from "@mui/material";
 import CalculateIcon from "@mui/icons-material/Calculate";
 import EventIcon from "@mui/icons-material/Event";
-import { Mode } from "./types";
+import { Mode, navbarHeight } from "./types";
 import MushCalcRadio from "./MushCalcRadio";
 import Timeline from "./Timeline";
 import MushStages from "./MushStages";
@@ -28,32 +30,38 @@ const View = () => {
       gap={2}
       sx={{ flexDirection: { xs: "column", md: "row" } }}
     >
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-          mr: { xs: 0, md: 2 },
-          mb: { xs: 2, md: 0 },
-        }}
-      >
-        <ToggleButtonGroup
-          value={mode}
-          onChange={handleModeChange}
-          exclusive
-          orientation={isSmall ? "horizontal" : "vertical"}
+      {!isSmall && (
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            mr: { xs: 0, md: 2 },
+            mb: { xs: 2, md: 0 },
+          }}
         >
-          <ToggleButton value="calculator">
-            <CalculateIcon />
-          </ToggleButton>
-          <ToggleButton value="calendar">
-            <EventIcon />
-          </ToggleButton>
-        </ToggleButtonGroup>
-        {mode === "calendar" && !isSmall && <MushStages />}
-      </Box>
+          <ToggleButtonGroup
+            value={mode}
+            onChange={handleModeChange}
+            exclusive
+            orientation={isSmall ? "horizontal" : "vertical"}
+          >
+            <ToggleButton value="calculator">
+              <CalculateIcon />
+            </ToggleButton>
+            <ToggleButton value="calendar">
+              <EventIcon />
+            </ToggleButton>
+          </ToggleButtonGroup>
+          {mode === "calendar" && !isSmall && <MushStages />}
+        </Box>
+      )}
       <Box
         sx={{
           width: { xs: "100%", md: "800px" },
+          // height: {
+          //   xs: `calc(100dvh - ${navbarHeight}px)`,
+          //   md: `calc(100dvh - ${navbarHeight}px)`,
+          // },
           maxWidth: { md: "800px" },
           flexGrow: 1,
         }}
@@ -61,6 +69,32 @@ const View = () => {
         {mode === "calculator" && <MushCalcRadio />}
         {mode === "calendar" && <Timeline />}
       </Box>
+      {/* <Box> */}
+      <BottomNavigation
+        sx={{
+          display: { xs: "flex", md: "none" },
+          position: "fixed",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          zIndex: (theme) => theme.zIndex.appBar,
+          height: navbarHeight,
+        }}
+      >
+        <BottomNavigationAction
+          label="calculator"
+          value="calculator"
+          icon={<CalculateIcon />}
+          onClick={() => setMode("calculator")}
+        />
+        <BottomNavigationAction
+          label="calendar"
+          value="calendar"
+          icon={<EventIcon />}
+          onClick={() => setMode("calendar")}
+        />
+      </BottomNavigation>
+      {/* </Box> */}
     </Box>
   );
 };

@@ -21,7 +21,13 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import NumberSpinner from "./NumberSpinner";
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
-import { mushrooms, Mushroom, RadioEstimate, MushroomData } from "./types";
+import {
+  mushrooms,
+  Mushroom,
+  RadioEstimate,
+  MushroomData,
+  navbarHeight,
+} from "./types";
 import { Dayjs } from "dayjs";
 import {
   calculateApTimeRange,
@@ -229,12 +235,12 @@ const MushCalcRadio = () => {
   };
 
   return (
-    <Card variant="elevation">
+    <Card
+      variant="elevation"
+      sx={{ height: `calc(100dvh - ${navbarHeight}px)`, overflowY: "auto" }}
+    >
       <CardHeader
         title="Mushroom calculator"
-        subheader={
-          "after picking a mode, you'll have to fill out the other fields"
-        }
         action={
           <Box>
             {/* <TextField

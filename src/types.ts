@@ -1,6 +1,8 @@
 import { Dayjs } from "dayjs";
 import { red, orange, yellow, blue, purple, teal } from "@mui/material/colors";
 
+export const navbarHeight = 56;
+
 export interface Mushroom {
   key: string;
   label: string;

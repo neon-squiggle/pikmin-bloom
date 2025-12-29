@@ -114,12 +114,14 @@ const MoreInfo = ({ mushEvent, onDelete }: MoreInfoProps) => {
             <TextField {...params} label="Mushroom Type" />
           )}
         />
-        <NumberSpinner
-          label="Total AP"
-          min={2}
-          value={pikminAp}
-          onValueChange={(val) => val != null && setPikminAp(val)}
-        />
+        <Box sx={{ width: "100%" }}>
+          <NumberSpinner
+            label="Total AP"
+            min={2}
+            value={pikminAp}
+            onValueChange={(val) => val != null && setPikminAp(val)}
+          />
+        </Box>
         <Box
           sx={{
             display: "grid",
@@ -167,46 +169,45 @@ const MoreInfo = ({ mushEvent, onDelete }: MoreInfoProps) => {
             />
           </Box>
         </Box>
-      </Box>
-
-      <Box
-        sx={{
-          display: "flex",
-          gap: 1,
-          mt: 1,
-          justifyContent: "flex-end",
-          p: 1,
-        }}
-      >
-        {draftId && (
-          <Button
-            variant="outlined"
-            color="error"
-            onClick={() => {
-              deleteEvent(draftId);
-              onDelete();
-            }}
-          >
-            Delete
-          </Button>
-        )}
-        <Button
-          variant="contained"
-          disabled={
-            !mush || !pikminAp || isInvalidDuration(timeLeft) || !endTime
-          }
-          onClick={saveEvent}
+        <Box
+          sx={{
+            display: "flex",
+            gap: 1,
+            mt: 2,
+            justifyContent: "flex-end",
+            p: 1,
+          }}
         >
-          Save
-        </Button>
-      </Box>
+          {draftId && (
+            <Button
+              variant="outlined"
+              color="error"
+              onClick={() => {
+                deleteEvent(draftId);
+                onDelete();
+              }}
+            >
+              Delete
+            </Button>
+          )}
+          <Button
+            variant="contained"
+            disabled={
+              !mush || !pikminAp || isInvalidDuration(timeLeft) || !endTime
+            }
+            onClick={saveEvent}
+          >
+            Save
+          </Button>
+        </Box>
 
-      <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={1000}
-        onClose={() => setSnackbarOpen(false)}
-        message="Result saved"
-      />
+        <Snackbar
+          open={snackbarOpen}
+          autoHideDuration={1000}
+          onClose={() => setSnackbarOpen(false)}
+          message="Result saved"
+        />
+      </Box>
     </Box>
   );
 };
