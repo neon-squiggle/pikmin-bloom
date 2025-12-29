@@ -1,11 +1,6 @@
 import dayjs, { Dayjs } from "dayjs";
 import { Mushroom, MushroomData, TimeRemaining, mushrooms } from "./types";
 
-export const calculateTime = (health: number, ap: number) => {
-  const timeEstimate = (health * 100) / ap;
-  return dayjs().add(timeEstimate, "second");
-};
-
 export const calculateStartTime = (
   health: number,
   ap: number,
@@ -39,17 +34,7 @@ export const calculateApTimeRange = (
   endTime: Dayjs
 ) => {
   const timeEstimate = endTime.diff(startTime, "second");
-  return Math.ceil((health * 100) / timeEstimate);
-};
-
-export const calculateAp = (health: number, time: Dayjs) => {
-  const timeEstimate = dayjs().diff(time, "second");
-  return Math.ceil((health * 100) / timeEstimate);
-};
-
-export const calculateHealth = (ap: number, time: Dayjs) => {
-  const timeEstimate = dayjs().diff(time, "second");
-  return Math.ceil((ap * timeEstimate) / 100);
+  return Math.max(Math.ceil((health * 100) / timeEstimate), 0);
 };
 
 export const diffToTimeRemaining = (target: Dayjs): TimeRemaining => {
@@ -95,7 +80,6 @@ export const encodeEvent = (event: MushroomData) => {
   const st = event.startTime.unix().toString(36);
   const et = event.endTime.unix().toString(36);
 
-  console.log(event.startTime, event.endTime);
   return `${m}-${h}-${ap}-${st}-${et}`;
 };
 

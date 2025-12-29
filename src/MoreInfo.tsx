@@ -56,6 +56,7 @@ const MoreInfo = ({ mushEvent, onDelete }: MoreInfoProps) => {
     unit: TimeUnit
   ) => {
     if (value == null) return;
+    setTouchedTime(true);
     setTimeLeft((prev) => {
       const delta = value - prev[field];
       setEndTime((t) => t.add(delta, unit));
@@ -76,6 +77,7 @@ const MoreInfo = ({ mushEvent, onDelete }: MoreInfoProps) => {
       addEvent({ id, name, pikminAp, mush, health: mush.value, endTime });
       setDraftId(id);
     }
+    setTouchedTime(false);
     setSnackbarOpen(true);
   };
 
