@@ -351,13 +351,10 @@ const MushCalcRadio = () => {
             gap: { xs: 2, md: 4 },
             p: 2,
             alignItems: "center",
-            justifyContent: "space-between",
+            justifyContent: "flex-end",
             mt: "auto",
           }}
         >
-          <Typography variant="caption" gutterBottom>
-            * All numbers are rounded up
-          </Typography>
           {/* generated output ID removed for responsive layout; reinstate with fullWidth if needed */}
           <Button variant="contained" disabled={!isValid} onClick={handleSave}>
             Save to calendar
