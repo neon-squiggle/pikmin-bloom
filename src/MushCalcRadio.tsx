@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   FormControl,
   FormLabel,
@@ -24,8 +24,7 @@ import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
 import {
   mushrooms,
   Mushroom,
-  RadioEstimate,
-  MushroomData,
+  DerivedField,
   navbarHeight,
 } from "./types";
 import { Dayjs } from "dayjs";
@@ -34,202 +33,88 @@ import {
   calculateHealthTimeRange,
   calculateStartTime,
   calculateEndTime,
-  encodeEvent,
-  decodeEvent,
 } from "./helpers";
 import { useSharedMushroomTries } from "./Provider";
 
+interface FormState {
+  derived: DerivedField | null;
+  mush: Mushroom | null;
+  health: number;
+  pikminAp: number;
+  startTime: Dayjs | null;
+  endTime: Dayjs | null;
+}
+
+const initialState: FormState = {
+  derived: null,
+  mush: null,
+  health: 1,
+  pikminAp: 2,
+  startTime: null,
+  endTime: null,
+};
+
+const toDiscordTimestamp = (time: Dayjs | null) =>
+  time ? `<t:${time.unix()}:f>` : "";
+
 const MushCalcRadio = () => {
-  const [derived, setDerived] = useState<RadioEstimate | null>(null);
-  const [mush, setMush] = useState<Mushroom | null>(null);
-  const [health, setHealth] = useState<number>(1);
-  const [pikminAp, setPikminAp] = useState<number>(2);
-  const [startTime, setStartTime] = useState<Dayjs | null>(null);
-  const [endTime, setEndTime] = useState<Dayjs | null>(null);
-  const [startTimeUnix, setStartTimeUnix] = useState<string>("");
-  const [endTimeUnix, setEndTimeUnix] = useState<string>("");
-  const [valid, setValid] = useState<boolean>(false);
-  const [inputEventId, setInputEventId] = useState<string>("");
-  const [outputEventId, setOutputEventId] = useState<string>("");
-  const [snackbarOpen, setSnackbarOpen] = useState<boolean>(false);
+  const [form, setForm] = useState<FormState>(initialState);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
   const { addEvent } = useSharedMushroomTries();
 
-  const recomputeDerived = ({
-    mushVal,
-    healthVal,
-    pikminApVal,
-    startTimeVal,
-    endTimeVal,
-    derivedVal,
-  }: {
-    mushVal: Mushroom | null;
-    healthVal: number;
-    pikminApVal: number;
-    startTimeVal: Dayjs | null;
-    endTimeVal: Dayjs | null;
-    derivedVal: RadioEstimate | null;
-  }) => {
-    let calcHealth = healthVal ?? health;
-    let calcAp = pikminApVal ?? pikminAp;
-    let calcEnd = endTimeVal ?? endTime;
-    let calcStart = startTimeVal ?? startTime;
-    let calcMush = mushVal ?? mush;
-    if (derivedVal === "ap" && calcStart && calcEnd && calcMush) {
-      calcAp = calculateApTimeRange(calcHealth, calcStart, calcEnd);
-      setPikminAp(calcAp);
-    } else if (
-      derivedVal === "health" &&
-      calcStart &&
-      calcEnd &&
-      calcAp &&
-      calcMush
-    ) {
-      calcHealth = calculateHealthTimeRange(calcAp, calcStart, calcEnd);
-      setHealth(calcHealth);
-    } else if (derivedVal === "startTime" && calcEnd && calcMush && calcAp) {
-      calcStart = calculateStartTime(calcHealth, calcAp, calcEnd);
-      setStartTime(calcStart);
-      setStartTimeUnix(`<t:${calcStart.unix()}:f>`);
-    } else if (derivedVal === "endTime" && calcStart && calcMush && calcStart) {
-      calcEnd = calculateEndTime(calcHealth, calcAp, calcStart);
-      setEndTime(calcEnd);
-      setEndTimeUnix(`<t:${calcEnd.unix()}:f>`);
-    } else {
+  const { derived, mush, health, pikminAp, startTime, endTime } = form;
+
+  const updateForm = (updates: Partial<FormState>) => {
+    setForm((prev) => {
+      const next = { ...prev, ...updates };
+      return recomputeDerived(next);
+    });
+  };
+
+  const recomputeDerived = (state: FormState): FormState => {
+    const { derived, mush, health, pikminAp, startTime, endTime } = state;
+
+    if (!mush) return state;
+
+    if (derived === "ap" && startTime && endTime) {
+      return { ...state, pikminAp: calculateApTimeRange(health, startTime, endTime) };
+    }
+    if (derived === "health" && startTime && endTime && pikminAp) {
+      return { ...state, health: calculateHealthTimeRange(pikminAp, startTime, endTime) };
+    }
+    if (derived === "startTime" && endTime && pikminAp) {
+      return { ...state, startTime: calculateStartTime(health, pikminAp, endTime) };
+    }
+    if (derived === "endTime" && startTime && pikminAp) {
+      return { ...state, endTime: calculateEndTime(health, pikminAp, startTime) };
+    }
+    return state;
+  };
+
+  const handleMushChange = (newMush: Mushroom | null) => {
+    if (!newMush) {
+      updateForm({ mush: null, health: 1 });
       return;
     }
-    setValid(true);
-    setOutputEventId(
-      encodeEvent({
-        health: calcHealth,
-        pikminAp: calcAp,
-        startTime: calcStart,
-        endTime: calcEnd,
-        mush: calcMush,
-      })
-    );
-  };
-
-  const handleInputEvent = (value: string) => {
-    setInputEventId(value);
-    const decoded: MushroomData | null = decodeEvent(value);
-    if (decoded) {
-      const { mush, health, startTime, endTime, pikminAp } = decoded;
-      setMush(mush);
-      setHealth(health);
-      setPikminAp(pikminAp);
-      setStartTime(startTime);
-      setEndTime(endTime);
-      setStartTimeUnix(`<t:${startTime.unix()}:f>`);
-      setEndTimeUnix(`<t:${endTime.unix()}:f>`);
-    }
-  };
-
-  const handleDerivedChange = (value: RadioEstimate | null) => {
-    setDerived(value);
-    recomputeDerived({
-      mushVal: mush,
-      healthVal: health,
-      pikminApVal: pikminAp,
-      startTimeVal: startTime,
-      endTimeVal: endTime,
-      derivedVal: value,
+    const minAp = mushrooms.find((m) => m.label === newMush.label)?.minimum ?? 2;
+    updateForm({
+      mush: newMush,
+      health: newMush.value,
+      pikminAp: pikminAp !== 2 ? pikminAp : minAp,
     });
   };
 
-  const handleHealthChange = (value: number | null) => {
-    const newHealth = value ?? 1;
-    setHealth(newHealth);
-    recomputeDerived({
-      mushVal: mush,
-      healthVal: newHealth,
-      pikminApVal: pikminAp,
-      startTimeVal: startTime,
-      endTimeVal: endTime,
-      derivedVal: derived,
-    });
-  };
-
-  const handleApChange = (value: number | null) => {
-    const newAp = value ?? 2;
-    setPikminAp(newAp);
-    recomputeDerived({
-      mushVal: mush,
-      healthVal: health,
-      pikminApVal: newAp,
-      startTimeVal: startTime,
-      endTimeVal: endTime,
-      derivedVal: derived,
-    });
-  };
-
-  const handleMushChange = (mush: Mushroom) => {
-    setMush(mush);
-    if (mush) {
-      setHealth(mush.value);
-      const minAp = mushrooms.find((m) => m.label === mush.label)?.minimum ?? 2;
-      const setAp = pikminAp !== 2 ? pikminAp : minAp;
-      setPikminAp(setAp);
-      recomputeDerived({
-        mushVal: mush,
-        healthVal: mush.value,
-        pikminApVal: setAp,
-        startTimeVal: startTime,
-        endTimeVal: endTime,
-        derivedVal: derived,
-      });
-    } else {
-      setHealth(1);
-    }
-  };
-
-  const handleStartTimeChange = (value: Dayjs | null) => {
-    setStartTime(value);
-    setStartTimeUnix(`<t:${value?.unix()}:f>`);
-    recomputeDerived({
-      mushVal: mush,
-      healthVal: health,
-      pikminApVal: pikminAp,
-      startTimeVal: value,
-      endTimeVal: endTime,
-      derivedVal: derived,
-    });
-  };
-
-  const handleEndTimeChange = (value: Dayjs | null) => {
-    setEndTime(value);
-    setEndTimeUnix(`<t:${value?.unix()}:f>`);
-    recomputeDerived({
-      mushVal: mush,
-      healthVal: health,
-      pikminApVal: pikminAp,
-      startTimeVal: startTime,
-      endTimeVal: value,
-      derivedVal: derived,
-    });
-  };
-
-  const handleReset = () => {
-    setDerived(null);
-    setMush(null);
-    setHealth(1);
-    setPikminAp(2);
-    setStartTime(null);
-    setEndTime(null);
-    setStartTimeUnix("");
-    setEndTimeUnix("");
-    setInputEventId("");
-    setOutputEventId("");
-    setValid(false);
-  };
+  const isValid = mush && startTime && endTime && health > 0 && pikminAp > 0;
 
   const handleSave = () => {
+    if (!isValid) return;
     addEvent({
       id: crypto.randomUUID(),
-      mush: mush as Mushroom,
+      mush,
       health,
       pikminAp,
-      startTime: startTime as Dayjs,
-      endTime: endTime as Dayjs,
+      startTime,
+      endTime,
     });
     setSnackbarOpen(true);
   };
@@ -252,7 +137,7 @@ const MushCalcRadio = () => {
             <Button
               startIcon={<RefreshIcon />}
               size="small"
-              onClick={handleReset}
+              onClick={() => setForm(initialState)}
             >
               clear
             </Button>
@@ -271,9 +156,7 @@ const MushCalcRadio = () => {
           <RadioGroup
             row
             value={derived}
-            onChange={(e: React.ChangeEvent, value: string) =>
-              handleDerivedChange(value as RadioEstimate)
-            }
+            onChange={(_, value) => updateForm({ derived: value as DerivedField })}
           >
             <FormControlLabel
               value="health"
@@ -317,9 +200,7 @@ const MushCalcRadio = () => {
                 },
               },
             }}
-            onChange={(e: any, mush: Mushroom | null) =>
-              handleMushChange(mush!)
-            }
+            onChange={(_, mush) => handleMushChange(mush)}
             value={mush}
             renderInput={(params: any) => (
               <TextField {...params} label={`Mushroom Type`} />
@@ -338,7 +219,7 @@ const MushCalcRadio = () => {
               readOnly={derived === "health"}
               disabled={!mush}
               value={health}
-              onValueChange={handleHealthChange}
+              onValueChange={(v) => updateForm({ health: v ?? 1 })}
               isToggled={derived === "health"}
             />
           </Box>
@@ -353,7 +234,7 @@ const MushCalcRadio = () => {
             readOnly={derived === "ap"}
             min={2}
             value={pikminAp}
-            onValueChange={handleApChange}
+            onValueChange={(v) => updateForm({ pikminAp: v ?? 2 })}
             isToggled={derived === "ap"}
           />
         </Box>
@@ -377,7 +258,7 @@ const MushCalcRadio = () => {
               label={`Desired Start Time`}
               readOnly={derived === "startTime"}
               value={startTime}
-              onChange={(value) => handleStartTimeChange(value)}
+              onChange={(value) => updateForm({ startTime: value })}
               localeText={{ todayButtonLabel: "Now" }}
               slotProps={{
                 textField: {
@@ -395,7 +276,7 @@ const MushCalcRadio = () => {
             {startTime && (
               <TextField
                 label="discord start time timestamp"
-                value={startTimeUnix}
+                value={toDiscordTimestamp(startTime)}
                 sx={{ width: "100%" }}
                 slotProps={{
                   input: {
@@ -403,7 +284,7 @@ const MushCalcRadio = () => {
                     endAdornment: (
                       <IconButton
                         onClick={() =>
-                          navigator.clipboard.writeText(startTimeUnix)
+                          navigator.clipboard.writeText(toDiscordTimestamp(startTime))
                         }
                       >
                         <ContentCopyIcon />
@@ -427,7 +308,7 @@ const MushCalcRadio = () => {
               label={`Desired End Time`}
               readOnly={derived === "endTime"}
               value={endTime}
-              onChange={handleEndTimeChange}
+              onChange={(value) => updateForm({ endTime: value })}
               minDateTime={startTime?.add(1, "minute") ?? undefined}
               slotProps={{
                 textField: {
@@ -443,7 +324,7 @@ const MushCalcRadio = () => {
             {endTime && (
               <TextField
                 label="discord end time timestamp"
-                value={endTimeUnix}
+                value={toDiscordTimestamp(endTime)}
                 sx={{ width: "100%" }}
                 slotProps={{
                   input: {
@@ -451,7 +332,7 @@ const MushCalcRadio = () => {
                     endAdornment: (
                       <IconButton
                         onClick={() =>
-                          navigator.clipboard.writeText(endTimeUnix)
+                          navigator.clipboard.writeText(toDiscordTimestamp(endTime))
                         }
                       >
                         <ContentCopyIcon />
@@ -478,7 +359,7 @@ const MushCalcRadio = () => {
             * All numbers are rounded up
           </Typography>
           {/* generated output ID removed for responsive layout; reinstate with fullWidth if needed */}
-          <Button variant="contained" disabled={!valid} onClick={handleSave}>
+          <Button variant="contained" disabled={!isValid} onClick={handleSave}>
             Save to calendar
           </Button>
           <Snackbar

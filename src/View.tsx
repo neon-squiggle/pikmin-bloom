@@ -43,7 +43,7 @@ const View = () => {
             value={mode}
             onChange={handleModeChange}
             exclusive
-            orientation={isSmall ? "horizontal" : "vertical"}
+            orientation="vertical"
           >
             <ToggleButton value="calculator">
               <CalculateIcon />
@@ -52,7 +52,7 @@ const View = () => {
               <EventIcon />
             </ToggleButton>
           </ToggleButtonGroup>
-          {mode === "calendar" && !isSmall && <MushStages />}
+          {mode === "calendar" && <MushStages />}
         </Box>
       )}
       <Box

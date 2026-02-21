@@ -1,21 +1,21 @@
 import { useState, useEffect, useMemo } from "react";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
-import { MushroomTry } from "./types";
+import { MushroomEvent } from "./types";
 
 const STORAGE_KEY = "pikminBloomMushroomEvents";
 dayjs.extend(utc);
 
 export function useMushroomTries() {
-  const [events, setEvents] = useState<MushroomTry[]>(() => {
+  const [events, setEvents] = useState<MushroomEvent[]>(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (!stored) return [];
 
-    return JSON.parse(stored).map((e: any) => ({
-      ...e,
-      startTime: e.startTime ? dayjs(e.startTime) : undefined,
-      endTime: dayjs.utc(e.endTime).local(),
-    }));
+    return JSON.parse(stored).map((e: any) => {
+      const endTime = dayjs.utc(e.endTime).local();
+      const startTime = e.startTime ? dayjs.utc(e.startTime).local() : endTime;
+      return { ...e, startTime, endTime };
+    });
   });
   const [selectedMonth, setSelectedMonth] = useState<string>("");
 
@@ -23,20 +23,14 @@ export function useMushroomTries() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(events));
   }, [events]);
 
-  function addEvent(event: MushroomTry) {
-    setEvents((prev) => {
-      const next = [...prev, event].sort(
-        (a, b) => a.endTime.valueOf() - b.endTime.valueOf()
-      );
-
-      const newMonth = event.endTime.format("YYYY-MM");
-      setSelectedMonth(newMonth);
-
-      return next;
-    });
+  function addEvent(event: MushroomEvent) {
+    setEvents((prev) =>
+      [...prev, event].sort((a, b) => a.endTime.valueOf() - b.endTime.valueOf())
+    );
+    setSelectedMonth(event.endTime.format("YYYY-MM"));
   }
 
-  function updateEvent(id: string, updated: Partial<MushroomTry>) {
+  function updateEvent(id: string, updated: Partial<MushroomEvent>) {
     setEvents((prev) =>
       prev
         .map((e) => (e.id === id ? { ...e, ...updated } : e))
@@ -70,26 +64,21 @@ export function useMushroomTries() {
     setSelectedMonth(monthsWithEvents[0].key);
   }, [monthsWithEvents, selectedMonth]);
 
-  const days: { date: string; tries: MushroomTry[] }[] = useMemo(() => {
+  const days = useMemo(() => {
+    if (!selectedMonth) return [];
+
     const daysInMonth = dayjs(selectedMonth).daysInMonth();
+    const monthEvents = events.filter(
+      (e) => e.endTime.format("YYYY-MM") === selectedMonth
+    );
 
-    const map = new Map<string, MushroomTry[]>();
-    for (let d = 1; d <= daysInMonth; d++) {
-      const date = dayjs(`${selectedMonth}-${d}`).format("YYYY-MM-DD");
-      map.set(date, []);
-    }
-
-    events.forEach((e) => {
-      if (e.endTime.format("YYYY-MM") !== selectedMonth) return;
-
-      const day = e.endTime.format("YYYY-MM-DD");
-      map.get(day)?.push(e);
+    return Array.from({ length: daysInMonth }, (_, i) => {
+      const date = dayjs(`${selectedMonth}-${i + 1}`).format("YYYY-MM-DD");
+      return {
+        date,
+        tries: monthEvents.filter((e) => e.endTime.format("YYYY-MM-DD") === date),
+      };
     });
-
-    return Array.from(map.entries()).map(([date, tries]) => ({
-      date,
-      tries,
-    }));
   }, [events, selectedMonth]);
 
   return {

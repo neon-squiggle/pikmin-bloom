@@ -10,9 +10,7 @@ export interface Mushroom {
   minimum: number;
 }
 
-export type Estimate = "health" | "time" | "ap";
-export type RadioEstimate = "health" | "startTime" | "endTime" | "ap";
-export const calculationTypes: Estimate[] = ["health", "time", "ap"];
+export type DerivedField = "health" | "startTime" | "endTime" | "ap";
 
 export const mushrooms: Mushroom[] = [
   { key: "sr", label: "Small Red", value: 87400, minimum: 2 },
@@ -32,7 +30,7 @@ export const mushrooms: Mushroom[] = [
   { key: "ng", label: "Normal Gray", value: 695500, minimum: 2 * 10 },
   { key: "nib", label: "Normal Ice Blue", value: 621000, minimum: 5 * 10 },
   { key: "nf", label: "Normal Fire", value: 3850200, minimum: 10 * 104 },
-  { key: "nw", label: "Normal Water", value: 3816700, minimum: 10 * 103 },
+  { key: "nwa", label: "Normal Water", value: 3816700, minimum: 10 * 103 },
   { key: "nc", label: "Normal Crystal", value: 3883600, minimum: 10 * 105 },
   { key: "ne", label: "Normal Electric", value: 3816700, minimum: 10 * 103 },
   { key: "nps", label: "Normal Poisonous", value: 3783200, minimum: 10 * 102 },
@@ -45,7 +43,7 @@ export const mushrooms: Mushroom[] = [
   { key: "lg", label: "Large Gray", value: 3024000, minimum: 2 * 15 },
   { key: "lib", label: "Large Ice Blue", value: 2700000, minimum: 5 * 15 },
   { key: "lf", label: "Large Fire", value: 13662000, minimum: 15 * 104 },
-  { key: "lw", label: "Large Water", value: 13543200, minimum: 15 * 103 },
+  { key: "lwa", label: "Large Water", value: 13543200, minimum: 15 * 103 },
   { key: "lc", label: "Large Crystal", value: 13780800, minimum: 15 * 105 },
   { key: "le", label: "Large Electric", value: 13543200, minimum: 15 * 103 },
   { key: "lps", label: "Large Poisonous", value: 13424400, minimum: 15 * 102 },
@@ -81,17 +79,9 @@ export interface TimeRemaining {
   seconds: number;
 }
 
-export interface MushroomTry {
-  id?: string;
+export interface MushroomEvent {
+  id: string;
   name?: string;
-  mush: Mushroom;
-  health: number;
-  pikminAp: number;
-  startTime?: Dayjs;
-  endTime: Dayjs;
-}
-
-export interface MushroomData {
   mush: Mushroom;
   health: number;
   pikminAp: number;

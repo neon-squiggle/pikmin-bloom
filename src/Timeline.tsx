@@ -1,34 +1,23 @@
-import React, { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect } from "react";
 import dayjs from "dayjs";
 import {
   Box,
   IconButton,
-  List,
   Fab,
-  ListSubheader,
-  ListItemButton,
-  ListItemText,
   Card,
   CardContent,
-  Select,
-  MenuItem,
-  Collapse,
   Typography,
   useMediaQuery,
   useTheme,
 } from "@mui/material";
-import ExpandLess from "@mui/icons-material/ExpandLess";
-import ExpandMore from "@mui/icons-material/ExpandMore";
-import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
-import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
 import AddIcon from "@mui/icons-material/Add";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 
-import DateMonogram from "./DateMonogram";
+import EventList from "./EventList";
+import MonthSelector from "./MonthSelector";
 import MoreInfo from "./MoreInfo";
 import { useSharedMushroomTries } from "./Provider";
-import { MushroomTry, MushroomData, colorPalette, navbarHeight } from "./types";
-import { decodeEvent } from "./helpers";
+import { MushroomEvent, navbarHeight } from "./types";
 
 const Timeline = () => {
   const { days, monthsWithEvents, selectedMonth, setSelectedMonth } =
@@ -37,27 +26,24 @@ const Timeline = () => {
   const theme = useTheme();
   const isSmall = useMediaQuery(theme.breakpoints.down("md"));
 
-  const [selectedEvent, setSelectedEvent] = useState<MushroomTry | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<MushroomEvent | null>(null);
   const [showMoreInfo, setShowMoreInfo] = useState(false);
-  const [inputEventId, setInputEventId] = useState("");
-  const [formKey, setFormKey] = useState<string>(crypto.randomUUID());
+  const [formKey, setFormKey] = useState(crypto.randomUUID());
 
   const defaultExpandedDays = useMemo(
-    () =>
-      days.reduce((acc, day) => {
-        acc[day.date] = true;
-        return acc;
-      }, {} as Record<string, boolean>),
+    () => Object.fromEntries(days.map((day) => [day.date, true])),
     [days]
   );
   const [expandedDays, setExpandedDays] = useState(defaultExpandedDays);
 
   useEffect(() => {
-    const today = dayjs().format("YYYY-MM-DD");
-    const element = document.getElementById(`day-${today}`);
-    if (element) {
-      element.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
+    const now = dayjs();
+    // Find the first day with an upcoming event
+    const dayWithUpcoming = days.find((day) =>
+      day.tries.some((event) => event.endTime.isAfter(now))
+    );
+    const targetDate = dayWithUpcoming?.date ?? now.format("YYYY-MM-DD");
+    document.getElementById(`day-${targetDate}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [days]);
 
   const handleToggleDay = (date: string) => {
@@ -66,153 +52,53 @@ const Timeline = () => {
 
   const handleToggleAll = () => {
     const allExpanded = Object.values(expandedDays).every(Boolean);
-    setExpandedDays(
-      Object.fromEntries(
-        Object.keys(expandedDays).map((k) => [k, !allExpanded])
-      )
-    );
+    setExpandedDays(Object.fromEntries(Object.keys(expandedDays).map((k) => [k, !allExpanded])));
   };
 
-  const handleInputEvent = (value: string) => {
-    setInputEventId(value);
-    const decoded: MushroomData | null = decodeEvent(value);
-    if (decoded) {
-      const { mush, health, startTime, endTime, pikminAp } = decoded;
-      const event: MushroomTry = {
-        name: "",
-        mush,
-        health,
-        startTime,
-        endTime,
-        pikminAp,
-      };
-      setSelectedEvent(event);
-      openMoreInfo(event);
-    }
-  };
-
-  const openMoreInfo = (event: MushroomTry | null = null) => {
+  const openMoreInfo = (event: MushroomEvent | null = null) => {
     setSelectedEvent(event);
     setFormKey(crypto.randomUUID());
     setShowMoreInfo(true);
   };
 
-  const handleAddNew = () => {
-    setInputEventId("");
-    openMoreInfo();
-  };
-
-  const listItems = days.map((day, i) => (
-    <React.Fragment key={day.date}>
-      <ListItemButton
-        id={`day-${day.date}`}
-        onClick={() => handleToggleDay(day.date)}
-        disabled={day.tries.length === 0}
-      >
-        <DateMonogram
-          day={dayjs(day.date).format("ddd")}
-          date={dayjs(day.date).format("D")}
-          color={colorPalette[i % colorPalette.length]}
-        />
-        <ListItemText
-          primary={`${day.tries.length} mushroom${
-            day.tries.length !== 1 ? "s" : ""
-          }`}
-          sx={{ ml: 1 }}
-        />
-        {expandedDays[day.date] && day.tries.length > 0 ? (
-          <ExpandLess />
-        ) : day.tries.length > 0 ? (
-          <ExpandMore />
-        ) : null}
-      </ListItemButton>
-      <Collapse in={expandedDays[day.date]} timeout="auto" unmountOnExit>
-        <List component="div" disablePadding>
-          {day.tries.map((mushEvent) => (
-            <ListItemButton
-              key={mushEvent.id}
-              sx={{ pl: 10, py: 0.25, minHeight: "auto" }}
-              onClick={() => {
-                openMoreInfo(mushEvent);
-              }}
-            >
-              <ListItemText
-                primary={mushEvent.name || mushEvent.mush?.label || "Untitled"}
-                secondary={mushEvent.endTime.format("HH:mm")}
-              />
-            </ListItemButton>
-          ))}
-        </List>
-      </Collapse>
-    </React.Fragment>
-  ));
+  const allExpanded = Object.values(expandedDays).every(Boolean);
 
   const subheader = (
-    <ListSubheader
-      sx={{
-        p: 0,
-        bgcolor: "background.paper",
-        backgroundImage:
-          "linear-gradient(rgba(255, 255, 255, 0.051), rgba(255, 255, 255, 0.051))",
-      }}
-    >
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          px: 1,
-          py: 0.25,
-        }}
-      >
-        <Select
-          value={selectedMonth}
-          onChange={(e) => setSelectedMonth(e.target.value)}
-          sx={{ flex: 1 }}
-        >
-          {Object.entries(monthsWithEvents).map(([key, value]) => (
-            <MenuItem key={key} value={(value as any).key}>
-              {(value as any).label}
-            </MenuItem>
-          ))}
-        </Select>
-        <IconButton onClick={handleToggleAll} size="small">
-          {Object.values(expandedDays).every(Boolean) ? (
-            <UnfoldLessIcon />
-          ) : (
-            <UnfoldMoreIcon />
-          )}
-        </IconButton>
-      </Box>
-    </ListSubheader>
+    <MonthSelector
+      months={monthsWithEvents}
+      selectedMonth={selectedMonth}
+      onMonthChange={setSelectedMonth}
+      allExpanded={allExpanded}
+      onToggleAll={handleToggleAll}
+    />
   );
 
-  return (
-    <Card
-      sx={{
-        display: "flex",
-        flexDirection: { xs: "column", md: "row" },
-        maxHeight: `calc(100dvh - ${navbarHeight}px)`,
-        minHeight: 0,
-      }}
-    >
-      <CardContent
-        sx={{
-          display: "flex",
-          flex: 1,
-          minHeight: 0,
-          flexDirection: { xs: "column", md: "row" },
-        }}
-      >
-        {isSmall ? (
-          showMoreInfo ? (
-            <Box
-              sx={{
-                width: "100%",
-                display: "flex",
-                flexDirection: "column",
-                minHeight: 0,
-              }}
-            >
+  const eventList = (
+    <EventList
+      days={days}
+      expandedDays={expandedDays}
+      onToggleDay={handleToggleDay}
+      onSelectEvent={openMoreInfo}
+      subheader={subheader}
+    />
+  );
+
+  const closeMoreInfo = () => setShowMoreInfo(false);
+
+  const moreInfoPanel = (
+    <MoreInfo
+      key={formKey}
+      mushEvent={selectedEvent}
+      onDelete={closeMoreInfo}
+    />
+  );
+
+  if (isSmall) {
+    return (
+      <Card sx={{ maxHeight: `calc(100dvh - ${navbarHeight}px)`, minHeight: 0 }}>
+        <CardContent sx={{ display: "flex", flex: 1, minHeight: 0, flexDirection: "column" }}>
+          {showMoreInfo ? (
+            <Box sx={{ width: "100%", display: "flex", flexDirection: "column", minHeight: 0 }}>
               <Box
                 sx={{
                   display: "flex",
@@ -229,27 +115,17 @@ const Timeline = () => {
                   </IconButton>
                   <Typography variant="subtitle1">Event</Typography>
                 </Box>
-                <IconButton onClick={handleAddNew} aria-label="Add event">
+                <IconButton onClick={() => openMoreInfo()} aria-label="Add event">
                   <AddIcon />
                 </IconButton>
               </Box>
               <Box sx={{ flex: 1, overflowY: "auto", minHeight: 0, mt: 2 }}>
-                <MoreInfo
-                  key={formKey}
-                  mushEvent={selectedEvent}
-                  onDelete={() => setShowMoreInfo(false)}
-                />
+                {moreInfoPanel}
               </Box>
             </Box>
           ) : (
             <Box sx={{ width: "100%", overflowY: "auto", minHeight: 0 }}>
-              <List
-                component="nav"
-                sx={{ width: "100%" }}
-                subheader={subheader}
-              >
-                {listItems}
-              </List>
+              {eventList}
               <Box
                 sx={{
                   position: "fixed",
@@ -258,72 +134,69 @@ const Timeline = () => {
                   zIndex: (theme) => theme.zIndex.tooltip + 1,
                 }}
               >
-                <Fab color="primary" size="small" onClick={handleAddNew}>
+                <Fab color="primary" size="small" onClick={() => openMoreInfo()}>
                   <AddIcon />
                 </Fab>
               </Box>
             </Box>
-          )
-        ) : (
-          <>
-            <Box
-              sx={{
-                width: { xs: "100%", md: "34%" },
-                overflowY: "auto",
-                minHeight: 0,
-                flex: { xs: "0 0 auto", md: "0 0 34%" },
-                flexShrink: 0,
-                maxWidth: { md: "40%" },
-              }}
-            >
-              <List
-                component="nav"
-                sx={{ width: "100%" }}
-                subheader={subheader}
-              >
-                {listItems}
-              </List>
-            </Box>
+          )}
+        </CardContent>
+      </Card>
+    );
+  }
 
-            <Box
-              sx={{
-                flex: "1 1 0",
-                flexDirection: "column",
-                ml: { xs: 0, md: 2 },
-                mt: { xs: 2, md: 0 },
-                minWidth: 0,
-                minHeight: 0,
-                display: "flex",
-                width: "100%",
-              }}
-            >
-              <Box
-                sx={{
-                  minHeight: { xs: 56, md: 64 },
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "flex-end",
-                  borderBottom: 1,
-                  borderColor: "divider",
-                  px: 2,
-                  mb: 2,
-                }}
-              >
-                <IconButton onClick={handleAddNew}>
-                  <AddIcon />
-                </IconButton>
-              </Box>
+  return (
+    <Card
+      sx={{
+        display: "flex",
+        flexDirection: "row",
+        maxHeight: `calc(100dvh - ${navbarHeight}px)`,
+        minHeight: 0,
+      }}
+    >
+      <CardContent sx={{ display: "flex", flex: 1, minHeight: 0, flexDirection: "row" }}>
+        <Box
+          sx={{
+            width: "34%",
+            overflowY: "auto",
+            minHeight: 0,
+            flexShrink: 0,
+            maxWidth: "40%",
+          }}
+        >
+          {eventList}
+        </Box>
 
-              {showMoreInfo && (
-                <MoreInfo
-                  key={formKey}
-                  mushEvent={selectedEvent}
-                  onDelete={() => setShowMoreInfo(false)}
-                />
-              )}
-            </Box>
-          </>
-        )}
+        <Box
+          sx={{
+            flex: "1 1 0",
+            flexDirection: "column",
+            ml: 2,
+            minWidth: 0,
+            minHeight: 0,
+            display: "flex",
+            width: "100%",
+          }}
+        >
+          <Box
+            sx={{
+              minHeight: 64,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "flex-end",
+              borderBottom: 1,
+              borderColor: "divider",
+              px: 2,
+              mb: 2,
+            }}
+          >
+            <IconButton onClick={() => openMoreInfo()}>
+              <AddIcon />
+            </IconButton>
+          </Box>
+
+          {showMoreInfo && moreInfoPanel}
+        </Box>
       </CardContent>
     </Card>
   );

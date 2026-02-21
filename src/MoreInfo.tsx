@@ -1,9 +1,15 @@
-import React, { useState, useEffect } from "react";
-import { Box, Button, TextField, Autocomplete, Snackbar } from "@mui/material";
+import { useState, useEffect } from "react";
+import {
+  Box,
+  Button,
+  TextField,
+  Autocomplete,
+  Snackbar,
+} from "@mui/material";
 import dayjs, { Dayjs } from "dayjs";
 
 import {
-  MushroomTry,
+  MushroomEvent,
   Mushroom,
   mushrooms,
   TimeRemaining,
@@ -14,41 +20,40 @@ import { useSharedMushroomTries } from "./Provider";
 import NumberSpinner from "./NumberSpinner";
 
 interface MoreInfoProps {
-  mushEvent: MushroomTry | null;
+  mushEvent: MushroomEvent | null;
   onDelete: () => void;
 }
 
-const DEFAULT_TIMELEFT: TimeRemaining = {
-  days: 0,
-  hours: 0,
-  minutes: 0,
-  seconds: 0,
-};
+interface FormState {
+  name: string;
+  mush: Mushroom | null;
+  pikminAp: number;
+  endTime: Dayjs;
+  draftId: string | null;
+}
+
+const createInitialState = (mushEvent: MushroomEvent | null): FormState => ({
+  name: mushEvent?.name ?? "",
+  mush: mushEvent?.mush ?? null,
+  pikminAp: mushEvent?.pikminAp ?? 0,
+  endTime: mushEvent?.endTime ?? dayjs(),
+  draftId: mushEvent?.id ?? null,
+});
 
 const MoreInfo = ({ mushEvent, onDelete }: MoreInfoProps) => {
   const { addEvent, updateEvent, deleteEvent } = useSharedMushroomTries();
 
-  const [name, setName] = useState("");
-  const [mush, setMush] = useState<Mushroom | null>(null);
-  const [pikminAp, setPikminAp] = useState(0);
-  const [endTime, setEndTime] = useState<Dayjs>(dayjs());
-  const [timeLeft, setTimeLeft] = useState<TimeRemaining>(DEFAULT_TIMELEFT);
-  const [draftId, setDraftId] = useState<string | null>(null);
-  const [touchedTime, setTouchedTime] = useState<boolean>(false);
+  const [form, setForm] = useState<FormState>(() => createInitialState(mushEvent));
+  const [timeLeft, setTimeLeft] = useState<TimeRemaining>(() =>
+    diffToTimeRemaining(mushEvent?.endTime ?? dayjs())
+  );
   const [snackbarOpen, setSnackbarOpen] = useState(false);
 
-  useEffect(() => {
-    setName(mushEvent?.name ?? "");
-    setMush(mushEvent?.mush ?? null);
-    setPikminAp(mushEvent?.pikminAp ?? 0);
-    setEndTime(mushEvent?.endTime ?? dayjs());
-    setTimeLeft(
-      mushEvent?.endTime
-        ? diffToTimeRemaining(mushEvent.endTime)
-        : DEFAULT_TIMELEFT
-    );
-    setDraftId(mushEvent?.id ?? null);
-  }, [mushEvent]);
+  const { name, mush, pikminAp, endTime, draftId } = form;
+
+  const updateForm = (updates: Partial<FormState>) => {
+    setForm((prev) => ({ ...prev, ...updates }));
+  };
 
   const applyTimeDelta = (
     value: number | null,
@@ -56,28 +61,22 @@ const MoreInfo = ({ mushEvent, onDelete }: MoreInfoProps) => {
     unit: TimeUnit
   ) => {
     if (value == null) return;
-    setTouchedTime(true);
-    setTimeLeft((prev) => {
-      const delta = value - prev[field];
-      setEndTime((t) => t.add(delta, unit));
-      return { ...prev, [field]: value };
-    });
+    const delta = value - timeLeft[field];
+    const newEndTime = endTime.add(delta, unit);
+    updateForm({ endTime: newEndTime });
+    setTimeLeft((prev) => ({ ...prev, [field]: value }));
   };
 
   const saveEvent = () => {
+    if (!mush) return;
+
     if (draftId) {
-      updateEvent(draftId, {
-        name,
-        pikminAp,
-        mush: mush ?? mushEvent?.mush,
-        endTime: touchedTime ? endTime : mushEvent?.endTime,
-      });
-    } else if (mush) {
+      updateEvent(draftId, { name, pikminAp, mush, endTime });
+    } else {
       const id = crypto.randomUUID();
-      addEvent({ id, name, pikminAp, mush, health: mush.value, endTime });
-      setDraftId(id);
+      addEvent({ id, name, pikminAp, mush, health: mush.value, startTime: dayjs(), endTime });
+      updateForm({ draftId: id });
     }
-    setTouchedTime(false);
     setSnackbarOpen(true);
   };
 
@@ -105,12 +104,12 @@ const MoreInfo = ({ mushEvent, onDelete }: MoreInfoProps) => {
         <TextField
           label="Name"
           value={name}
-          onChange={(e) => setName(e.target.value)}
+          onChange={(e) => updateForm({ name: e.target.value })}
         />
         <Autocomplete
           disablePortal
           options={mushrooms}
-          onChange={(e, val) => setMush(val)}
+          onChange={(_, val) => updateForm({ mush: val })}
           value={mush}
           renderInput={(params) => (
             <TextField {...params} label="Mushroom Type" />
@@ -121,86 +120,85 @@ const MoreInfo = ({ mushEvent, onDelete }: MoreInfoProps) => {
             label="Total AP"
             min={2}
             value={pikminAp}
-            onValueChange={(val) => val != null && setPikminAp(val)}
+            onValueChange={(val) => val != null && updateForm({ pikminAp: val })}
           />
         </Box>
+        <TextField
+          label="End Time"
+          value={endTime.format("ddd, MMM D, YYYY h:mm:ss A")}
+          slotProps={{ input: { readOnly: true } }}
+          fullWidth
+        />
         <Box
           sx={{
             display: "grid",
             gap: 2,
-            gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+            gridTemplateColumns: "1fr 1fr",
             alignItems: "start",
           }}
         >
-          <Box sx={{ width: "100%" }}>
-            <NumberSpinner
-              label="Days"
-              value={timeLeft.days}
-              min={0}
-              onValueChange={(v) => applyTimeDelta(v, "days", "day")}
-            />
-          </Box>
-
-          <Box sx={{ width: "100%" }}>
-            <NumberSpinner
-              label="Hours"
-              value={timeLeft.hours}
-              min={0}
-              max={23}
-              onValueChange={(v) => applyTimeDelta(v, "hours", "hour")}
-            />
-          </Box>
-
-          <Box sx={{ width: "100%" }}>
-            <NumberSpinner
-              label="Minutes"
-              value={timeLeft.minutes}
-              min={0}
-              max={59}
-              onValueChange={(v) => applyTimeDelta(v, "minutes", "minute")}
-            />
-          </Box>
-
-          <Box sx={{ width: "100%" }}>
-            <NumberSpinner
-              label="Seconds"
-              value={timeLeft.seconds}
-              min={0}
-              max={59}
-              onValueChange={(v) => applyTimeDelta(v, "seconds", "second")}
-            />
-          </Box>
+          <NumberSpinner
+            label="Days"
+            value={timeLeft.days}
+            min={0}
+            onValueChange={(v) => applyTimeDelta(v, "days", "day")}
+          />
+          <NumberSpinner
+            label="Hours"
+            value={timeLeft.hours}
+            min={0}
+            max={23}
+            onValueChange={(v) => applyTimeDelta(v, "hours", "hour")}
+          />
+          <NumberSpinner
+            label="Minutes"
+            value={timeLeft.minutes}
+            min={0}
+            max={59}
+            onValueChange={(v) => applyTimeDelta(v, "minutes", "minute")}
+          />
+          <NumberSpinner
+            label="Seconds"
+            value={timeLeft.seconds}
+            min={0}
+            max={59}
+            onValueChange={(v) => applyTimeDelta(v, "seconds", "second")}
+          />
         </Box>
         <Box
           sx={{
             display: "flex",
             gap: 1,
             mt: 2,
-            justifyContent: "flex-end",
+            justifyContent: "space-between",
             p: 1,
           }}
         >
-          {draftId && (
+          <Box sx={{ display: "flex", gap: 1 }}>
+            {draftId && (
+              <Button
+                variant="outlined"
+                color="error"
+                onClick={() => {
+                  deleteEvent(draftId);
+                  onDelete();
+                }}
+              >
+                Delete
+              </Button>
+            )}
+          </Box>
+          <Box sx={{ display: "flex", gap: 1 }}>
             <Button
-              variant="outlined"
-              color="error"
-              onClick={() => {
-                deleteEvent(draftId);
-                onDelete();
-              }}
+              variant="contained"
+              disabled={
+                !mush || !pikminAp || isInvalidDuration(timeLeft) || !endTime
+              }
+              onClick={saveEvent}
             >
-              Delete
+              Save
             </Button>
-          )}
-          <Button
-            variant="contained"
-            disabled={
-              !mush || !pikminAp || isInvalidDuration(timeLeft) || !endTime
-            }
-            onClick={saveEvent}
-          >
-            Save
-          </Button>
+          </Box>
         </Box>
 
         <Snackbar
