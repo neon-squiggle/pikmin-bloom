@@ -95,8 +95,8 @@ const Timeline = () => {
 
   if (isSmall) {
     return (
-      <Card sx={{ maxHeight: `calc(100dvh - ${navbarHeight}px)`, minHeight: 0 }}>
-        <CardContent sx={{ display: "flex", flex: 1, minHeight: 0, flexDirection: "column" }}>
+      <Card sx={{ height: `calc(100dvh - ${navbarHeight}px)`, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <CardContent sx={{ display: "flex", flex: 1, minHeight: 0, flexDirection: "column", overflow: "hidden" }}>
           {showMoreInfo ? (
             <Box sx={{ width: "100%", display: "flex", flexDirection: "column", minHeight: 0 }}>
               <Box
@@ -124,7 +124,7 @@ const Timeline = () => {
               </Box>
             </Box>
           ) : (
-            <Box sx={{ width: "100%", overflowY: "auto", minHeight: 0 }}>
+            <Box sx={{ width: "100%", flex: 1, overflowY: "auto", minHeight: 0 }}>
               {eventList}
               <Box
                 sx={{
@@ -152,9 +152,10 @@ const Timeline = () => {
         flexDirection: "row",
         maxHeight: `calc(100dvh - ${navbarHeight}px)`,
         minHeight: 0,
+        overflow: "hidden",
       }}
     >
-      <CardContent sx={{ display: "flex", flex: 1, minHeight: 0, flexDirection: "row" }}>
+      <CardContent sx={{ display: "flex", flex: 1, minHeight: 0, flexDirection: "row", overflow: "hidden" }}>
         <Box
           sx={{
             width: "34%",
