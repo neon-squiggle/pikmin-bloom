@@ -1,5 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
-import dayjs from "dayjs";
+import { useState } from "react";
 import {
   Box,
   IconButton,
@@ -14,7 +13,6 @@ import AddIcon from "@mui/icons-material/Add";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 
 import EventList from "./EventList";
-import MonthSelector from "./MonthSelector";
 import MoreInfo from "./MoreInfo";
 import { useSharedMushroomTries } from "./Provider";
 import { MushroomEvent, navbarHeight } from "./types";
@@ -30,60 +28,23 @@ const Timeline = () => {
   const [showMoreInfo, setShowMoreInfo] = useState(false);
   const [formKey, setFormKey] = useState(crypto.randomUUID());
 
-  const defaultExpandedDays = useMemo(
-    () => Object.fromEntries(days.map((day) => [day.date, true])),
-    [days]
-  );
-  const [expandedDays, setExpandedDays] = useState(defaultExpandedDays);
-
-  useEffect(() => {
-    const now = dayjs();
-    // Find the first day with an upcoming event
-    const dayWithUpcoming = days.find((day) =>
-      day.tries.some((event) => event.endTime.isAfter(now))
-    );
-    const targetDate = dayWithUpcoming?.date ?? now.format("YYYY-MM-DD");
-    document.getElementById(`day-${targetDate}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, [days]);
-
-  const handleToggleDay = (date: string) => {
-    setExpandedDays((prev) => ({ ...prev, [date]: !prev[date] }));
-  };
-
-  const handleToggleAll = () => {
-    const allExpanded = Object.values(expandedDays).every(Boolean);
-    setExpandedDays(Object.fromEntries(Object.keys(expandedDays).map((k) => [k, !allExpanded])));
-  };
-
   const openMoreInfo = (event: MushroomEvent | null = null) => {
     setSelectedEvent(event);
     setFormKey(crypto.randomUUID());
     setShowMoreInfo(true);
   };
 
-  const allExpanded = Object.values(expandedDays).every(Boolean);
-
-  const subheader = (
-    <MonthSelector
-      months={monthsWithEvents}
-      selectedMonth={selectedMonth}
-      onMonthChange={setSelectedMonth}
-      allExpanded={allExpanded}
-      onToggleAll={handleToggleAll}
-    />
-  );
+  const closeMoreInfo = () => setShowMoreInfo(false);
 
   const eventList = (
     <EventList
       days={days}
-      expandedDays={expandedDays}
-      onToggleDay={handleToggleDay}
+      months={monthsWithEvents}
+      selectedMonth={selectedMonth}
+      onMonthChange={setSelectedMonth}
       onSelectEvent={openMoreInfo}
-      subheader={subheader}
     />
   );
-
-  const closeMoreInfo = () => setShowMoreInfo(false);
 
   const moreInfoPanel = (
     <MoreInfo
@@ -110,7 +71,7 @@ const Timeline = () => {
                 }}
               >
                 <Box sx={{ display: "flex", alignItems: "center" }}>
-                  <IconButton onClick={() => setShowMoreInfo(false)}>
+                  <IconButton onClick={closeMoreInfo}>
                     <ArrowBackIcon />
                   </IconButton>
                   <Typography variant="subtitle1">Event</Typography>
