@@ -1,11 +1,5 @@
 import { useState } from "react";
-import {
-  Box,
-  Button,
-  TextField,
-  Autocomplete,
-  Snackbar,
-} from "@mui/material";
+import { Box, Button, TextField, Autocomplete, Snackbar } from "@mui/material";
 import dayjs, { Dayjs } from "dayjs";
 
 import {
@@ -43,9 +37,11 @@ const createInitialState = (mushEvent: MushroomEvent | null): FormState => ({
 const MoreInfo = ({ mushEvent, onDelete }: MoreInfoProps) => {
   const { addEvent, updateEvent, deleteEvent } = useSharedMushroomTries();
 
-  const [form, setForm] = useState<FormState>(() => createInitialState(mushEvent));
+  const [form, setForm] = useState<FormState>(() =>
+    createInitialState(mushEvent),
+  );
   const [timeLeft, setTimeLeft] = useState<TimeRemaining>(() =>
-    diffToTimeRemaining(mushEvent?.endTime ?? dayjs())
+    diffToTimeRemaining(mushEvent?.endTime ?? dayjs()),
   );
   const [snackbarOpen, setSnackbarOpen] = useState(false);
 
@@ -58,7 +54,7 @@ const MoreInfo = ({ mushEvent, onDelete }: MoreInfoProps) => {
   const applyTimeDelta = (
     value: number | null,
     field: keyof TimeRemaining,
-    unit: TimeUnit
+    unit: TimeUnit,
   ) => {
     if (value == null) return;
     const delta = value - timeLeft[field];
@@ -71,10 +67,18 @@ const MoreInfo = ({ mushEvent, onDelete }: MoreInfoProps) => {
     if (!mush) return;
 
     if (draftId) {
-      updateEvent(draftId, { name, pikminAp, mush, endTime });
+      updateEvent(draftId, { name, pikminAp: 0, mush, endTime });
     } else {
       const id = crypto.randomUUID();
-      addEvent({ id, name, pikminAp, mush, health: mush.value, startTime: dayjs(), endTime });
+      addEvent({
+        id,
+        name,
+        pikminAp: 0,
+        mush,
+        health: mush.value,
+        startTime: dayjs(),
+        endTime,
+      });
       updateForm({ draftId: id });
     }
     setSnackbarOpen(true);
@@ -115,14 +119,6 @@ const MoreInfo = ({ mushEvent, onDelete }: MoreInfoProps) => {
             <TextField {...params} label="Mushroom Type" />
           )}
         />
-        <Box sx={{ width: "100%" }}>
-          <NumberSpinner
-            label="Total AP"
-            min={2}
-            value={pikminAp}
-            onValueChange={(val) => val != null && updateForm({ pikminAp: val })}
-          />
-        </Box>
         <TextField
           label="End Time"
           value={endTime.format("ddd, MMM D, YYYY h:mm:ss A")}
