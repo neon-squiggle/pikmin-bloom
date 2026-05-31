@@ -187,9 +187,7 @@ const MoreInfo = ({ mushEvent, onDelete }: MoreInfoProps) => {
           <Box sx={{ display: "flex", gap: 1 }}>
             <Button
               variant="contained"
-              disabled={
-                !mush || !pikminAp || isInvalidDuration(timeLeft) || !endTime
-              }
+              disabled={!mush || isInvalidDuration(timeLeft) || !endTime}
               onClick={saveEvent}
             >
               Save
