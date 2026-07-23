@@ -48,7 +48,7 @@ describe("ExistingMushroomCalc", () => {
     expect(desiredEndInput.value).toBe("");
   });
 
-  it("shows raw AP and increases it when the addition is delayed", () => {
+  it("shows rounded AP and increases it when the addition is delayed", () => {
     renderCalculator(
       {
         currentAp: 100,
@@ -59,7 +59,7 @@ describe("ExistingMushroomCalc", () => {
     );
 
     expect(screen.getByTestId("additional-ap-result").textContent).toContain(
-      "11.11111111111111",
+      "11.111",
     );
 
     jest.advanceTimersByTime(5 * 60 * 1000);
@@ -68,11 +68,13 @@ describe("ExistingMushroomCalc", () => {
     });
 
     expect(screen.getByTestId("additional-ap-result").textContent).toContain(
-      "14.285714285714286",
+      "14.286",
     );
     expect(screen.queryByText("Add it in 10m")).not.toBeNull();
-    expect(screen.getByTestId("ap-addition-epoch").textContent).toContain(
-      "Epoch: 1704111000",
+    expect(
+      screen.getByTestId("ap-addition-discord-timestamp").textContent,
+    ).toContain(
+      "Discord timestamp: <t:1704111000:f>",
     );
   });
 
@@ -96,7 +98,7 @@ describe("ExistingMushroomCalc", () => {
     );
   });
 
-  it("optionally divides the raw AP without replacing the total", () => {
+  it("optionally divides the AP without replacing the total", () => {
     renderCalculator(
       {
         currentAp: 100,
@@ -113,7 +115,7 @@ describe("ExistingMushroomCalc", () => {
       rawTotal,
     );
     expect(screen.getByTestId("divided-ap-result").textContent).toContain(
-      "3.7037037037037037 AP each",
+      "3.704 AP each",
     );
   });
 

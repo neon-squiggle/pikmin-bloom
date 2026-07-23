@@ -49,7 +49,10 @@ const formatDuration = (totalSeconds: number) => {
     .join(" ");
 };
 
-const formatRawAp = (value: number) => String(value);
+const formatAp = (value: number) =>
+  String(Math.round((value + Number.EPSILON) * 1000) / 1000);
+
+const toDiscordTimestamp = (time: Dayjs) => `<t:${time.unix()}:f>`;
 
 const ExistingMushroomCalc = ({
   initialValues,
@@ -174,7 +177,7 @@ const ExistingMushroomCalc = ({
       <Box>
         <Typography variant="h6">Target finish</Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Estimated end date before additional AP:{" "}
+          Estimated finish without added AP:{" "}
           {reportedEndTime.format("ddd, MMM D, h:mm:ss A")}
         </Typography>
         <DateTimePicker
@@ -210,17 +213,17 @@ const ExistingMushroomCalc = ({
                 <Typography
                   variant="caption"
                   color="text.secondary"
-                  data-testid="ap-addition-epoch"
+                  data-testid="ap-addition-discord-timestamp"
                 >
-                  Epoch: {apAdditionTime.unix()}
+                  Discord timestamp: {toDiscordTimestamp(apAdditionTime)}
                 </Typography>
-                <Tooltip title="Copy epoch timestamp">
+                <Tooltip title="Copy Discord timestamp">
                   <IconButton
                     size="small"
-                    aria-label="Copy AP addition epoch timestamp"
+                    aria-label="Copy AP addition Discord timestamp"
                     onClick={() =>
                       navigator.clipboard.writeText(
-                        apAdditionTime.unix().toString(),
+                        toDiscordTimestamp(apAdditionTime),
                       )
                     }
                   >
@@ -253,7 +256,22 @@ const ExistingMushroomCalc = ({
                     ]
                   : []),
               ]}
-              sx={{ mt: 1, touchAction: "pan-y" }}
+              sx={{
+                mt: 1,
+                touchAction: "pan-y",
+                "& .MuiSlider-markLabel[data-index='0']": {
+                  transform: {
+                    xs: "translateX(0)",
+                    sm: "translateX(-50%)",
+                  },
+                },
+                "& .MuiSlider-markLabel[data-index='1']": {
+                  transform: {
+                    xs: "translateX(-100%)",
+                    sm: "translateX(-50%)",
+                  },
+                },
+              }}
             />
 
             <Divider />
@@ -268,10 +286,7 @@ const ExistingMushroomCalc = ({
                 data-testid="additional-ap-result"
                 sx={{ overflowWrap: "anywhere" }}
               >
-                {additionalAp == null ? "—" : formatRawAp(additionalAp)}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Raw calculated AP—no rounding applied.
+                {additionalAp == null ? "—" : formatAp(additionalAp)}
               </Typography>
 
               {additionalAp != null && (
@@ -308,7 +323,7 @@ const ExistingMushroomCalc = ({
                       sx={{ mt: 1 }}
                       data-testid="divided-ap-result"
                     >
-                      {formatRawAp(additionalAp / apDivisor)} AP each
+                      {formatAp(additionalAp / apDivisor)} AP each
                     </Typography>
                   )}
                 </Box>
