@@ -58,18 +58,17 @@ describe("ExistingMushroomCalc", () => {
       dayjs().add(45, "minute"),
     );
 
-    expect(screen.getByTestId("additional-ap-result").textContent).toContain(
-      "11.111",
-    );
+    const additionalApInput = screen.getByLabelText(
+      "Additional AP required",
+    ) as HTMLInputElement;
+    expect(additionalApInput.value).toBe("11.111");
 
     jest.advanceTimersByTime(5 * 60 * 1000);
     fireEvent.change(screen.getByRole("slider"), {
       target: { value: "600" },
     });
 
-    expect(screen.getByTestId("additional-ap-result").textContent).toContain(
-      "14.286",
-    );
+    expect(additionalApInput.value).toBe("14.286");
     expect(screen.queryByText("Add it in 10m")).not.toBeNull();
     expect(
       screen.getByTestId("ap-addition-discord-timestamp").textContent,
@@ -93,9 +92,29 @@ describe("ExistingMushroomCalc", () => {
 
     fireEvent.change(slider, { target: { value: "2699" } });
 
-    expect(screen.getByTestId("additional-ap-result").textContent).toBe(
-      "30000",
+    expect(
+      (
+        screen.getByLabelText("Additional AP required") as HTMLInputElement
+      ).value,
+    ).toBe("30,000");
+  });
+
+  it("moves the time slider when the additional AP is edited", () => {
+    renderCalculator(
+      {
+        currentAp: 100,
+        healthRemaining: 3000,
+        timeRemaining: { days: 0, hours: 1, minutes: 0, seconds: 0 },
+      },
+      dayjs().add(45, "minute"),
     );
+
+    fireEvent.change(screen.getByLabelText("Additional AP required"), {
+      target: { value: "20" },
+    });
+
+    expect((screen.getByRole("slider") as HTMLInputElement).value).toBe("1200");
+    expect(screen.queryByText("Add it in 20m")).not.toBeNull();
   });
 
   it("optionally divides the AP without replacing the total", () => {
@@ -108,12 +127,13 @@ describe("ExistingMushroomCalc", () => {
       dayjs().add(45, "minute"),
     );
 
-    const rawTotal = screen.getByTestId("additional-ap-result").textContent;
+    const additionalApInput = screen.getByLabelText(
+      "Additional AP required",
+    ) as HTMLInputElement;
+    const total = additionalApInput.value;
     fireEvent.click(screen.getByLabelText("Divide AP by 3"));
 
-    expect(screen.getByTestId("additional-ap-result").textContent).toBe(
-      rawTotal,
-    );
+    expect(additionalApInput.value).toBe(total);
     expect(screen.getByTestId("divided-ap-result").textContent).toContain(
       "3.704 AP each",
     );

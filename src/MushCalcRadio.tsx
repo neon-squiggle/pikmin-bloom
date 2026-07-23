@@ -462,7 +462,7 @@ const MushCalcRadio = () => {
                     : "The mushroom must have started and have remaining health"
                 }
               >
-                Use as existing
+                Plan subsequent joins
               </Button>
               {/* <Button
                 variant="contained"

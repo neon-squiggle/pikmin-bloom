@@ -133,3 +133,39 @@ export const calculateAdditionalAp = ({
 
   return Math.max(0, remainingApSeconds / boostedDuration);
 };
+
+interface ApAdditionDelayInput {
+  currentAp: number;
+  healthRemaining: number;
+  secondsUntilTarget: number;
+  additionalAp: number;
+}
+
+export const calculateApAdditionDelay = ({
+  currentAp,
+  healthRemaining,
+  secondsUntilTarget,
+  additionalAp,
+}: ApAdditionDelayInput): number | null => {
+  if (
+    currentAp <= 0 ||
+    healthRemaining <= 0 ||
+    secondsUntilTarget <= 0 ||
+    additionalAp <= 0
+  ) {
+    return null;
+  }
+
+  const remainingApSeconds =
+    healthRemaining * 100 - currentAp * secondsUntilTarget;
+
+  if (remainingApSeconds <= 0) return 0;
+
+  return Math.max(
+    0,
+    Math.min(
+      secondsUntilTarget - 1,
+      secondsUntilTarget - remainingApSeconds / additionalAp,
+    ),
+  );
+};
