@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
-import { Button, Snackbar } from "@mui/material";
+import { useCallback, useEffect } from "react";
 
 interface AssetManifest {
   files?: {
@@ -22,9 +21,11 @@ export const hasNewMainScript = (
       !loadedMainScript.endsWith(latestMainScript),
   );
 
-const UpdateNotifier = () => {
-  const [newMainScript, setNewMainScript] = useState<string | null>(null);
+const RELOAD_ATTEMPT_KEY = "pikmin-bloom:reload-attempt";
+const RELOAD_RETRY_MS = 60_000;
+let attemptedMainScript: string | null = null;
 
+const UpdateNotifier = () => {
   const checkForUpdate = useCallback(async () => {
     if (process.env.NODE_ENV !== "production") return;
 
@@ -44,7 +45,36 @@ const UpdateNotifier = () => {
         latestMainScript &&
         hasNewMainScript(loadedMainScript, latestMainScript)
       ) {
-        setNewMainScript(latestMainScript);
+        if (attemptedMainScript === latestMainScript) return;
+
+        try {
+          const previousAttempt = sessionStorage.getItem(RELOAD_ATTEMPT_KEY);
+          const [previousScript, previousTime] =
+            previousAttempt?.split("\n") ?? [];
+          if (
+            previousScript === latestMainScript &&
+            Date.now() - Number(previousTime) < RELOAD_RETRY_MS
+          ) {
+            return;
+          }
+          sessionStorage.setItem(
+            RELOAD_ATTEMPT_KEY,
+            `${latestMainScript}\n${Date.now()}`,
+          );
+        } catch {
+          // The in-memory guard still prevents a reload loop when storage is
+          // unavailable.
+        }
+
+        attemptedMainScript = latestMainScript;
+        window.location.reload();
+      } else if (latestMainScript && loadedMainScript) {
+        attemptedMainScript = null;
+        try {
+          sessionStorage.removeItem(RELOAD_ATTEMPT_KEY);
+        } catch {
+          // Storage can be unavailable in privacy-restricted browsers.
+        }
       }
     } catch {
       // A failed update check should never interrupt the calculator.
@@ -65,28 +95,7 @@ const UpdateNotifier = () => {
     };
   }, [checkForUpdate]);
 
-  const refresh = () => {
-    if (!newMainScript) return;
-    const publicUrl = process.env.PUBLIC_URL ?? "";
-    const version = newMainScript.split("/").pop() ?? Date.now().toString();
-    const baseUrl = publicUrl.endsWith("/") ? publicUrl : `${publicUrl}/`;
-    window.location.replace(
-      `${baseUrl}?version=${encodeURIComponent(version)}`,
-    );
-  };
-
-  return (
-    <Snackbar
-      open={newMainScript != null}
-      message="A new version is available."
-      anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      action={
-        <Button color="secondary" size="small" onClick={refresh}>
-          Refresh
-        </Button>
-      }
-    />
-  );
+  return null;
 };
 
 export default UpdateNotifier;

@@ -183,7 +183,13 @@ const MushCalcRadio = () => {
   return (
     <Card
       variant="elevation"
-      sx={{ maxHeight: `calc(100dvh - ${navbarHeight}px)`, overflowY: "auto" }}
+      sx={{
+        maxHeight: {
+          xs: "none",
+          md: `calc(100dvh - ${navbarHeight}px)`,
+        },
+        overflowY: { xs: "visible", md: "auto" },
+      }}
     >
       <CardHeader
         title="Mushroom calculator"

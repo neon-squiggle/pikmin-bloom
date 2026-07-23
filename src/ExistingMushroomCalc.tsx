@@ -253,7 +253,7 @@ const ExistingMushroomCalc = ({
                     ]
                   : []),
               ]}
-              sx={{ mt: 1 }}
+              sx={{ mt: 1, touchAction: "pan-y" }}
             />
 
             <Divider />

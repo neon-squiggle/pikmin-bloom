@@ -57,7 +57,14 @@ export default function NumberSpinner({
     >
       <BaseNumberField.ScrubArea
         render={
-          <Box component="span" sx={{ userSelect: "none", width: "auto" }} />
+          <Box
+            component="span"
+            sx={{
+              display: { xs: "none", md: "inline-block" },
+              userSelect: "none",
+              width: "auto",
+            }}
+          />
         }
       >
         <FormLabel
@@ -81,6 +88,20 @@ export default function NumberSpinner({
           />
         </BaseNumberField.ScrubAreaCursor>
       </BaseNumberField.ScrubArea>
+      <FormLabel
+        htmlFor={id}
+        sx={{
+          display: { xs: "inline-block", md: "none" },
+          fontSize: "0.875rem",
+          color: isToggled ? "green" : "text.primary",
+          fontWeight: 500,
+          lineHeight: 1.5,
+          mb: 0.5,
+          touchAction: "pan-y",
+        }}
+      >
+        {label}
+      </FormLabel>
       <Box sx={{ display: "flex" }}>
         <BaseNumberField.Decrement
           render={
