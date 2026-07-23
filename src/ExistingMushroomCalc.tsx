@@ -16,7 +16,11 @@ import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
 import dayjs, { Dayjs } from "dayjs";
 
 import NumberSpinner from "./NumberSpinner";
-import { calculateAdditionalAp, durationToSeconds } from "./helpers";
+import {
+  calculateAdditionalAp,
+  calculateApAdditionDelay,
+  durationToSeconds,
+} from "./helpers";
 import { TimeRemaining } from "./types";
 
 const defaultTimeRemaining: TimeRemaining = {
@@ -49,8 +53,10 @@ const formatDuration = (totalSeconds: number) => {
     .join(" ");
 };
 
-const formatAp = (value: number) =>
-  String(Math.round((value + Number.EPSILON) * 1000) / 1000);
+const roundAp = (value: number) =>
+  Math.round((value + Number.EPSILON) * 1000) / 1000;
+
+const formatAp = (value: number) => String(roundAp(value));
 
 const toDiscordTimestamp = (time: Dayjs) => `<t:${time.unix()}:f>`;
 
@@ -97,10 +103,24 @@ const ExistingMushroomCalc = ({
     secondsUntilTarget,
     secondsUntilApAdded: clampedDelay,
   });
+  const displayedAdditionalAp =
+    additionalAp == null ? null : roundAp(additionalAp);
 
   const updateDuration = (field: keyof TimeRemaining, value: number | null) => {
     setTimeRemaining((prev) => ({ ...prev, [field]: value ?? 0 }));
     setAddDelaySeconds(0);
+  };
+
+  const updateAdditionalAp = (value: number | null) => {
+    if (value == null) return;
+
+    const delay = calculateApAdditionDelay({
+      currentAp,
+      healthRemaining,
+      secondsUntilTarget,
+      additionalAp: value,
+    });
+    if (delay != null) setAddDelaySeconds(Math.round(delay));
   };
 
   return (
@@ -277,19 +297,20 @@ const ExistingMushroomCalc = ({
             <Divider />
 
             <Box>
-              <Typography variant="overline" color="text.secondary">
-                Additional AP required
-              </Typography>
-              <Typography
-                variant="h4"
-                color="primary.main"
+              <Box
                 data-testid="additional-ap-result"
-                sx={{ overflowWrap: "anywhere" }}
+                sx={{ maxWidth: { sm: 280 } }}
               >
-                {additionalAp == null ? "—" : formatAp(additionalAp)}
-              </Typography>
+                <NumberSpinner
+                  label="Additional AP required"
+                  min={0}
+                  value={displayedAdditionalAp ?? 0}
+                  disabled={displayedAdditionalAp == null}
+                  onValueChange={updateAdditionalAp}
+                />
+              </Box>
 
-              {additionalAp != null && (
+              {displayedAdditionalAp != null && (
                 <Box sx={{ mt: 2 }}>
                   <Typography
                     variant="caption"
@@ -297,7 +318,7 @@ const ExistingMushroomCalc = ({
                     component="div"
                     sx={{ mb: 0.75 }}
                   >
-                    Split AP for convenience
+                    Split AP
                   </Typography>
                   <ToggleButtonGroup
                     value={apDivisor}
@@ -323,7 +344,7 @@ const ExistingMushroomCalc = ({
                       sx={{ mt: 1 }}
                       data-testid="divided-ap-result"
                     >
-                      {formatAp(additionalAp / apDivisor)} AP each
+                      {formatAp(displayedAdditionalAp / apDivisor)} AP each
                     </Typography>
                   )}
                 </Box>

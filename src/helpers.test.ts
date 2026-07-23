@@ -9,6 +9,7 @@ import {
   isInvalidDuration,
   durationToSeconds,
   calculateAdditionalAp,
+  calculateApAdditionDelay,
   secondsToDuration,
   calculateRemainingHealth,
 } from "./helpers";
@@ -289,6 +290,41 @@ describe("calculateAdditionalAp", () => {
         healthRemaining: 1000,
         secondsUntilTarget: 800,
         secondsUntilApAdded: 800,
+      }),
+    ).toBeNull();
+  });
+});
+
+describe("calculateApAdditionDelay", () => {
+  it("returns when the chosen AP must be added to meet the target", () => {
+    expect(
+      calculateApAdditionDelay({
+        currentAp: 100,
+        healthRemaining: 3000,
+        secondsUntilTarget: 2700,
+        additionalAp: 20,
+      }),
+    ).toBe(1200);
+  });
+
+  it("clamps insufficient AP to an immediate addition", () => {
+    expect(
+      calculateApAdditionDelay({
+        currentAp: 100,
+        healthRemaining: 3000,
+        secondsUntilTarget: 2700,
+        additionalAp: 5,
+      }),
+    ).toBe(0);
+  });
+
+  it("returns null for invalid AP", () => {
+    expect(
+      calculateApAdditionDelay({
+        currentAp: 100,
+        healthRemaining: 3000,
+        secondsUntilTarget: 2700,
+        additionalAp: 0,
       }),
     ).toBeNull();
   });
