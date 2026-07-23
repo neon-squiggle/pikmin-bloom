@@ -7,6 +7,10 @@ import {
   diffToTimeRemaining,
   durationFromNowToEndDate,
   isInvalidDuration,
+  durationToSeconds,
+  calculateAdditionalAp,
+  secondsToDuration,
+  calculateRemainingHealth,
 } from "./helpers";
 
 describe("calculateStartTime", () => {
@@ -197,5 +201,95 @@ describe("isInvalidDuration", () => {
     expect(isInvalidDuration({ days: 0, hours: 1, minutes: 0, seconds: 0 })).toBe(false);
     expect(isInvalidDuration({ days: 0, hours: 0, minutes: 1, seconds: 0 })).toBe(false);
     expect(isInvalidDuration({ days: 0, hours: 0, minutes: 0, seconds: 1 })).toBe(false);
+  });
+});
+
+describe("durationToSeconds", () => {
+  it("converts all duration fields to seconds", () => {
+    expect(
+      durationToSeconds({ days: 1, hours: 2, minutes: 3, seconds: 4 }),
+    ).toBe(93784);
+  });
+});
+
+describe("secondsToDuration", () => {
+  it("converts seconds to normalized duration fields", () => {
+    expect(secondsToDuration(93784)).toEqual({
+      days: 1,
+      hours: 2,
+      minutes: 3,
+      seconds: 4,
+    });
+  });
+});
+
+describe("calculateRemainingHealth", () => {
+  it("subtracts damage already dealt without rounding", () => {
+    expect(calculateRemainingHealth(1000, 125, 120)).toBe(850);
+  });
+
+  it("does not consume health before the mushroom starts", () => {
+    expect(calculateRemainingHealth(1000, 125, -120)).toBe(1000);
+  });
+
+  it("does not return negative health", () => {
+    expect(calculateRemainingHealth(1000, 1000, 1000)).toBe(0);
+  });
+});
+
+describe("calculateAdditionalAp", () => {
+  it("returns the raw additional AP needed when added immediately", () => {
+    expect(
+      calculateAdditionalAp({
+        currentAp: 100,
+        healthRemaining: 1000,
+        secondsUntilTarget: 800,
+        secondsUntilApAdded: 0,
+      }),
+    ).toBe(25);
+  });
+
+  it("requires more AP when it is added later", () => {
+    expect(
+      calculateAdditionalAp({
+        currentAp: 100,
+        healthRemaining: 1000,
+        secondsUntilTarget: 800,
+        secondsUntilApAdded: 400,
+      }),
+    ).toBe(50);
+  });
+
+  it("does not round fractional AP", () => {
+    expect(
+      calculateAdditionalAp({
+        currentAp: 100,
+        healthRemaining: 1000,
+        secondsUntilTarget: 700,
+        secondsUntilApAdded: 250,
+      }),
+    ).toBeCloseTo(66.66666666666667);
+  });
+
+  it("returns zero when current AP already meets the target", () => {
+    expect(
+      calculateAdditionalAp({
+        currentAp: 100,
+        healthRemaining: 1000,
+        secondsUntilTarget: 1000,
+        secondsUntilApAdded: 0,
+      }),
+    ).toBe(0);
+  });
+
+  it("returns null for an addition at or after the target", () => {
+    expect(
+      calculateAdditionalAp({
+        currentAp: 100,
+        healthRemaining: 1000,
+        secondsUntilTarget: 800,
+        secondsUntilApAdded: 800,
+      }),
+    ).toBeNull();
   });
 });

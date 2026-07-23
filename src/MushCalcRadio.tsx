@@ -15,6 +15,8 @@ import {
   Autocomplete,
   Box,
   Button,
+  ToggleButton,
+  ToggleButtonGroup,
 } from "@mui/material";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import RefreshIcon from "@mui/icons-material/Refresh";
@@ -26,14 +28,19 @@ import {
   DerivedField,
   navbarHeight,
 } from "./types";
-import { Dayjs } from "dayjs";
+import dayjs, { Dayjs } from "dayjs";
 import {
   calculateApTimeRange,
   calculateHealthTimeRange,
   calculateStartTime,
   calculateEndTime,
+  calculateRemainingHealth,
+  secondsToDuration,
 } from "./helpers";
 import { useSharedMushroomTries } from "./Provider";
+import ExistingMushroomCalc, {
+  ExistingMushroomSeed,
+} from "./ExistingMushroomCalc";
 
 interface FormState {
   derived: DerivedField | null;
@@ -57,11 +64,26 @@ const toDiscordTimestamp = (time: Dayjs | null) =>
   time ? `<t:${time.unix()}:f>` : "";
 
 const MushCalcRadio = () => {
+  const [calculatorMode, setCalculatorMode] = useState<"new" | "existing">(
+    "new",
+  );
+  const [existingFormKey, setExistingFormKey] = useState(0);
+  const [existingSeed, setExistingSeed] =
+    useState<ExistingMushroomSeed | null>(null);
   const [form, setForm] = useState<FormState>(initialState);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const { addEvent } = useSharedMushroomTries();
 
   const { derived, mush, health, pikminAp, startTime, endTime } = form;
+
+  const clearCalculator = () => {
+    if (calculatorMode === "existing") {
+      setExistingSeed(null);
+      setExistingFormKey((key) => key + 1);
+      return;
+    }
+    setForm(initialState);
+  };
 
   const updateForm = (updates: Partial<FormState>) => {
     setForm((prev) => {
@@ -118,6 +140,37 @@ const MushCalcRadio = () => {
     setSnackbarOpen(true);
   };
 
+  const now = dayjs();
+  const rollOverHealthRemaining = startTime
+    ? calculateRemainingHealth(
+        health,
+        pikminAp,
+        Math.max(0, now.diff(startTime, "second")),
+      )
+    : 0;
+  const canRollOver = Boolean(
+    mush &&
+      startTime &&
+      !startTime.isAfter(now) &&
+      health > 0 &&
+      pikminAp > 0 &&
+      rollOverHealthRemaining > 0,
+  );
+
+  const rollOverToExisting = () => {
+    if (!canRollOver) return;
+
+    const secondsRemaining = (rollOverHealthRemaining * 100) / pikminAp;
+
+    setExistingSeed({
+      currentAp: pikminAp,
+      healthRemaining: rollOverHealthRemaining,
+      timeRemaining: secondsToDuration(secondsRemaining),
+    });
+    setExistingFormKey((key) => key + 1);
+    setCalculatorMode("existing");
+  };
+
   return (
     <Card
       variant="elevation"
@@ -136,7 +189,7 @@ const MushCalcRadio = () => {
             <Button
               startIcon={<RefreshIcon />}
               size="small"
-              onClick={() => setForm(initialState)}
+              onClick={clearCalculator}
             >
               clear
             </Button>
@@ -150,6 +203,24 @@ const MushCalcRadio = () => {
           height: "100%",
         }}
       >
+        <ToggleButtonGroup
+          value={calculatorMode}
+          exclusive
+          fullWidth
+          onChange={(_, value) => value && setCalculatorMode(value)}
+          aria-label="Mushroom calculator mode"
+          sx={{ mb: 3 }}
+        >
+          <ToggleButton value="new">New mushroom</ToggleButton>
+          <ToggleButton value="existing">Existing mushroom</ToggleButton>
+        </ToggleButtonGroup>
+        {calculatorMode === "existing" ? (
+          <ExistingMushroomCalc
+            key={existingFormKey}
+            initialValues={existingSeed}
+          />
+        ) : (
+          <>
         <FormControl>
           <FormLabel>I want to calculate: </FormLabel>
           <RadioGroup
@@ -355,6 +426,18 @@ const MushCalcRadio = () => {
           }}
         >
           {/* generated output ID removed for responsive layout; reinstate with fullWidth if needed */}
+          <Button
+            variant="outlined"
+            disabled={!canRollOver}
+            onClick={rollOverToExisting}
+            title={
+              canRollOver
+                ? "Continue with this mushroom's current estimate"
+                : "The mushroom must have started and have remaining health"
+            }
+          >
+            Use as existing
+          </Button>
           <Button variant="contained" disabled={!isValid} onClick={handleSave}>
             Save to calendar
           </Button>
@@ -365,6 +448,8 @@ const MushCalcRadio = () => {
             message="Result saved"
           />
         </Box>
+          </>
+        )}
       </CardContent>
     </Card>
   );

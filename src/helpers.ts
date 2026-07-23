@@ -74,3 +74,62 @@ export const isInvalidDuration = ({
 }: TimeRemaining): boolean =>
   [days, hours, minutes, seconds].every((v) => Number(v) === 0);
 
+export const durationToSeconds = ({
+  days,
+  hours,
+  minutes,
+  seconds,
+}: TimeRemaining): number =>
+  Number(days) * 86400 +
+  Number(hours) * 3600 +
+  Number(minutes) * 60 +
+  Number(seconds);
+
+export const secondsToDuration = (totalSeconds: number): TimeRemaining => {
+  const safeSeconds = Math.max(0, Math.floor(totalSeconds));
+
+  return {
+    days: Math.floor(safeSeconds / 86400),
+    hours: Math.floor((safeSeconds % 86400) / 3600),
+    minutes: Math.floor((safeSeconds % 3600) / 60),
+    seconds: safeSeconds % 60,
+  };
+};
+
+export const calculateRemainingHealth = (
+  health: number,
+  ap: number,
+  elapsedSeconds: number,
+): number =>
+  Math.max(0, health - (ap * Math.max(0, elapsedSeconds)) / 100);
+
+interface AdditionalApInput {
+  currentAp: number;
+  healthRemaining: number;
+  secondsUntilTarget: number;
+  secondsUntilApAdded: number;
+}
+
+export const calculateAdditionalAp = ({
+  currentAp,
+  healthRemaining,
+  secondsUntilTarget,
+  secondsUntilApAdded,
+}: AdditionalApInput): number | null => {
+  const boostedDuration = secondsUntilTarget - secondsUntilApAdded;
+
+  if (
+    currentAp <= 0 ||
+    healthRemaining <= 0 ||
+    secondsUntilTarget <= 0 ||
+    secondsUntilApAdded < 0 ||
+    boostedDuration <= 0
+  ) {
+    return null;
+  }
+
+  const remainingApSeconds =
+    healthRemaining * 100 - currentAp * secondsUntilTarget;
+
+  return Math.max(0, remainingApSeconds / boostedDuration);
+};
