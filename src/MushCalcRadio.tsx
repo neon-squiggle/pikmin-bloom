@@ -22,12 +22,7 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import NumberSpinner from "./NumberSpinner";
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
-import {
-  mushrooms,
-  Mushroom,
-  DerivedField,
-  navbarHeight,
-} from "./types";
+import { mushrooms, Mushroom, DerivedField, navbarHeight } from "./types";
 import dayjs, { Dayjs } from "dayjs";
 import {
   calculateApTimeRange,
@@ -68,8 +63,9 @@ const MushCalcRadio = () => {
     "new",
   );
   const [existingFormKey, setExistingFormKey] = useState(0);
-  const [existingSeed, setExistingSeed] =
-    useState<ExistingMushroomSeed | null>(null);
+  const [existingSeed, setExistingSeed] = useState<ExistingMushroomSeed | null>(
+    null,
+  );
   const [form, setForm] = useState<FormState>(initialState);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const { addEvent } = useSharedMushroomTries();
@@ -98,16 +94,28 @@ const MushCalcRadio = () => {
     if (!mush) return state;
 
     if (derived === "ap" && startTime && endTime) {
-      return { ...state, pikminAp: calculateApTimeRange(health, startTime, endTime) };
+      return {
+        ...state,
+        pikminAp: calculateApTimeRange(health, startTime, endTime),
+      };
     }
     if (derived === "health" && startTime && endTime && pikminAp) {
-      return { ...state, health: calculateHealthTimeRange(pikminAp, startTime, endTime) };
+      return {
+        ...state,
+        health: calculateHealthTimeRange(pikminAp, startTime, endTime),
+      };
     }
     if (derived === "startTime" && endTime && pikminAp) {
-      return { ...state, startTime: calculateStartTime(health, pikminAp, endTime) };
+      return {
+        ...state,
+        startTime: calculateStartTime(health, pikminAp, endTime),
+      };
     }
     if (derived === "endTime" && startTime && pikminAp) {
-      return { ...state, endTime: calculateEndTime(health, pikminAp, startTime) };
+      return {
+        ...state,
+        endTime: calculateEndTime(health, pikminAp, startTime),
+      };
     }
     return state;
   };
@@ -117,7 +125,8 @@ const MushCalcRadio = () => {
       updateForm({ mush: null, health: 1 });
       return;
     }
-    const minAp = mushrooms.find((m) => m.label === newMush.label)?.minimum ?? 2;
+    const minAp =
+      mushrooms.find((m) => m.label === newMush.label)?.minimum ?? 2;
     updateForm({
       mush: newMush,
       health: newMush.value,
@@ -150,11 +159,11 @@ const MushCalcRadio = () => {
     : 0;
   const canRollOver = Boolean(
     mush &&
-      startTime &&
-      !startTime.isAfter(now) &&
-      health > 0 &&
-      pikminAp > 0 &&
-      rollOverHealthRemaining > 0,
+    startTime &&
+    !startTime.isAfter(now) &&
+    health > 0 &&
+    pikminAp > 0 &&
+    rollOverHealthRemaining > 0,
   );
 
   const rollOverToExisting = () => {
@@ -221,233 +230,248 @@ const MushCalcRadio = () => {
           />
         ) : (
           <>
-        <FormControl>
-          <FormLabel>I want to calculate: </FormLabel>
-          <RadioGroup
-            row
-            value={derived}
-            onChange={(_, value) => updateForm({ derived: value as DerivedField })}
-          >
-            <FormControlLabel
-              value="health"
-              control={<Radio />}
-              label="mushroom health"
-            />
-            <FormControlLabel value="ap" control={<Radio />} label="total AP" />
-            <FormControlLabel
-              value="startTime"
-              control={<Radio />}
-              label="start time"
-            />
-            <FormControlLabel
-              value="endTime"
-              control={<Radio />}
-              label="end time"
-            />
-          </RadioGroup>
-        </FormControl>
-        <Divider />
-        <Box
-          sx={{
-            display: "flex",
-            gap: { xs: 2, md: 4 },
-            p: 2,
-            alignItems: "center",
-            justifyContent: "flex-start",
-            flexDirection: { xs: "column", md: "row" },
-          }}
-        >
-          <Autocomplete
-            disablePortal
-            readOnly={derived === "health"}
-            options={mushrooms}
-            sx={{
-              width: { xs: "100%", md: 300 },
-              mt: 3.5,
-              "& .MuiOutlinedInput-root": {
-                "& fieldset": {
-                  borderColor: derived === "health" ? "green" : "primary",
-                },
-              },
-            }}
-            onChange={(_, mush) => handleMushChange(mush)}
-            value={mush}
-            renderInput={(params: any) => (
-              <TextField {...params} label={`Mushroom Type`} />
-            )}
-          />
-          <Box
-            sx={{
-              width: { xs: "100%", md: "auto" },
-              display: "flex",
-              alignItems: { xs: "flex-start", md: "center" },
-            }}
-          >
-            <NumberSpinner
-              label={`Mushroom Health`}
-              min={1}
-              readOnly={derived === "health"}
-              disabled={!mush}
-              value={health}
-              onValueChange={(v) => updateForm({ health: v ?? 1 })}
-              isToggled={derived === "health"}
-            />
-          </Box>
-        </Box>
-        <Box
-          sx={{
-            p: 2,
-          }}
-        >
-          <NumberSpinner
-            label={`Total AP`}
-            readOnly={derived === "ap"}
-            min={2}
-            value={pikminAp}
-            onValueChange={(v) => updateForm({ pikminAp: v ?? 2 })}
-            isToggled={derived === "ap"}
-          />
-        </Box>
-        <Box
-          sx={{
-            p: 2,
-            display: "flex",
-            gap: { xs: 2, sm: 4 },
-            flexDirection: { xs: "column", sm: "row" },
-          }}
-        >
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 2,
-              width: { xs: "100%", sm: 246 },
-            }}
-          >
-            <DateTimePicker
-              label={`Desired Start Time`}
-              readOnly={derived === "startTime"}
-              value={startTime}
-              onChange={(value) => updateForm({ startTime: value })}
-              localeText={{ todayButtonLabel: "Now" }}
-              slotProps={{
-                textField: {
-                  sx: {
-                    width: "100%",
+            <FormControl>
+              <FormLabel>I want to calculate: </FormLabel>
+              <RadioGroup
+                row
+                value={derived}
+                onChange={(_, value) =>
+                  updateForm({ derived: value as DerivedField })
+                }
+              >
+                <FormControlLabel
+                  value="health"
+                  control={<Radio />}
+                  label="mushroom health"
+                />
+                <FormControlLabel
+                  value="ap"
+                  control={<Radio />}
+                  label="total AP"
+                />
+                <FormControlLabel
+                  value="startTime"
+                  control={<Radio />}
+                  label="start time"
+                />
+                <FormControlLabel
+                  value="endTime"
+                  control={<Radio />}
+                  label="end time"
+                />
+              </RadioGroup>
+            </FormControl>
+            <Divider />
+            <Box
+              sx={{
+                display: "flex",
+                gap: { xs: 2, md: 4 },
+                p: 2,
+                alignItems: "center",
+                justifyContent: "flex-start",
+                flexDirection: { xs: "column", md: "row" },
+              }}
+            >
+              <Autocomplete
+                disablePortal
+                readOnly={derived === "health"}
+                options={mushrooms}
+                sx={{
+                  width: { xs: "100%", md: 300 },
+                  mt: 3.5,
+                  "& .MuiOutlinedInput-root": {
                     "& fieldset": {
-                      borderColor:
-                        derived === "startTime" ? "green" : "primary",
+                      borderColor: derived === "health" ? "green" : "primary",
                     },
                   },
-                },
-                actionBar: { actions: ["today"] },
-              }}
-            />
-            {startTime && (
-              <TextField
-                label="discord start time timestamp"
-                value={toDiscordTimestamp(startTime)}
-                sx={{ width: "100%" }}
-                slotProps={{
-                  input: {
-                    readOnly: true,
-                    endAdornment: (
-                      <IconButton
-                        onClick={() =>
-                          navigator.clipboard.writeText(toDiscordTimestamp(startTime))
-                        }
-                      >
-                        <ContentCopyIcon />
-                      </IconButton>
-                    ),
-                  },
                 }}
+                onChange={(_, mush) => handleMushChange(mush)}
+                value={mush}
+                renderInput={(params: any) => (
+                  <TextField {...params} label={`Mushroom Type`} />
+                )}
               />
-            )}
-          </Box>
+              <Box
+                sx={{
+                  width: { xs: "100%", md: "auto" },
+                  display: "flex",
+                  alignItems: { xs: "flex-start", md: "center" },
+                }}
+              >
+                <NumberSpinner
+                  label={`Mushroom Health`}
+                  min={1}
+                  readOnly={derived === "health"}
+                  disabled={!mush}
+                  value={health}
+                  onValueChange={(v) => updateForm({ health: v ?? 1 })}
+                  isToggled={derived === "health"}
+                />
+              </Box>
+            </Box>
+            <Box
+              sx={{
+                p: 2,
+              }}
+            >
+              <NumberSpinner
+                label={`Total AP`}
+                readOnly={derived === "ap"}
+                min={2}
+                value={pikminAp}
+                onValueChange={(v) => updateForm({ pikminAp: v ?? 2 })}
+                isToggled={derived === "ap"}
+              />
+            </Box>
+            <Box
+              sx={{
+                p: 2,
+                display: "flex",
+                gap: { xs: 2, sm: 4 },
+                flexDirection: { xs: "column", sm: "row" },
+              }}
+            >
+              <Box
+                sx={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 2,
+                  width: { xs: "100%", sm: 246 },
+                }}
+              >
+                <DateTimePicker
+                  label={`Desired Start Time`}
+                  readOnly={derived === "startTime"}
+                  value={startTime}
+                  onChange={(value) => updateForm({ startTime: value })}
+                  localeText={{ todayButtonLabel: "Now" }}
+                  slotProps={{
+                    textField: {
+                      sx: {
+                        width: "100%",
+                        "& fieldset": {
+                          borderColor:
+                            derived === "startTime" ? "green" : "primary",
+                        },
+                      },
+                    },
+                    actionBar: { actions: ["today"] },
+                  }}
+                />
+                {startTime && (
+                  <TextField
+                    label="discord start time timestamp"
+                    value={toDiscordTimestamp(startTime)}
+                    sx={{ width: "100%" }}
+                    slotProps={{
+                      input: {
+                        readOnly: true,
+                        endAdornment: (
+                          <IconButton
+                            onClick={() =>
+                              navigator.clipboard.writeText(
+                                toDiscordTimestamp(startTime),
+                              )
+                            }
+                          >
+                            <ContentCopyIcon />
+                          </IconButton>
+                        ),
+                      },
+                    }}
+                  />
+                )}
+              </Box>
 
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 2,
-              width: { xs: "100%", sm: 246 },
-            }}
-          >
-            <DateTimePicker
-              label={`Desired End Time`}
-              readOnly={derived === "endTime"}
-              value={endTime}
-              onChange={(value) => updateForm({ endTime: value })}
-              minDateTime={startTime?.add(1, "minute") ?? undefined}
-              slotProps={{
-                textField: {
-                  sx: {
-                    width: "100%",
-                    "& fieldset": {
-                      borderColor: derived === "endTime" ? "green" : "primary",
-                    },
-                  },
-                },
-              }}
-            />
-            {endTime && (
-              <TextField
-                label="discord end time timestamp"
-                value={toDiscordTimestamp(endTime)}
-                sx={{ width: "100%" }}
-                slotProps={{
-                  input: {
-                    readOnly: true,
-                    endAdornment: (
-                      <IconButton
-                        onClick={() =>
-                          navigator.clipboard.writeText(toDiscordTimestamp(endTime))
-                        }
-                      >
-                        <ContentCopyIcon />
-                      </IconButton>
-                    ),
-                  },
+              <Box
+                sx={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 2,
+                  width: { xs: "100%", sm: 246 },
                 }}
+              >
+                <DateTimePicker
+                  label={`Desired End Time`}
+                  readOnly={derived === "endTime"}
+                  value={endTime}
+                  onChange={(value) => updateForm({ endTime: value })}
+                  minDateTime={startTime?.add(1, "minute") ?? undefined}
+                  slotProps={{
+                    textField: {
+                      sx: {
+                        width: "100%",
+                        "& fieldset": {
+                          borderColor:
+                            derived === "endTime" ? "green" : "primary",
+                        },
+                      },
+                    },
+                  }}
+                />
+                {endTime && (
+                  <TextField
+                    label="discord end time timestamp"
+                    value={toDiscordTimestamp(endTime)}
+                    sx={{ width: "100%" }}
+                    slotProps={{
+                      input: {
+                        readOnly: true,
+                        endAdornment: (
+                          <IconButton
+                            onClick={() =>
+                              navigator.clipboard.writeText(
+                                toDiscordTimestamp(endTime),
+                              )
+                            }
+                          >
+                            <ContentCopyIcon />
+                          </IconButton>
+                        ),
+                      },
+                    }}
+                  />
+                )}
+              </Box>
+            </Box>
+            <Divider />
+            <Box
+              sx={{
+                display: "flex",
+                gap: { xs: 2, md: 4 },
+                p: 2,
+                alignItems: "center",
+                justifyContent: "flex-end",
+                mt: "auto",
+              }}
+            >
+              {/* generated output ID removed for responsive layout; reinstate with fullWidth if needed */}
+              <Button
+                variant="outlined"
+                disabled={!canRollOver}
+                onClick={rollOverToExisting}
+                title={
+                  canRollOver
+                    ? "Continue with this mushroom's current estimate"
+                    : "The mushroom must have started and have remaining health"
+                }
+              >
+                Use as existing
+              </Button>
+              {/* <Button
+                variant="contained"
+                disabled={!isValid}
+                onClick={handleSave}
+              >
+                Save to calendar
+              </Button> */}
+              <Snackbar
+                open={snackbarOpen}
+                autoHideDuration={1000}
+                onClose={() => setSnackbarOpen(false)}
+                message="Result saved"
               />
-            )}
-          </Box>
-        </Box>
-        <Divider />
-        <Box
-          sx={{
-            display: "flex",
-            gap: { xs: 2, md: 4 },
-            p: 2,
-            alignItems: "center",
-            justifyContent: "flex-end",
-            mt: "auto",
-          }}
-        >
-          {/* generated output ID removed for responsive layout; reinstate with fullWidth if needed */}
-          <Button
-            variant="outlined"
-            disabled={!canRollOver}
-            onClick={rollOverToExisting}
-            title={
-              canRollOver
-                ? "Continue with this mushroom's current estimate"
-                : "The mushroom must have started and have remaining health"
-            }
-          >
-            Use as existing
-          </Button>
-          <Button variant="contained" disabled={!isValid} onClick={handleSave}>
-            Save to calendar
-          </Button>
-          <Snackbar
-            open={snackbarOpen}
-            autoHideDuration={1000}
-            onClose={() => setSnackbarOpen(false)}
-            message="Result saved"
-          />
-        </Box>
+            </Box>
           </>
         )}
       </CardContent>
