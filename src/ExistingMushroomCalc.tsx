@@ -110,16 +110,16 @@ const ExistingMushroomCalc = ({
         }}
       >
         <NumberSpinner
-          label="AP"
-          min={0}
-          value={currentAp}
-          onValueChange={(value) => setCurrentAp(value ?? 0)}
-        />
-        <NumberSpinner
           label="Health remaining"
           min={0}
           value={healthRemaining}
           onValueChange={(value) => setHealthRemaining(value ?? 0)}
+        />
+        <NumberSpinner
+          label="AP"
+          min={0}
+          value={currentAp}
+          onValueChange={(value) => setCurrentAp(value ?? 0)}
         />
       </Box>
 

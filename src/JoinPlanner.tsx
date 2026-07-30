@@ -111,23 +111,6 @@ const JoinPlanner = ({
             ? "Optional: with additional players, when should the battle end? "
             : "With additional players, when should the battle end?"}
         </Typography>
-        {/* {!isPlanned && baselineEndTime ? (
-          <Paper
-            variant="outlined"
-            sx={{ px: 2, py: 1.5, bgcolor: "action.hover" }}
-          >
-            <Typography variant="overline" color="text.secondary">
-              Baseline end time before additional players
-            </Typography>
-            <Typography variant="h6">
-              {baselineEndTime.format("ddd, MMM D · h:mm:ss A")}
-            </Typography>
-          </Paper>
-        ) : !baselineEndTime ? (
-          <Typography variant="body2" color="text.secondary">
-            Enter all of the values above.
-          </Typography>
-        ) : null} */}
         <DateTimePicker
           label="Desired end time"
           value={targetEndTime}

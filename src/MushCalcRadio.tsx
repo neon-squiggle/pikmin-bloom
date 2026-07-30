@@ -162,12 +162,12 @@ const MushCalcRadio = () => {
               <FormControlLabel
                 value="startTime"
                 control={<Radio />}
-                label="Battle start"
+                label="Start time"
               />
               <FormControlLabel
                 value="endTime"
                 control={<Radio />}
-                label="Estimated end"
+                label="Estimated end time"
               />
             </RadioGroup>
           </FormControl>
@@ -264,7 +264,7 @@ const MushCalcRadio = () => {
               />
               {startTime && (
                 <TextField
-                  label="Discord battle start"
+                  label="Discord timestamp start time"
                   value={toDiscordTimestamp(startTime)}
                   sx={{ width: "100%" }}
                   slotProps={{
@@ -315,7 +315,7 @@ const MushCalcRadio = () => {
               />
               {endTime && (
                 <TextField
-                  label="Discord timestamp"
+                  label="Discord timestamp end time"
                   value={toDiscordTimestamp(endTime)}
                   sx={{ width: "100%" }}
                   slotProps={{
