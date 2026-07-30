@@ -20,7 +20,10 @@ const View = () => {
   const theme = useTheme();
   const isSmall = useMediaQuery(theme.breakpoints.down("md"));
 
-  const handleModeChange = (e: any, value: Mode) => {
+  const handleModeChange = (
+    _: React.MouseEvent<HTMLElement>,
+    value: Mode | null,
+  ) => {
     if (value) setMode(value);
   };
 
@@ -58,10 +61,6 @@ const View = () => {
       <Box
         sx={{
           width: { xs: "100%", md: "800px" },
-          // height: {
-          //   xs: `calc(100dvh - ${navbarHeight}px)`,
-          //   md: `calc(100dvh - ${navbarHeight}px)`,
-          // },
           maxWidth: { md: "800px" },
           flexGrow: 1,
         }}
@@ -69,7 +68,6 @@ const View = () => {
         {mode === "calculator" && <MushCalcRadio />}
         {mode === "calendar" && <Timeline />}
       </Box>
-      {/* <Box> */}
       <BottomNavigation
         sx={{
           display: { xs: "flex", md: "none" },
@@ -94,7 +92,6 @@ const View = () => {
           onClick={() => setMode("calendar")}
         />
       </BottomNavigation>
-      {/* </Box> */}
     </Box>
   );
 };

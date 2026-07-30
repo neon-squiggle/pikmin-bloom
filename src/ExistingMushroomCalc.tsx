@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
+  Alert,
   Box,
   Divider,
   IconButton,
@@ -20,21 +21,23 @@ import {
   calculateAdditionalAp,
   calculateApAdditionDelay,
   durationToSeconds,
+  parseTimeRemaining,
 } from "./helpers";
-import { TimeRemaining } from "./types";
+import {
+  checkSnapshotDuration,
+  ExistingMushroomSeed,
+  SnapshotDurationCheck,
+} from "./mushroomCalculator";
+import { TimeRemainingInput } from "./types";
 
-const defaultTimeRemaining: TimeRemaining = {
-  days: 0,
-  hours: 0,
-  minutes: 0,
-  seconds: 0,
+const emptyTimeRemaining: TimeRemainingInput = {
+  days: null,
+  hours: null,
+  minutes: null,
+  seconds: null,
 };
 
-export interface ExistingMushroomSeed {
-  currentAp: number;
-  healthRemaining: number;
-  timeRemaining: TimeRemaining;
-}
+const WARNING_DEBOUNCE_MS = 400;
 
 const formatDuration = (totalSeconds: number) => {
   const safeSeconds = Math.max(0, Math.round(totalSeconds));
@@ -71,8 +74,8 @@ const ExistingMushroomCalc = ({
   const [healthRemaining, setHealthRemaining] = useState(
     initialValues?.healthRemaining ?? 0,
   );
-  const [timeRemaining, setTimeRemaining] = useState<TimeRemaining>(
-    initialValues?.timeRemaining ?? defaultTimeRemaining,
+  const [timeRemaining, setTimeRemaining] = useState<TimeRemainingInput>(
+    initialValues?.timeRemaining ?? emptyTimeRemaining,
   );
   const [snapshotTime] = useState<Dayjs>(() => dayjs());
   const [desiredEndTime, setDesiredEndTime] = useState<Dayjs | null>(
@@ -80,10 +83,37 @@ const ExistingMushroomCalc = ({
   );
   const [addDelaySeconds, setAddDelaySeconds] = useState(0);
   const [apDivisor, setApDivisor] = useState<number | null>(null);
+  const [visibleDurationWarning, setVisibleDurationWarning] =
+    useState<SnapshotDurationCheck | null>(null);
 
-  const reportedSeconds = durationToSeconds(timeRemaining);
+  const validTimeRemaining = parseTimeRemaining(timeRemaining);
+  const reportedSeconds = validTimeRemaining
+    ? durationToSeconds(validTimeRemaining)
+    : null;
+
+  useEffect(() => {
+    setVisibleDurationWarning(null);
+    if (reportedSeconds == null) return;
+
+    const durationCheck = checkSnapshotDuration(
+      currentAp,
+      healthRemaining,
+      reportedSeconds,
+    );
+    if (!durationCheck || durationCheck.isConsistent) return;
+
+    const timeout = window.setTimeout(
+      () => setVisibleDurationWarning(durationCheck),
+      WARNING_DEBOUNCE_MS,
+    );
+    return () => window.clearTimeout(timeout);
+  }, [currentAp, healthRemaining, reportedSeconds]);
+
   const reportedEndTime = useMemo(
-    () => snapshotTime.add(reportedSeconds, "second"),
+    () =>
+      reportedSeconds == null
+        ? null
+        : snapshotTime.add(reportedSeconds, "second"),
     [reportedSeconds, snapshotTime],
   );
   const secondsUntilTarget = desiredEndTime
@@ -91,6 +121,7 @@ const ExistingMushroomCalc = ({
     : 0;
   const targetIsEarlier =
     desiredEndTime != null &&
+    reportedSeconds != null &&
     secondsUntilTarget > 0 &&
     secondsUntilTarget < reportedSeconds;
   const sliderMax = Math.max(0, secondsUntilTarget - 1);
@@ -106,8 +137,11 @@ const ExistingMushroomCalc = ({
   const displayedAdditionalAp =
     additionalAp == null ? null : roundAp(additionalAp);
 
-  const updateDuration = (field: keyof TimeRemaining, value: number | null) => {
-    setTimeRemaining((prev) => ({ ...prev, [field]: value ?? 0 }));
+  const updateDuration = (
+    field: keyof TimeRemainingInput,
+    value: number | null,
+  ) => {
+    setTimeRemaining((prev) => ({ ...prev, [field]: value }));
     setAddDelaySeconds(0);
   };
 
@@ -126,7 +160,11 @@ const ExistingMushroomCalc = ({
   return (
     <Stack spacing={3}>
       <Box>
-        <Typography variant="h6">Current mushroom snapshot</Typography>
+        <Typography variant="h6">1. Enter what the game shows now</Typography>
+        <Typography variant="body2" color="text.secondary">
+          Copy all three values from the same mushroom screen at approximately
+          the same time.
+        </Typography>
       </Box>
 
       <Box
@@ -137,7 +175,7 @@ const ExistingMushroomCalc = ({
         }}
       >
         <NumberSpinner
-          label="Current AP"
+          label="AP currently fighting"
           min={0}
           value={currentAp}
           onValueChange={(value) => setCurrentAp(value ?? 0)}
@@ -151,6 +189,9 @@ const ExistingMushroomCalc = ({
       </Box>
 
       <Box>
+        <Typography variant="subtitle2" sx={{ mb: 1 }}>
+          Time remaining shown in the game
+        </Typography>
         <Box
           sx={{
             display: "grid",
@@ -192,24 +233,45 @@ const ExistingMushroomCalc = ({
         </Box>
       </Box>
 
+      {visibleDurationWarning && (
+        <Alert severity="warning">
+          <strong>These values may not describe the same moment.</strong> At{" "}
+          {formatAp(currentAp)} AP, {healthRemaining.toLocaleString()} remaining
+          health should take about{" "}
+          {formatDuration(visibleDurationWarning.calculatedSeconds)}, but you
+          entered {formatDuration(visibleDurationWarning.reportedSeconds)}.
+          Recheck the AP, health, and time remaining shown in the game. You can
+          continue; calculations below will use the time remaining you entered.
+        </Alert>
+      )}
+
       <Divider />
 
       <Box>
-        <Typography variant="h6">Target finish</Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Estimated finish without added AP:{" "}
-          {reportedEndTime.format("ddd, MMM D, h:mm:ss A")}
-        </Typography>
+        <Typography variant="h6">2. Choose an earlier finish</Typography>
+        {reportedEndTime && (
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            With no new players, this battle should finish:{" "}
+            {reportedEndTime.format("ddd, MMM D, h:mm:ss A")}
+          </Typography>
+        )}
+        {!reportedEndTime && (
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Enter all four time-remaining fields above before choosing a new
+            target.
+          </Typography>
+        )}
         <DateTimePicker
-          label="Desired end time"
+          label="New target finish"
           value={desiredEndTime}
           onChange={(value) => {
             setDesiredEndTime(value);
             setAddDelaySeconds(0);
           }}
+          disabled={reportedEndTime == null}
           readOnly={false}
           minDateTime={snapshotTime.add(1, "second")}
-          maxDateTime={reportedSeconds > 0 ? reportedEndTime : undefined}
+          maxDateTime={reportedEndTime ?? undefined}
           slotProps={{ textField: { fullWidth: true } }}
         />
       </Box>
@@ -218,13 +280,16 @@ const ExistingMushroomCalc = ({
         <Paper variant="outlined" sx={{ p: { xs: 2, sm: 3 } }}>
           <Stack spacing={2}>
             <Box>
-              <Typography variant="overline" color="text.secondary">
-                When will the AP be added?
+              <Typography variant="h6">
+                3. Plan the next join
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                When will the next player or group join?
               </Typography>
               <Typography variant="h6">
                 {clampedDelay === 0
-                  ? "Add it now"
-                  : `Add it in ${formatDuration(clampedDelay)}`}
+                  ? "Join now"
+                  : `Join in ${formatDuration(clampedDelay)}`}
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 {apAdditionTime.format("ddd, MMM D, h:mm:ss A")}
@@ -240,7 +305,7 @@ const ExistingMushroomCalc = ({
                 <Tooltip title="Copy Discord timestamp">
                   <IconButton
                     size="small"
-                    aria-label="Copy AP addition Discord timestamp"
+                    aria-label="Copy join-time Discord timestamp"
                     onClick={() =>
                       navigator.clipboard.writeText(
                         toDiscordTimestamp(apAdditionTime),
@@ -254,7 +319,7 @@ const ExistingMushroomCalc = ({
             </Box>
 
             <Slider
-              aria-label="Time until AP is added"
+              aria-label="Time until next join"
               value={clampedDelay}
               min={0}
               max={Math.max(1, sliderMax)}
@@ -310,7 +375,7 @@ const ExistingMushroomCalc = ({
                 sx={{ maxWidth: { sm: 280 } }}
               >
                 <NumberSpinner
-                  label="Additional AP required"
+                  label="AP the joining player(s) need"
                   min={0}
                   value={displayedAdditionalAp ?? 0}
                   disabled={displayedAdditionalAp == null}
@@ -326,14 +391,14 @@ const ExistingMushroomCalc = ({
                     component="div"
                     sx={{ mb: 0.75 }}
                   >
-                    Split AP
+                    Divide between joining players
                   </Typography>
                   <ToggleButtonGroup
                     value={apDivisor}
                     exclusive
                     size="small"
                     onChange={(_, value) => setApDivisor(value)}
-                    aria-label="Divide additional AP"
+                    aria-label="Divide joining AP between players"
                   >
                     {[2, 3, 4].map((divisor) => (
                       <ToggleButton
@@ -352,7 +417,7 @@ const ExistingMushroomCalc = ({
                       sx={{ mt: 1 }}
                       data-testid="divided-ap-result"
                     >
-                      {formatAp(displayedAdditionalAp / apDivisor)} AP each
+                      {formatAp(displayedAdditionalAp / apDivisor)} AP per player
                     </Typography>
                   )}
                 </Box>

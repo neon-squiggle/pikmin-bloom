@@ -6,26 +6,73 @@ import { MushroomEvent } from "./types";
 const STORAGE_KEY = "pikminBloomMushroomEvents";
 dayjs.extend(utc);
 
+const isStoredEvent = (
+  value: unknown,
+): value is Omit<MushroomEvent, "startTime" | "endTime"> & {
+  startTime?: string;
+  endTime: string;
+} => {
+  if (!value || typeof value !== "object") return false;
+  const event = value as Record<string, unknown>;
+  return (
+    typeof event.id === "string" &&
+    typeof event.endTime === "string" &&
+    typeof event.mush === "object" &&
+    event.mush !== null &&
+    typeof event.health === "number" &&
+    Number.isFinite(event.health) &&
+    typeof event.pikminAp === "number" &&
+    Number.isFinite(event.pikminAp) &&
+    (event.startTime == null || typeof event.startTime === "string")
+  );
+};
+
+export const deserializeEvents = (stored: string | null): MushroomEvent[] => {
+  if (!stored) return [];
+
+  try {
+    const parsed: unknown = JSON.parse(stored);
+    if (!Array.isArray(parsed)) return [];
+
+    return parsed.flatMap((event) => {
+      if (!isStoredEvent(event)) return [];
+
+      const endTime = dayjs.utc(event.endTime).local();
+      const startTime = event.startTime
+        ? dayjs.utc(event.startTime).local()
+        : endTime;
+      if (!startTime.isValid() || !endTime.isValid()) return [];
+
+      return [{ ...event, startTime, endTime }];
+    });
+  } catch {
+    return [];
+  }
+};
+
 export function useMushroomTries() {
   const [events, setEvents] = useState<MushroomEvent[]>(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (!stored) return [];
-
-    return JSON.parse(stored).map((e: any) => {
-      const endTime = dayjs.utc(e.endTime).local();
-      const startTime = e.startTime ? dayjs.utc(e.startTime).local() : endTime;
-      return { ...e, startTime, endTime };
-    });
+    try {
+      return deserializeEvents(localStorage.getItem(STORAGE_KEY));
+    } catch {
+      return [];
+    }
   });
   const [selectedMonth, setSelectedMonth] = useState<string>("");
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(events));
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(events));
+    } catch {
+      // The app remains usable when storage is unavailable or full.
+    }
   }, [events]);
 
   function addEvent(event: MushroomEvent) {
     setEvents((prev) =>
-      [...prev, event].sort((a, b) => a.endTime.valueOf() - b.endTime.valueOf())
+      [...prev, event].sort(
+        (a, b) => a.endTime.valueOf() - b.endTime.valueOf(),
+      ),
     );
     setSelectedMonth(event.endTime.format("YYYY-MM"));
   }
@@ -34,7 +81,7 @@ export function useMushroomTries() {
     setEvents((prev) =>
       prev
         .map((e) => (e.id === id ? { ...e, ...updated } : e))
-        .sort((a, b) => a.endTime.valueOf() - b.endTime.valueOf())
+        .sort((a, b) => a.endTime.valueOf() - b.endTime.valueOf()),
     );
   }
 
@@ -76,7 +123,9 @@ export function useMushroomTries() {
       const date = dayjs(`${selectedMonth}-${i + 1}`).format("YYYY-MM-DD");
       return {
         date,
-        tries: monthEvents.filter((e) => e.endTime.format("YYYY-MM-DD") === date),
+      tries: monthEvents.filter(
+        (e) => e.endTime.format("YYYY-MM-DD") === date,
+      ),
       };
     });
   }, [events, selectedMonth]);

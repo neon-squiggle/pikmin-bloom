@@ -1,12 +1,12 @@
 import { useState } from "react";
 import {
+  Alert,
   FormControl,
   FormLabel,
   RadioGroup,
   FormControlLabel,
   Radio,
   IconButton,
-  Snackbar,
   CardContent,
   CardHeader,
   Divider,
@@ -17,36 +17,24 @@ import {
   Button,
   ToggleButton,
   ToggleButtonGroup,
+  Typography,
 } from "@mui/material";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import NumberSpinner from "./NumberSpinner";
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
-import { mushrooms, Mushroom, DerivedField, navbarHeight } from "./types";
-import dayjs, { Dayjs } from "dayjs";
+import { mushrooms, DerivedField, navbarHeight } from "./types";
+import dayjs from "dayjs";
 import {
-  calculateApTimeRange,
-  calculateHealthTimeRange,
-  calculateStartTime,
-  calculateEndTime,
-  calculateRemainingHealth,
-  secondsToDuration,
-} from "./helpers";
-import { useSharedMushroomTries } from "./Provider";
-import ExistingMushroomCalc, {
+  createExistingMushroomSeed,
   ExistingMushroomSeed,
-} from "./ExistingMushroomCalc";
+  getApForSelectedMushroom,
+  NewMushroomFormState,
+  recomputeDerived,
+} from "./mushroomCalculator";
+import ExistingMushroomCalc from "./ExistingMushroomCalc";
 
-interface FormState {
-  derived: DerivedField | null;
-  mush: Mushroom | null;
-  health: number;
-  pikminAp: number;
-  startTime: Dayjs | null;
-  endTime: Dayjs | null;
-}
-
-const initialState: FormState = {
+const initialState: NewMushroomFormState = {
   derived: null,
   mush: null,
   health: 1,
@@ -55,7 +43,7 @@ const initialState: FormState = {
   endTime: null,
 };
 
-const toDiscordTimestamp = (time: Dayjs | null) =>
+const toDiscordTimestamp = (time: NewMushroomFormState["startTime"]) =>
   time ? `<t:${time.unix()}:f>` : "";
 
 const MushCalcRadio = () => {
@@ -66,9 +54,7 @@ const MushCalcRadio = () => {
   const [existingSeed, setExistingSeed] = useState<ExistingMushroomSeed | null>(
     null,
   );
-  const [form, setForm] = useState<FormState>(initialState);
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
-  const { addEvent } = useSharedMushroomTries();
+  const [form, setForm] = useState<NewMushroomFormState>(initialState);
 
   const { derived, mush, health, pikminAp, startTime, endTime } = form;
 
@@ -81,101 +67,50 @@ const MushCalcRadio = () => {
     setForm(initialState);
   };
 
-  const updateForm = (updates: Partial<FormState>) => {
+  const updateForm = (updates: Partial<NewMushroomFormState>) => {
     setForm((prev) => {
       const next = { ...prev, ...updates };
       return recomputeDerived(next);
     });
   };
 
-  const recomputeDerived = (state: FormState): FormState => {
-    const { derived, mush, health, pikminAp, startTime, endTime } = state;
-
-    if (!mush) return state;
-
-    if (derived === "ap" && startTime && endTime) {
-      return {
-        ...state,
-        pikminAp: calculateApTimeRange(health, startTime, endTime),
-      };
-    }
-    if (derived === "health" && startTime && endTime && pikminAp) {
-      return {
-        ...state,
-        health: calculateHealthTimeRange(pikminAp, startTime, endTime),
-      };
-    }
-    if (derived === "startTime" && endTime && pikminAp) {
-      return {
-        ...state,
-        startTime: calculateStartTime(health, pikminAp, endTime),
-      };
-    }
-    if (derived === "endTime" && startTime && pikminAp) {
-      return {
-        ...state,
-        endTime: calculateEndTime(health, pikminAp, startTime),
-      };
-    }
-    return state;
-  };
-
-  const handleMushChange = (newMush: Mushroom | null) => {
+  const handleMushChange = (
+    newMush: NewMushroomFormState["mush"],
+  ) => {
     if (!newMush) {
       updateForm({ mush: null, health: 1 });
       return;
     }
-    const minAp =
-      mushrooms.find((m) => m.label === newMush.label)?.minimum ?? 2;
     updateForm({
       mush: newMush,
       health: newMush.value,
-      pikminAp: pikminAp !== 2 ? pikminAp : minAp,
+      pikminAp: getApForSelectedMushroom(pikminAp, newMush),
     });
-  };
-
-  const isValid = mush && startTime && endTime && health > 0 && pikminAp > 0;
-
-  const handleSave = () => {
-    if (!isValid) return;
-    addEvent({
-      id: crypto.randomUUID(),
-      mush,
-      health,
-      pikminAp,
-      startTime,
-      endTime,
-    });
-    setSnackbarOpen(true);
   };
 
   const now = dayjs();
-  const rollOverHealthRemaining = startTime
-    ? calculateRemainingHealth(
-        health,
-        pikminAp,
-        Math.max(0, now.diff(startTime, "second")),
-      )
-    : 0;
-  const canRollOver = Boolean(
+  const canRollOver = createExistingMushroomSeed(form, now) != null;
+  const hasCompleteBattlePlan = Boolean(
     mush &&
-    startTime &&
-    !startTime.isAfter(now) &&
-    health > 0 &&
-    pikminAp > 0 &&
-    rollOverHealthRemaining > 0,
+      startTime?.isValid() &&
+      endTime?.isValid() &&
+      Number.isFinite(health) &&
+      health > 0 &&
+      Number.isFinite(pikminAp) &&
+      pikminAp > 0,
   );
+  const rollOverMessage =
+    hasCompleteBattlePlan && startTime?.isAfter(now)
+      ? "This battle has not started yet. Join planning uses the battle's current state and becomes available after the start time."
+      : hasCompleteBattlePlan && !canRollOver
+        ? "These values indicate that the battle has already finished. Check the start time, estimated finish, health, and AP."
+        : null;
 
   const rollOverToExisting = () => {
-    if (!canRollOver) return;
+    const seed = createExistingMushroomSeed(form, dayjs());
+    if (!seed) return;
 
-    const secondsRemaining = (rollOverHealthRemaining * 100) / pikminAp;
-
-    setExistingSeed({
-      currentAp: pikminAp,
-      healthRemaining: rollOverHealthRemaining,
-      timeRemaining: secondsToDuration(secondsRemaining),
-    });
+    setExistingSeed(seed);
     setExistingFormKey((key) => key + 1);
     setCalculatorMode("existing");
   };
@@ -195,12 +130,6 @@ const MushCalcRadio = () => {
         title="Mushroom calculator"
         action={
           <Box>
-            {/* <TextField
-              label="input event ID"
-              value={inputEventId}
-              onChange={(event) => handleInputEvent(event.target.value)}
-              sx={{ minWidth: { xs: "100%", sm: 246 } }}
-            /> */}
             <Button
               startIcon={<RefreshIcon />}
               size="small"
@@ -226,8 +155,12 @@ const MushCalcRadio = () => {
           aria-label="Mushroom calculator mode"
           sx={{ mb: 3 }}
         >
-          <ToggleButton value="new">New mushroom</ToggleButton>
-          <ToggleButton value="existing">Existing mushroom</ToggleButton>
+          <ToggleButton value="new" sx={{ textTransform: "none" }}>
+            Plan a new battle
+          </ToggleButton>
+          <ToggleButton value="existing" sx={{ textTransform: "none" }}>
+            Plan joins for a battle in progress
+          </ToggleButton>
         </ToggleButtonGroup>
         {calculatorMode === "existing" ? (
           <ExistingMushroomCalc
@@ -237,7 +170,7 @@ const MushCalcRadio = () => {
         ) : (
           <>
             <FormControl>
-              <FormLabel>I want to calculate: </FormLabel>
+              <FormLabel>What should the calculator find?</FormLabel>
               <RadioGroup
                 row
                 value={derived}
@@ -248,26 +181,31 @@ const MushCalcRadio = () => {
                 <FormControlLabel
                   value="health"
                   control={<Radio />}
-                  label="mushroom health"
+                  label="Starting health"
                 />
                 <FormControlLabel
                   value="ap"
                   control={<Radio />}
-                  label="total AP"
+                  label="Starting AP"
                 />
                 <FormControlLabel
                   value="startTime"
                   control={<Radio />}
-                  label="start time"
+                  label="Battle start"
                 />
                 <FormControlLabel
                   value="endTime"
                   control={<Radio />}
-                  label="end time"
+                  label="Estimated finish"
                 />
               </RadioGroup>
             </FormControl>
             <Divider />
+            {rollOverMessage && (
+              <Alert severity="info" sx={{ mt: 2 }}>
+                {rollOverMessage}
+              </Alert>
+            )}
             <Box
               sx={{
                 display: "flex",
@@ -280,21 +218,15 @@ const MushCalcRadio = () => {
             >
               <Autocomplete
                 disablePortal
-                readOnly={derived === "health"}
                 options={mushrooms}
                 sx={{
                   width: { xs: "100%", md: 300 },
                   mt: 3.5,
-                  "& .MuiOutlinedInput-root": {
-                    "& fieldset": {
-                      borderColor: derived === "health" ? "green" : "primary",
-                    },
-                  },
                 }}
                 onChange={(_, mush) => handleMushChange(mush)}
                 value={mush}
-                renderInput={(params: any) => (
-                  <TextField {...params} label={`Mushroom Type`} />
+                renderInput={(params) => (
+                  <TextField {...params} label="Mushroom type" />
                 )}
               />
               <Box
@@ -305,7 +237,7 @@ const MushCalcRadio = () => {
                 }}
               >
                 <NumberSpinner
-                  label={`Mushroom Health`}
+                  label="Starting health"
                   min={1}
                   readOnly={derived === "health"}
                   disabled={!mush}
@@ -321,7 +253,7 @@ const MushCalcRadio = () => {
               }}
             >
               <NumberSpinner
-                label={`Total AP`}
+                label="Starting AP"
                 readOnly={derived === "ap"}
                 min={2}
                 value={pikminAp}
@@ -346,7 +278,7 @@ const MushCalcRadio = () => {
                 }}
               >
                 <DateTimePicker
-                  label={`Desired Start Time`}
+                  label="Battle start time"
                   readOnly={derived === "startTime"}
                   value={startTime}
                   onChange={(value) => updateForm({ startTime: value })}
@@ -366,7 +298,7 @@ const MushCalcRadio = () => {
                 />
                 {startTime && (
                   <TextField
-                    label="discord start time timestamp"
+                    label="Discord battle start"
                     value={toDiscordTimestamp(startTime)}
                     sx={{ width: "100%" }}
                     slotProps={{
@@ -398,7 +330,7 @@ const MushCalcRadio = () => {
                 }}
               >
                 <DateTimePicker
-                  label={`Desired End Time`}
+                  label="Estimated finish time"
                   readOnly={derived === "endTime"}
                   value={endTime}
                   onChange={(value) => updateForm({ endTime: value })}
@@ -417,7 +349,7 @@ const MushCalcRadio = () => {
                 />
                 {endTime && (
                   <TextField
-                    label="discord end time timestamp"
+                    label="Discord estimated finish"
                     value={toDiscordTimestamp(endTime)}
                     sx={{ width: "100%" }}
                     slotProps={{
@@ -451,7 +383,14 @@ const MushCalcRadio = () => {
                 mt: "auto",
               }}
             >
-              {/* generated output ID removed for responsive layout; reinstate with fullWidth if needed */}
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ maxWidth: 360 }}
+              >
+                Already started this battle? Continue with its estimated current
+                health and time remaining.
+              </Typography>
               <Button
                 variant="outlined"
                 disabled={!canRollOver}
@@ -462,21 +401,8 @@ const MushCalcRadio = () => {
                     : "The mushroom must have started and have remaining health"
                 }
               >
-                Plan subsequent joins
+                Plan players joining later
               </Button>
-              {/* <Button
-                variant="contained"
-                disabled={!isValid}
-                onClick={handleSave}
-              >
-                Save to calendar
-              </Button> */}
-              <Snackbar
-                open={snackbarOpen}
-                autoHideDuration={1000}
-                onClose={() => setSnackbarOpen(false)}
-                message="Result saved"
-              />
             </Box>
           </>
         )}

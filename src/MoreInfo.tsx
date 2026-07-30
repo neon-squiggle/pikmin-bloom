@@ -67,13 +67,13 @@ const MoreInfo = ({ mushEvent, onDelete }: MoreInfoProps) => {
     if (!mush) return;
 
     if (draftId) {
-      updateEvent(draftId, { name, pikminAp: 0, mush, endTime });
+      updateEvent(draftId, { name, pikminAp, mush, endTime });
     } else {
       const id = crypto.randomUUID();
       addEvent({
         id,
         name,
-        pikminAp: 0,
+        pikminAp,
         mush,
         health: mush.value,
         startTime: dayjs(),
@@ -116,7 +116,7 @@ const MoreInfo = ({ mushEvent, onDelete }: MoreInfoProps) => {
           onChange={(_, val) => updateForm({ mush: val })}
           value={mush}
           renderInput={(params) => (
-            <TextField {...params} label="Mushroom Type" />
+            <TextField {...params} label="Mushroom type" />
           )}
         />
         <TextField

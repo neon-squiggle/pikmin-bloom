@@ -79,6 +79,13 @@ export interface TimeRemaining {
   seconds: number;
 }
 
+export interface TimeRemainingInput {
+  days: number | null;
+  hours: number | null;
+  minutes: number | null;
+  seconds: number | null;
+}
+
 export interface MushroomEvent {
   id: string;
   name?: string;

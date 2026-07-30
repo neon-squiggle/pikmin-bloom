@@ -1,12 +1,11 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import dayjs, { Dayjs } from "dayjs";
 
-import ExistingMushroomCalc, {
-  ExistingMushroomSeed,
-} from "./ExistingMushroomCalc";
+import ExistingMushroomCalc from "./ExistingMushroomCalc";
+import { ExistingMushroomSeed } from "./mushroomCalculator";
 
 const renderCalculator = (
   initialValues?: ExistingMushroomSeed,
@@ -36,16 +35,28 @@ describe("ExistingMushroomCalc", () => {
   it("starts with zero values and no desired end time", () => {
     renderCalculator();
 
-    expect((screen.getByLabelText("Current AP") as HTMLInputElement).value).toBe(
+    expect(
+      (screen.getByLabelText("AP currently fighting") as HTMLInputElement).value
+    ).toBe(
       "0",
     );
     expect(
       (screen.getByLabelText("Health remaining") as HTMLInputElement).value,
     ).toBe("0");
     const desiredEndInput = screen
-      .getAllByLabelText("Desired end time")
+      .getAllByLabelText("New target finish")
       .find((element) => element.tagName === "INPUT") as HTMLInputElement;
     expect(desiredEndInput.value).toBe("");
+    expect(desiredEndInput.disabled).toBe(true);
+    expect(
+      screen.queryByText(/With no new players, this battle should finish/),
+    ).toBeNull();
+    ["Days", "Hours", "Minutes", "Seconds"].forEach((label) => {
+      const input = screen
+        .getAllByLabelText(label)
+        .find((element) => element.tagName === "INPUT") as HTMLInputElement;
+      expect(input.value).toBe("");
+    });
   });
 
   it("shows rounded AP and increases it when the addition is delayed", () => {
@@ -59,17 +70,17 @@ describe("ExistingMushroomCalc", () => {
     );
 
     const additionalApInput = screen.getByLabelText(
-      "Additional AP required",
+      "AP the joining player(s) need",
     ) as HTMLInputElement;
     expect(additionalApInput.value).toBe("11.111");
 
-    jest.advanceTimersByTime(5 * 60 * 1000);
+    act(() => jest.advanceTimersByTime(5 * 60 * 1000));
     fireEvent.change(screen.getByRole("slider"), {
       target: { value: "600" },
     });
 
     expect(additionalApInput.value).toBe("14.286");
-    expect(screen.queryByText("Add it in 10m")).not.toBeNull();
+    expect(screen.getByText("Join in 10m")).not.toBeNull();
     expect(
       screen.getByTestId("ap-addition-discord-timestamp").textContent,
     ).toContain(
@@ -94,7 +105,9 @@ describe("ExistingMushroomCalc", () => {
 
     expect(
       (
-        screen.getByLabelText("Additional AP required") as HTMLInputElement
+        screen.getByLabelText(
+          "AP the joining player(s) need"
+        ) as HTMLInputElement
       ).value,
     ).toBe("30,000");
   });
@@ -109,12 +122,12 @@ describe("ExistingMushroomCalc", () => {
       dayjs().add(45, "minute"),
     );
 
-    fireEvent.change(screen.getByLabelText("Additional AP required"), {
+    fireEvent.change(screen.getByLabelText("AP the joining player(s) need"), {
       target: { value: "20" },
     });
 
     expect((screen.getByRole("slider") as HTMLInputElement).value).toBe("1200");
-    expect(screen.queryByText("Add it in 20m")).not.toBeNull();
+    expect(screen.getByText("Join in 20m")).not.toBeNull();
   });
 
   it("optionally divides the AP without replacing the total", () => {
@@ -128,14 +141,14 @@ describe("ExistingMushroomCalc", () => {
     );
 
     const additionalApInput = screen.getByLabelText(
-      "Additional AP required",
+      "AP the joining player(s) need",
     ) as HTMLInputElement;
     const total = additionalApInput.value;
     fireEvent.click(screen.getByLabelText("Divide AP by 3"));
 
     expect(additionalApInput.value).toBe(total);
     expect(screen.getByTestId("divided-ap-result").textContent).toContain(
-      "3.704 AP each",
+      "3.704 AP per player",
     );
   });
 
@@ -146,11 +159,57 @@ describe("ExistingMushroomCalc", () => {
       timeRemaining: { days: 1, hours: 2, minutes: 3, seconds: 4 },
     });
 
-    expect((screen.getByLabelText("Current AP") as HTMLInputElement).value).toBe(
+    expect(
+      (screen.getByLabelText("AP currently fighting") as HTMLInputElement).value
+    ).toBe(
       "240",
     );
     expect(
       (screen.getByLabelText("Health remaining") as HTMLInputElement).value,
     ).toBe("1,800.5");
+  });
+
+  it("debounces a mismatch warning without blocking the calculator", () => {
+    renderCalculator(
+      {
+        currentAp: 100,
+        healthRemaining: 1000,
+        timeRemaining: { days: 1, hours: 0, minutes: 0, seconds: 0 },
+      },
+      dayjs().add(1, "hour"),
+    );
+
+    expect(screen.queryByRole("alert")).toBeNull();
+    act(() => jest.advanceTimersByTime(400));
+
+    expect(screen.getByRole("alert").textContent).toContain(
+      "At 100 AP, 1,000 remaining health should take about 16m 40s",
+    );
+    expect(screen.getByRole("alert").textContent).toContain(
+      "You can continue; calculations below will use the time remaining you entered.",
+    );
+
+    fireEvent.change(screen.getByLabelText("AP currently fighting"), {
+      target: { value: "101" },
+    });
+    expect(screen.queryByRole("alert")).toBeNull();
+    act(() => jest.advanceTimersByTime(399));
+    expect(screen.queryByRole("alert")).toBeNull();
+    act(() => jest.advanceTimersByTime(1));
+    expect(screen.getByRole("alert").textContent).toContain("At 101 AP");
+
+    const desiredEndInput = screen
+      .getAllByLabelText("New target finish")
+      .find((element) => element.tagName === "INPUT") as HTMLInputElement;
+    expect(desiredEndInput.disabled).toBe(false);
+    expect(screen.getByText("3. Plan the next join")).not.toBeNull();
+    expect(
+      (
+        screen.getByLabelText(
+          "AP the joining player(s) need"
+        ) as HTMLInputElement
+      )
+        .value,
+    ).toBe("0");
   });
 });

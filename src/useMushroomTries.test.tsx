@@ -1,7 +1,10 @@
 import { renderHook, act } from "@testing-library/react";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
-import { useMushroomTries } from "./useMushroomTries";
+import {
+  deserializeEvents,
+  useMushroomTries,
+} from "./useMushroomTries";
 import { mushrooms } from "./types";
 
 dayjs.extend(utc);
@@ -67,6 +70,35 @@ describe("useMushroomTries", () => {
       // Verify dates are parsed as dayjs objects
       expect(result.current.events[0].endTime.format).toBeDefined();
       expect(result.current.events[0].startTime.format).toBeDefined();
+    });
+
+    it("ignores corrupt localStorage instead of crashing", () => {
+      mockLocalStorage.setItem("pikminBloomMushroomEvents", "not valid JSON");
+
+      const { result } = renderHook(() => useMushroomTries());
+
+      expect(result.current.events).toEqual([]);
+    });
+
+    it("filters malformed events while retaining valid ones", () => {
+      const validEvent = {
+        id: "stored-1",
+        mush: mushrooms[0],
+        health: 1000,
+        pikminAp: 100,
+        startTime: "2024-01-01T10:00:00.000Z",
+        endTime: "2024-01-01T12:00:00.000Z",
+      };
+
+      expect(
+        deserializeEvents(
+          JSON.stringify([
+            validEvent,
+            { ...validEvent, id: 42 },
+            { ...validEvent, endTime: "not a date" },
+          ]),
+        ),
+      ).toHaveLength(1);
     });
   });
 
