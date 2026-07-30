@@ -119,4 +119,67 @@ describe("JoinPlanner", () => {
       "3.572 AP per player",
     );
   });
+
+  it("reveals an offscreen slider after a mobile user sets an end time", () => {
+    const originalWidth = window.innerWidth;
+    const originalHeight = window.innerHeight;
+    const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
+    const scrollIntoView = jest.fn();
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      value: 390,
+    });
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      value: 844,
+    });
+    HTMLElement.prototype.scrollIntoView = scrollIntoView;
+    jest
+      .spyOn(HTMLElement.prototype, "getBoundingClientRect")
+      .mockReturnValue({
+        bottom: 940,
+        height: 48,
+        left: 0,
+        right: 320,
+        top: 892,
+        width: 320,
+        x: 0,
+        y: 892,
+        toJSON: () => ({}),
+      });
+
+    render(
+      <ThemeProvider theme={createTheme({ palette: { mode: "dark" } })}>
+        <LocalizationProvider dateAdapter={AdapterDayjs}>
+          <JoinPlanner
+            variant="in-progress"
+            currentAp={100}
+            healthRemaining={3000}
+            referenceTime={referenceTime}
+            baselineEndTime={referenceTime.add(1, "hour")}
+          />
+        </LocalizationProvider>
+      </ThemeProvider>,
+    );
+
+    fireEvent.change(screen.getByLabelText("Desired end time"), {
+      target: { value: "01/01/2024 12:45 PM" },
+    });
+
+    expect(scrollIntoView).toHaveBeenCalledWith({
+      behavior: "smooth",
+      block: "center",
+    });
+
+    jest.restoreAllMocks();
+    HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      value: originalWidth,
+    });
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      value: originalHeight,
+    });
+  });
 });
