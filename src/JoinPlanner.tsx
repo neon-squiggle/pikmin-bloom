@@ -108,8 +108,8 @@ const JoinPlanner = ({
       <Stack spacing={2}>
         <Typography variant="h6">
           {isPlanned
-            ? "Optional: when should other players join and with what AP? "
-            : "When should the battle end?"}
+            ? "Optional: with additional players, when should the battle end? "
+            : "With additional players, when should the battle end?"}
         </Typography>
         {/* {!isPlanned && baselineEndTime ? (
           <Paper
