@@ -43,7 +43,7 @@ describe("JoinPlanner", () => {
 
     expect(
       screen.getByText(
-        "Optional: when should other players join and with what AP?",
+        "Optional: with additional players, when should the battle end?",
       ),
     ).not.toBeNull();
     expect(screen.queryByText("Finish with the starting group")).toBeNull();
@@ -54,7 +54,9 @@ describe("JoinPlanner", () => {
   it("starts an in-progress join at now", () => {
     renderPlannedJoin();
 
-    expect(screen.getByText("When should the battle end?")).not.toBeNull();
+    expect(
+      screen.getByText("With additional players, when should the battle end?"),
+    ).not.toBeNull();
     expect(screen.getByText("Join now")).not.toBeNull();
     expect(
       (
@@ -97,6 +99,7 @@ describe("JoinPlanner", () => {
     renderPlannedJoin();
 
     const result = screen.getByTestId("additional-ap-result");
+    expect(result.textContent).toContain("Required AP for this join time");
     expect(result.textContent).toContain("Required total additional AP");
     expect(result.textContent).not.toContain("Required total AP");
   });

@@ -212,75 +212,80 @@ const JoinPlanner = ({
 
             <Divider />
 
-            <Box
+            <Paper
+              data-testid="additional-ap-result"
+              variant="outlined"
               sx={{
-                display: "grid",
-                gridTemplateColumns: { xs: "1fr", sm: "minmax(0, 1fr) 1fr" },
-                gap: 3,
-                alignItems: "start",
+                width: "100%",
+                maxWidth: { sm: 520 },
+                p: 2,
+                borderWidth: 2,
+                borderColor: "primary.main",
+                bgcolor: "action.hover",
+                "& .MuiFormControl-root": {
+                  width: "100%",
+                },
               }}
             >
-              <Box
-                data-testid="additional-ap-result"
-                sx={{
-                  width: "100%",
-                  maxWidth: { sm: 320 },
-                  "& .MuiFormControl-root": {
-                    width: "100%",
-                  },
-                }}
+              <Typography variant="h6" color="primary.light">
+                Required AP for this join time
+              </Typography>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ mb: 1.5 }}
               >
-                <NumberSpinner
-                  label="Required total additional AP"
-                  min={0}
-                  value={displayedAdditionalAp ?? 0}
-                  disabled={displayedAdditionalAp == null}
-                  onValueChange={updateAdditionalAp}
-                />
-              </Box>
+                Total across all players joining at this time.
+              </Typography>
+              <NumberSpinner
+                label="Required total additional AP"
+                min={0}
+                value={displayedAdditionalAp ?? 0}
+                disabled={displayedAdditionalAp == null}
+                onValueChange={updateAdditionalAp}
+              />
+            </Paper>
 
-              {displayedAdditionalAp != null && (
-                <Box>
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                    component="div"
-                    sx={{ mb: 0.75 }}
-                  >
-                    Number of joining players
-                  </Typography>
-                  <ToggleButtonGroup
-                    value={playerCount}
-                    exclusive
-                    size="small"
-                    onChange={(_, value) =>
-                      value != null && setPlayerCount(value)
-                    }
-                    aria-label="Number of joining players"
-                  >
-                    {[2, 3, 4].map((count) => (
-                      <ToggleButton
-                        key={count}
-                        value={count}
-                        aria-label={`${count} joining players
+            {displayedAdditionalAp != null && (
+              <Box>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  component="div"
+                  sx={{ mb: 0.75 }}
+                >
+                  Number of joining players
+                </Typography>
+                <ToggleButtonGroup
+                  value={playerCount}
+                  exclusive
+                  size="small"
+                  onChange={(_, value) =>
+                    value != null && setPlayerCount(value)
+                  }
+                  aria-label="Number of joining players"
+                >
+                  {[2, 3, 4].map((count) => (
+                    <ToggleButton
+                      key={count}
+                      value={count}
+                      aria-label={`${count} joining players
                         }`}
-                      >
-                        {count}
-                      </ToggleButton>
-                    ))}
-                  </ToggleButtonGroup>
+                    >
+                      {count}
+                    </ToggleButton>
+                  ))}
+                </ToggleButtonGroup>
 
-                  <Typography
-                    variant="h6"
-                    sx={{ mt: 1 }}
-                    data-testid="divided-ap-result"
-                  >
-                    {formatAp(displayedAdditionalAp / playerCount)} AP per
-                    player
-                  </Typography>
-                </Box>
-              )}
-            </Box>
+                <Typography
+                  variant="h6"
+                  sx={{ mt: 1 }}
+                  data-testid="divided-ap-result"
+                >
+                  {formatAp(displayedAdditionalAp / playerCount)} AP per player
+                </Typography>
+              </Box>
+            )}
           </Stack>
         </Paper>
       )}
