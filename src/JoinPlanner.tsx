@@ -12,11 +12,11 @@ import {
   Typography,
 } from "@mui/material";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
 import { Dayjs } from "dayjs";
 
 import { calculateAdditionalAp, calculateApAdditionDelay } from "./helpers";
 import NumberSpinner from "./NumberSpinner";
+import SimpleDateTimeInput from "./SimpleDateTimeInput";
 
 interface JoinPlannerProps {
   variant: "planned" | "in-progress";
@@ -111,7 +111,7 @@ const JoinPlanner = ({
             ? "Optional: with additional players, when should the battle end? "
             : "With additional players, when should the battle end?"}
         </Typography>
-        <DateTimePicker
+        <SimpleDateTimeInput
           label="Desired end time"
           value={targetEndTime}
           onChange={(value) => {
@@ -119,10 +119,8 @@ const JoinPlanner = ({
             setJoinDelaySeconds(0);
           }}
           disabled={baselineEndTime == null}
-          readOnly={false}
           minDateTime={referenceTime.add(1, "second")}
           maxDateTime={baselineEndTime ?? undefined}
-          slotProps={{ textField: { fullWidth: true } }}
         />
       </Stack>
 

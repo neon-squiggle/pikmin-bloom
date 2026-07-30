@@ -1,183 +1,217 @@
 import * as React from "react";
-import { NumberField as BaseNumberField } from "@base-ui-components/react/number-field";
-import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
-import FormControl from "@mui/material/FormControl";
-import FormLabel from "@mui/material/FormLabel";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
-import OutlinedInput from "@mui/material/OutlinedInput";
-import OpenInFullIcon from "@mui/icons-material/OpenInFull";
+import {
+  Box,
+  Button,
+  FormControl,
+  FormHelperText,
+  FormLabel,
+  InputAdornment,
+  OutlinedInput,
+} from "@mui/material";
+
+export interface NumberSpinnerProps {
+  id?: string;
+  label?: React.ReactNode;
+  value?: number | null;
+  min?: number;
+  max?: number;
+  step?: number;
+  disabled?: boolean;
+  readOnly?: boolean;
+  required?: boolean;
+  error?: boolean;
+  size?: "small" | "medium";
+  isToggled?: boolean;
+  helperText?: React.ReactNode;
+  unit?: React.ReactNode;
+  showStepper?: boolean;
+  allowDecimal?: boolean;
+  onValueChange?: (value: number | null) => void;
+}
+
+const sanitizeNumericInput = (rawValue: string, allowDecimal: boolean) => {
+  const digitsAndDots = rawValue.replace(/[,\s]/g, "").replace(/[^\d.]/g, "");
+  if (!allowDecimal) return digitsAndDots.replace(/\./g, "");
+
+  const [whole = "", ...decimalParts] = digitsAndDots.split(".");
+  return decimalParts.length
+    ? `${whole}.${decimalParts.join("")}`
+    : whole;
+};
+
+const parseNumericInput = (
+  rawValue: string,
+  allowDecimal: boolean,
+): number | null => {
+  const normalized = sanitizeNumericInput(rawValue, allowDecimal);
+  if (!normalized) return null;
+
+  const value = Number(normalized);
+  return Number.isFinite(value) ? value : null;
+};
+
+const formatFriendlyNumber = (value: number | null | undefined) => {
+  if (value == null || !Number.isFinite(value)) return "";
+  return value.toLocaleString(undefined, {
+    maximumFractionDigits: 3,
+  });
+};
 
 export default function NumberSpinner({
   id: idProp,
   label,
-  error,
+  value = null,
+  min,
+  max,
+  step = 1,
+  disabled = false,
+  readOnly = false,
+  required = false,
+  error = false,
   size = "medium",
   isToggled = false,
-  ...other
-}: BaseNumberField.Root.Props & {
-  label?: React.ReactNode;
-  size?: "small" | "medium";
-  error?: boolean;
-  isToggled?: boolean;
-}) {
-  let id = React.useId();
-  if (idProp) {
-    id = idProp;
-  }
+  helperText,
+  unit,
+  showStepper = false,
+  allowDecimal = true,
+  onValueChange,
+}: NumberSpinnerProps) {
+  const generatedId = React.useId();
+  const id = idProp ?? generatedId;
+  const [inputValue, setInputValue] = React.useState(() =>
+    formatFriendlyNumber(value),
+  );
+  const focusedRef = React.useRef(false);
+
+  React.useEffect(() => {
+    if (!focusedRef.current) setInputValue(formatFriendlyNumber(value));
+  }, [value]);
+
+  const clamp = (nextValue: number) =>
+    Math.min(max ?? Number.POSITIVE_INFINITY, Math.max(min ?? Number.NEGATIVE_INFINITY, nextValue));
+
+  const commit = (nextValue: number | null) => {
+    if (nextValue == null) {
+      setInputValue("");
+      onValueChange?.(null);
+      return;
+    }
+    const clamped = clamp(nextValue);
+    setInputValue(formatFriendlyNumber(clamped));
+    onValueChange?.(clamped);
+  };
+
+  const adjust = (direction: -1 | 1) => {
+    const parsed = parseNumericInput(inputValue, allowDecimal);
+    commit((parsed ?? value ?? min ?? 0) + direction * step);
+  };
+
   return (
-    <BaseNumberField.Root
-      {...other}
-      render={(props, state) => (
-        <FormControl
-          size={size}
-          ref={props.ref}
-          disabled={state.disabled}
-          required={state.required}
-          error={error}
-          variant="outlined"
-          sx={{
-            "& .MuiButton-root": {
-              borderColor: "divider",
-              minWidth: 0,
-              bgcolor: "action.hover",
-              "&:not(.Mui-disabled)": {
-                color: "text.primary",
-              },
-            },
-            "& .MuiOutlinedInput-notchedOutline": {
-              borderColor: isToggled ? "green" : "",
-            },
-          }}
-        >
-          {props.children}
-        </FormControl>
-      )}
+    <FormControl
+      fullWidth
+      size={size}
+      disabled={disabled}
+      required={required}
+      error={error}
+      variant="outlined"
     >
-      <BaseNumberField.ScrubArea
-        render={
-          <Box
-            component="span"
-            sx={{
-              display: { xs: "none", md: "inline-block" },
-              userSelect: "none",
-              width: "auto",
-            }}
-          />
-        }
-      >
-        <FormLabel
-          htmlFor={id}
-          sx={{
-            display: "inline-block",
-            cursor: "ew-resize",
-            fontSize: "0.875rem",
-            color: isToggled ? "green" : "text.primary",
-            fontWeight: 500,
-            lineHeight: 1.5,
-            mb: 0.5,
-          }}
-        >
-          {label}
-        </FormLabel>
-        <BaseNumberField.ScrubAreaCursor>
-          <OpenInFullIcon
-            fontSize="small"
-            sx={{ transform: "translateY(12.5%) rotate(45deg)" }}
-          />
-        </BaseNumberField.ScrubAreaCursor>
-      </BaseNumberField.ScrubArea>
       <FormLabel
         htmlFor={id}
         sx={{
-          display: { xs: "inline-block", md: "none" },
-          fontSize: "0.875rem",
-          color: isToggled ? "green" : "text.primary",
+          mb: 0.75,
+          color: isToggled ? "success.main" : "text.primary",
           fontWeight: 500,
-          lineHeight: 1.5,
-          mb: 0.5,
-          touchAction: "pan-y",
         }}
       >
         {label}
       </FormLabel>
       <Box sx={{ display: "flex" }}>
-        <BaseNumberField.Decrement
-          render={
-            <Button
-              variant="outlined"
-              aria-label="Decrease"
-              size={size}
-              sx={{
-                borderTopRightRadius: 0,
-                borderBottomRightRadius: 0,
-                borderRight: "0px",
-                "&.Mui-disabled": {
-                  borderRight: "0px",
-                },
-              }}
-            />
-          }
-        >
-          <RemoveIcon fontSize={size} />
-        </BaseNumberField.Decrement>
-
-        <BaseNumberField.Input
+        {showStepper && !readOnly && (
+          <Button
+            variant="outlined"
+            aria-label={`Decrease ${String(label ?? "value")} by ${step}`}
+            disabled={disabled || (min != null && (value ?? min) <= min)}
+            onClick={() => adjust(-1)}
+            sx={{
+              minWidth: { xs: 48, sm: 44 },
+              borderTopRightRadius: 0,
+              borderBottomRightRadius: 0,
+              borderRight: 0,
+            }}
+          >
+            <RemoveIcon fontSize={size} />
+          </Button>
+        )}
+        <OutlinedInput
           id={id}
-          render={(props, state) => (
-            <OutlinedInput
-              inputRef={props.ref}
-              value={state.inputValue}
-              onBlur={props.onBlur}
-              onChange={props.onChange}
-              onKeyUp={props.onKeyUp}
-              onKeyDown={props.onKeyDown}
-              onFocus={props.onFocus}
-              slotProps={{
-                input: {
-                  ...props,
-                  size:
-                    Math.max(
-                      (other.min?.toString() || "").length,
-                      state.inputValue.length || 1
-                    ) + 1,
-                  sx: {
-                    textAlign: "center",
-                  },
-                },
-              }}
-              sx={{
-                pr: 0,
-                borderRadius: 0,
-                flex: 1,
-                maxWidth: "100%",
-                width: "100%",
-              }}
-            />
-          )}
-        />
-
-        <BaseNumberField.Increment
-          render={
-            <Button
-              variant="outlined"
-              aria-label="Increase"
-              size={size}
-              sx={{
-                borderTopLeftRadius: 0,
-                borderBottomLeftRadius: 0,
-                borderLeft: "0px",
-                "&.Mui-disabled": {
-                  borderLeft: "0px",
-                },
-              }}
-            />
+          value={inputValue}
+          disabled={disabled}
+          readOnly={readOnly}
+          onFocus={(event) => {
+            focusedRef.current = true;
+            event.currentTarget.querySelector("input")?.select();
+          }}
+          onBlur={() => {
+            focusedRef.current = false;
+            const parsed = parseNumericInput(inputValue, allowDecimal);
+            if (parsed == null) {
+              setInputValue(formatFriendlyNumber(value));
+              return;
+            }
+            commit(parsed);
+          }}
+          onChange={(event) => {
+            const sanitized = sanitizeNumericInput(
+              event.target.value,
+              allowDecimal,
+            );
+            setInputValue(sanitized);
+            const parsed = parseNumericInput(sanitized, allowDecimal);
+            if (parsed != null) onValueChange?.(parsed);
+            if (!sanitized) onValueChange?.(null);
+          }}
+          endAdornment={
+            unit ? <InputAdornment position="end">{unit}</InputAdornment> : undefined
           }
-        >
-          <AddIcon fontSize={size} />
-        </BaseNumberField.Increment>
+          slotProps={{
+            input: {
+              inputMode: allowDecimal ? "decimal" : "numeric",
+              pattern: allowDecimal ? "[0-9]*[.]?[0-9]*" : "[0-9]*",
+              "aria-label": typeof label === "string" ? label : undefined,
+            },
+          }}
+          sx={{
+            flex: 1,
+            minWidth: 0,
+            borderRadius: showStepper && !readOnly ? 0 : 1,
+            "& input": {
+              textAlign: readOnly ? "left" : "right",
+            },
+            "& .MuiOutlinedInput-notchedOutline": {
+              borderColor: isToggled ? "success.main" : undefined,
+            },
+          }}
+        />
+        {showStepper && !readOnly && (
+          <Button
+            variant="outlined"
+            aria-label={`Increase ${String(label ?? "value")} by ${step}`}
+            disabled={disabled || (max != null && (value ?? max) >= max)}
+            onClick={() => adjust(1)}
+            sx={{
+              minWidth: { xs: 48, sm: 44 },
+              borderTopLeftRadius: 0,
+              borderBottomLeftRadius: 0,
+              borderLeft: 0,
+            }}
+          >
+            <AddIcon fontSize={size} />
+          </Button>
+        )}
       </Box>
-    </BaseNumberField.Root>
+      {helperText && <FormHelperText>{helperText}</FormHelperText>}
+    </FormControl>
   );
 }

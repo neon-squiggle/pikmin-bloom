@@ -32,13 +32,13 @@ describe("ExistingMushroomCalc", () => {
     jest.useRealTimers();
   });
 
-  it("starts with zero values and no desired end time", () => {
+  it("starts with blank values and no desired end time", () => {
     renderCalculator();
 
-    expect((screen.getByLabelText("AP") as HTMLInputElement).value).toBe("0");
+    expect((screen.getByLabelText("AP") as HTMLInputElement).value).toBe("");
     expect(
       (screen.getByLabelText("Health remaining") as HTMLInputElement).value,
-    ).toBe("0");
+    ).toBe("");
     const desiredEndInput = screen
       .getAllByLabelText("Desired end time")
       .find((element) => element.tagName === "INPUT") as HTMLInputElement;
@@ -51,8 +51,35 @@ describe("ExistingMushroomCalc", () => {
       const input = screen
         .getAllByLabelText(label)
         .find((element) => element.tagName === "INPUT") as HTMLInputElement;
-      expect(input.value).toBe("0");
+      expect(input.value).toBe("");
     });
+  });
+
+  it("treats blank duration units as zero and shows the join slider", () => {
+    renderCalculator();
+
+    fireEvent.change(screen.getByLabelText("AP"), {
+      target: { value: "100" },
+    });
+    fireEvent.change(screen.getByLabelText("Health remaining"), {
+      target: { value: "3000" },
+    });
+    fireEvent.change(screen.getByLabelText("Hours"), {
+      target: { value: "1" },
+    });
+
+    const desiredEndInput = screen.getByLabelText(
+      "Desired end time",
+    ) as HTMLInputElement;
+    expect(desiredEndInput.disabled).toBe(false);
+
+    fireEvent.change(desiredEndInput, {
+      target: {
+        value: dayjs().add(45, "minute").format("MM/DD/YYYY hh:mm A"),
+      },
+    });
+
+    expect(screen.getByRole("slider")).not.toBeNull();
   });
 
   it("shows rounded AP and increases it when the addition is delayed", () => {
@@ -200,5 +227,25 @@ describe("ExistingMushroomCalc", () => {
         ) as HTMLInputElement
       ).value,
     ).toBe("0");
+  });
+
+  it("waits until the user leaves the duration fields before warning", () => {
+    renderCalculator({
+      currentAp: 100,
+      healthRemaining: 1000,
+      timeRemaining: { days: 1, hours: 0, minutes: 0, seconds: 0 },
+    });
+
+    const hoursInput = screen.getByLabelText("Hours");
+    fireEvent.focus(hoursInput);
+    act(() => jest.advanceTimersByTime(1000));
+    expect(screen.queryByRole("alert")).toBeNull();
+
+    fireEvent.blur(hoursInput);
+    act(() => jest.advanceTimersByTime(399));
+    expect(screen.queryByRole("alert")).toBeNull();
+
+    act(() => jest.advanceTimersByTime(1));
+    expect(screen.getByRole("alert")).not.toBeNull();
   });
 });

@@ -13,10 +13,10 @@ import {
 import { TimeRemainingInput } from "./types";
 
 const emptyTimeRemaining: TimeRemainingInput = {
-  days: 0,
-  hours: 0,
-  minutes: 0,
-  seconds: 0,
+  days: null,
+  hours: null,
+  minutes: null,
+  seconds: null,
 };
 
 const WARNING_DEBOUNCE_MS = 400;
@@ -50,25 +50,45 @@ const ExistingMushroomCalc = ({
   initialValues?: ExistingMushroomSeed | null;
   initialDesiredEndTime?: Dayjs | null;
 }) => {
-  const [currentAp, setCurrentAp] = useState(initialValues?.currentAp ?? 0);
+  const [currentAp, setCurrentAp] = useState<number | null>(
+    initialValues?.currentAp ?? null,
+  );
   const [healthRemaining, setHealthRemaining] = useState(
-    initialValues?.healthRemaining ?? 0,
+    initialValues?.healthRemaining ?? null,
   );
   const [timeRemaining, setTimeRemaining] = useState<TimeRemainingInput>(
     initialValues?.timeRemaining ?? emptyTimeRemaining,
   );
   const [snapshotTime] = useState<Dayjs>(() => dayjs());
+  const [isEditingDuration, setIsEditingDuration] = useState(false);
   const [visibleDurationWarning, setVisibleDurationWarning] =
     useState<SnapshotDurationCheck | null>(null);
 
-  const validTimeRemaining = parseTimeRemaining(timeRemaining);
+  const hasAnyTimeRemainingInput = Object.values(timeRemaining).some(
+    (value) => value != null,
+  );
+  const validTimeRemaining = hasAnyTimeRemainingInput
+    ? parseTimeRemaining({
+        days: timeRemaining.days ?? 0,
+        hours: timeRemaining.hours ?? 0,
+        minutes: timeRemaining.minutes ?? 0,
+        seconds: timeRemaining.seconds ?? 0,
+      })
+    : null;
   const reportedSeconds = validTimeRemaining
     ? durationToSeconds(validTimeRemaining)
     : null;
 
   useEffect(() => {
     setVisibleDurationWarning(null);
-    if (reportedSeconds == null) return;
+    if (
+      isEditingDuration ||
+      reportedSeconds == null ||
+      currentAp == null ||
+      healthRemaining == null
+    ) {
+      return;
+    }
 
     const durationCheck = checkSnapshotDuration(
       currentAp,
@@ -82,14 +102,21 @@ const ExistingMushroomCalc = ({
       WARNING_DEBOUNCE_MS,
     );
     return () => window.clearTimeout(timeout);
-  }, [currentAp, healthRemaining, reportedSeconds]);
+  }, [currentAp, healthRemaining, isEditingDuration, reportedSeconds]);
+
+  const hasCompleteSnapshot =
+    currentAp != null &&
+    currentAp > 0 &&
+    healthRemaining != null &&
+    healthRemaining > 0 &&
+    reportedSeconds != null;
 
   const reportedEndTime = useMemo(
     () =>
-      reportedSeconds == null
-        ? null
-        : snapshotTime.add(reportedSeconds, "second"),
-    [reportedSeconds, snapshotTime],
+      hasCompleteSnapshot
+        ? snapshotTime.add(reportedSeconds, "second")
+        : null,
+    [hasCompleteSnapshot, reportedSeconds, snapshotTime],
   );
 
   const updateDuration = (
@@ -112,14 +139,16 @@ const ExistingMushroomCalc = ({
         <NumberSpinner
           label="Health remaining"
           min={0}
+          allowDecimal={false}
           value={healthRemaining}
-          onValueChange={(value) => setHealthRemaining(value ?? 0)}
+          onValueChange={setHealthRemaining}
         />
         <NumberSpinner
           label="AP"
           min={0}
+          allowDecimal={false}
           value={currentAp}
-          onValueChange={(value) => setCurrentAp(value ?? 0)}
+          onValueChange={setCurrentAp}
         />
       </Box>
 
@@ -128,6 +157,12 @@ const ExistingMushroomCalc = ({
           Time remaining shown in the game
         </Typography>
         <Box
+          onFocusCapture={() => setIsEditingDuration(true)}
+          onBlurCapture={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget)) {
+              setIsEditingDuration(false);
+            }
+          }}
           sx={{
             display: "grid",
             gridTemplateColumns: { xs: "1fr 1fr", sm: "repeat(4, 1fr)" },
@@ -137,6 +172,7 @@ const ExistingMushroomCalc = ({
           <NumberSpinner
             label="Days"
             min={0}
+            allowDecimal={false}
             value={timeRemaining.days}
             onValueChange={(value) => updateDuration("days", value)}
             size="small"
@@ -145,6 +181,7 @@ const ExistingMushroomCalc = ({
             label="Hours"
             min={0}
             max={23}
+            allowDecimal={false}
             value={timeRemaining.hours}
             onValueChange={(value) => updateDuration("hours", value)}
             size="small"
@@ -153,6 +190,7 @@ const ExistingMushroomCalc = ({
             label="Minutes"
             min={0}
             max={59}
+            allowDecimal={false}
             value={timeRemaining.minutes}
             onValueChange={(value) => updateDuration("minutes", value)}
             size="small"
@@ -161,6 +199,7 @@ const ExistingMushroomCalc = ({
             label="Seconds"
             min={0}
             max={59}
+            allowDecimal={false}
             value={timeRemaining.seconds}
             onValueChange={(value) => updateDuration("seconds", value)}
             size="small"
@@ -168,7 +207,9 @@ const ExistingMushroomCalc = ({
         </Box>
       </Box>
 
-      {visibleDurationWarning && (
+      {visibleDurationWarning &&
+        currentAp != null &&
+        healthRemaining != null && (
         <Alert severity="warning">
           <strong>These values may not describe the same moment.</strong> At{" "}
           {formatAp(currentAp)} AP, {healthRemaining.toLocaleString()} remaining
@@ -177,12 +218,12 @@ const ExistingMushroomCalc = ({
           entered {formatDuration(visibleDurationWarning.reportedSeconds)}.
           Calculations below will use the values you entered.
         </Alert>
-      )}
+        )}
 
       <JoinPlanner
         variant="in-progress"
-        currentAp={currentAp}
-        healthRemaining={healthRemaining}
+        currentAp={currentAp ?? 0}
+        healthRemaining={healthRemaining ?? 0}
         referenceTime={snapshotTime}
         baselineEndTime={reportedEndTime}
         initialTargetEndTime={initialDesiredEndTime}
