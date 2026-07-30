@@ -247,7 +247,7 @@ const JoinPlanner = ({
             </Paper>
 
             {displayedAdditionalAp != null && (
-              <Box>
+              <Box sx={{ width: "100%", maxWidth: 520 }}>
                 <Typography
                   variant="caption"
                   color="text.secondary"
@@ -259,6 +259,7 @@ const JoinPlanner = ({
                 <ToggleButtonGroup
                   value={playerCount}
                   exclusive
+                  fullWidth
                   size="small"
                   onChange={(_, value) =>
                     value != null && setPlayerCount(value)
@@ -271,6 +272,12 @@ const JoinPlanner = ({
                       value={count}
                       aria-label={`${count} joining players
                         }`}
+                      sx={{
+                        flex: "1 1 0",
+                        minWidth: 0,
+                        minHeight: { xs: 48, sm: 44 },
+                        fontSize: "1rem",
+                      }}
                     >
                       {count}
                     </ToggleButton>
