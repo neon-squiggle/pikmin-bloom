@@ -1,28 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import {
-  Alert,
-  Box,
-  Divider,
-  IconButton,
-  Paper,
-  Slider,
-  Stack,
-  ToggleButton,
-  ToggleButtonGroup,
-  Tooltip,
-  Typography,
-} from "@mui/material";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
+import { Alert, Box, Stack, Typography } from "@mui/material";
 import dayjs, { Dayjs } from "dayjs";
 
+import JoinPlanner from "./JoinPlanner";
 import NumberSpinner from "./NumberSpinner";
-import {
-  calculateAdditionalAp,
-  calculateApAdditionDelay,
-  durationToSeconds,
-  parseTimeRemaining,
-} from "./helpers";
+import { durationToSeconds, parseTimeRemaining } from "./helpers";
 import {
   checkSnapshotDuration,
   ExistingMushroomSeed,
@@ -31,10 +13,10 @@ import {
 import { TimeRemainingInput } from "./types";
 
 const emptyTimeRemaining: TimeRemainingInput = {
-  days: null,
-  hours: null,
-  minutes: null,
-  seconds: null,
+  days: 0,
+  hours: 0,
+  minutes: 0,
+  seconds: 0,
 };
 
 const WARNING_DEBOUNCE_MS = 400;
@@ -61,8 +43,6 @@ const roundAp = (value: number) =>
 
 const formatAp = (value: number) => String(roundAp(value));
 
-const toDiscordTimestamp = (time: Dayjs) => `<t:${time.unix()}:f>`;
-
 const ExistingMushroomCalc = ({
   initialValues,
   initialDesiredEndTime = null,
@@ -78,11 +58,6 @@ const ExistingMushroomCalc = ({
     initialValues?.timeRemaining ?? emptyTimeRemaining,
   );
   const [snapshotTime] = useState<Dayjs>(() => dayjs());
-  const [desiredEndTime, setDesiredEndTime] = useState<Dayjs | null>(
-    initialDesiredEndTime,
-  );
-  const [addDelaySeconds, setAddDelaySeconds] = useState(0);
-  const [apDivisor, setApDivisor] = useState<number | null>(null);
   const [visibleDurationWarning, setVisibleDurationWarning] =
     useState<SnapshotDurationCheck | null>(null);
 
@@ -116,57 +91,17 @@ const ExistingMushroomCalc = ({
         : snapshotTime.add(reportedSeconds, "second"),
     [reportedSeconds, snapshotTime],
   );
-  const secondsUntilTarget = desiredEndTime
-    ? desiredEndTime.diff(snapshotTime, "second")
-    : 0;
-  const targetIsEarlier =
-    desiredEndTime != null &&
-    reportedSeconds != null &&
-    secondsUntilTarget > 0 &&
-    secondsUntilTarget < reportedSeconds;
-  const sliderMax = Math.max(0, secondsUntilTarget - 1);
-  const clampedDelay = Math.min(addDelaySeconds, sliderMax);
-  const apAdditionTime = snapshotTime.add(clampedDelay, "second");
-
-  const additionalAp = calculateAdditionalAp({
-    currentAp,
-    healthRemaining,
-    secondsUntilTarget,
-    secondsUntilApAdded: clampedDelay,
-  });
-  const displayedAdditionalAp =
-    additionalAp == null ? null : roundAp(additionalAp);
 
   const updateDuration = (
     field: keyof TimeRemainingInput,
     value: number | null,
   ) => {
     setTimeRemaining((prev) => ({ ...prev, [field]: value }));
-    setAddDelaySeconds(0);
-  };
-
-  const updateAdditionalAp = (value: number | null) => {
-    if (value == null) return;
-
-    const delay = calculateApAdditionDelay({
-      currentAp,
-      healthRemaining,
-      secondsUntilTarget,
-      additionalAp: value,
-    });
-    if (delay != null) setAddDelaySeconds(Math.round(delay));
   };
 
   return (
     <Stack spacing={3}>
-      <Box>
-        <Typography variant="h6">1. Enter what the game shows now</Typography>
-        <Typography variant="body2" color="text.secondary">
-          Copy all three values from the same mushroom screen at approximately
-          the same time.
-        </Typography>
-      </Box>
-
+      <Typography variant="h6">Current values</Typography>
       <Box
         sx={{
           display: "grid",
@@ -175,7 +110,7 @@ const ExistingMushroomCalc = ({
         }}
       >
         <NumberSpinner
-          label="AP currently fighting"
+          label="AP"
           min={0}
           value={currentAp}
           onValueChange={(value) => setCurrentAp(value ?? 0)}
@@ -240,192 +175,18 @@ const ExistingMushroomCalc = ({
           health should take about{" "}
           {formatDuration(visibleDurationWarning.calculatedSeconds)}, but you
           entered {formatDuration(visibleDurationWarning.reportedSeconds)}.
-          Recheck the AP, health, and time remaining shown in the game. You can
-          continue; calculations below will use the time remaining you entered.
+          Calculations below will use the values you entered.
         </Alert>
       )}
 
-      <Divider />
-
-      <Box>
-        <Typography variant="h6">2. Choose an earlier finish</Typography>
-        {reportedEndTime && (
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            With no new players, this battle should finish:{" "}
-            {reportedEndTime.format("ddd, MMM D, h:mm:ss A")}
-          </Typography>
-        )}
-        {!reportedEndTime && (
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Enter all four time-remaining fields above before choosing a new
-            target.
-          </Typography>
-        )}
-        <DateTimePicker
-          label="New target finish"
-          value={desiredEndTime}
-          onChange={(value) => {
-            setDesiredEndTime(value);
-            setAddDelaySeconds(0);
-          }}
-          disabled={reportedEndTime == null}
-          readOnly={false}
-          minDateTime={snapshotTime.add(1, "second")}
-          maxDateTime={reportedEndTime ?? undefined}
-          slotProps={{ textField: { fullWidth: true } }}
-        />
-      </Box>
-
-      {targetIsEarlier && (
-        <Paper variant="outlined" sx={{ p: { xs: 2, sm: 3 } }}>
-          <Stack spacing={2}>
-            <Box>
-              <Typography variant="h6">
-                3. Plan the next join
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                When will the next player or group join?
-              </Typography>
-              <Typography variant="h6">
-                {clampedDelay === 0
-                  ? "Join now"
-                  : `Join in ${formatDuration(clampedDelay)}`}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                {apAdditionTime.format("ddd, MMM D, h:mm:ss A")}
-              </Typography>
-              <Box sx={{ display: "flex", alignItems: "center", mt: 0.25 }}>
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
-                  data-testid="ap-addition-discord-timestamp"
-                >
-                  Discord timestamp: {toDiscordTimestamp(apAdditionTime)}
-                </Typography>
-                <Tooltip title="Copy Discord timestamp">
-                  <IconButton
-                    size="small"
-                    aria-label="Copy join-time Discord timestamp"
-                    onClick={() =>
-                      navigator.clipboard.writeText(
-                        toDiscordTimestamp(apAdditionTime),
-                      )
-                    }
-                  >
-                    <ContentCopyIcon fontSize="inherit" />
-                  </IconButton>
-                </Tooltip>
-              </Box>
-            </Box>
-
-            <Slider
-              aria-label="Time until next join"
-              value={clampedDelay}
-              min={0}
-              max={Math.max(1, sliderMax)}
-              step={1}
-              disabled={sliderMax === 0}
-              onChange={(_, value) =>
-                setAddDelaySeconds(Array.isArray(value) ? value[0] : value)
-              }
-              valueLabelDisplay="auto"
-              valueLabelFormat={(value) => formatDuration(value)}
-              marks={[
-                { value: 0 },
-                ...(sliderMax > 0
-                  ? [
-                      {
-                        value: sliderMax,
-                      },
-                    ]
-                  : []),
-              ]}
-              sx={{
-                mt: 1,
-                touchAction: "pan-y",
-              }}
-            />
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                gap: 2,
-                mt: -1.5,
-              }}
-            >
-              <Typography variant="caption" color="text.secondary">
-                Now
-              </Typography>
-              {sliderMax > 0 && (
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
-                  sx={{ textAlign: "right" }}
-                >
-                  {formatDuration(sliderMax)}
-                </Typography>
-              )}
-            </Box>
-
-            <Divider />
-
-            <Box>
-              <Box
-                data-testid="additional-ap-result"
-                sx={{ maxWidth: { sm: 280 } }}
-              >
-                <NumberSpinner
-                  label="AP the joining player(s) need"
-                  min={0}
-                  value={displayedAdditionalAp ?? 0}
-                  disabled={displayedAdditionalAp == null}
-                  onValueChange={updateAdditionalAp}
-                />
-              </Box>
-
-              {displayedAdditionalAp != null && (
-                <Box sx={{ mt: 2 }}>
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                    component="div"
-                    sx={{ mb: 0.75 }}
-                  >
-                    Divide between joining players
-                  </Typography>
-                  <ToggleButtonGroup
-                    value={apDivisor}
-                    exclusive
-                    size="small"
-                    onChange={(_, value) => setApDivisor(value)}
-                    aria-label="Divide joining AP between players"
-                  >
-                    {[2, 3, 4].map((divisor) => (
-                      <ToggleButton
-                        key={divisor}
-                        value={divisor}
-                        aria-label={`Divide AP by ${divisor}`}
-                      >
-                        ÷{divisor}
-                      </ToggleButton>
-                    ))}
-                  </ToggleButtonGroup>
-
-                  {apDivisor && (
-                    <Typography
-                      variant="body2"
-                      sx={{ mt: 1 }}
-                      data-testid="divided-ap-result"
-                    >
-                      {formatAp(displayedAdditionalAp / apDivisor)} AP per player
-                    </Typography>
-                  )}
-                </Box>
-              )}
-            </Box>
-          </Stack>
-        </Paper>
-      )}
+      <JoinPlanner
+        variant="in-progress"
+        currentAp={currentAp}
+        healthRemaining={healthRemaining}
+        referenceTime={snapshotTime}
+        baselineEndTime={reportedEndTime}
+        initialTargetEndTime={initialDesiredEndTime}
+      />
     </Stack>
   );
 };

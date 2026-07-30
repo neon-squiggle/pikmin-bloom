@@ -35,16 +35,12 @@ describe("ExistingMushroomCalc", () => {
   it("starts with zero values and no desired end time", () => {
     renderCalculator();
 
-    expect(
-      (screen.getByLabelText("AP currently fighting") as HTMLInputElement).value
-    ).toBe(
-      "0",
-    );
+    expect((screen.getByLabelText("AP") as HTMLInputElement).value).toBe("0");
     expect(
       (screen.getByLabelText("Health remaining") as HTMLInputElement).value,
     ).toBe("0");
     const desiredEndInput = screen
-      .getAllByLabelText("New target finish")
+      .getAllByLabelText("Desired end time")
       .find((element) => element.tagName === "INPUT") as HTMLInputElement;
     expect(desiredEndInput.value).toBe("");
     expect(desiredEndInput.disabled).toBe(true);
@@ -55,7 +51,7 @@ describe("ExistingMushroomCalc", () => {
       const input = screen
         .getAllByLabelText(label)
         .find((element) => element.tagName === "INPUT") as HTMLInputElement;
-      expect(input.value).toBe("");
+      expect(input.value).toBe("0");
     });
   });
 
@@ -70,7 +66,7 @@ describe("ExistingMushroomCalc", () => {
     );
 
     const additionalApInput = screen.getByLabelText(
-      "AP the joining player(s) need",
+      "Required total additional AP",
     ) as HTMLInputElement;
     expect(additionalApInput.value).toBe("11.111");
 
@@ -83,9 +79,7 @@ describe("ExistingMushroomCalc", () => {
     expect(screen.getByText("Join in 10m")).not.toBeNull();
     expect(
       screen.getByTestId("ap-addition-discord-timestamp").textContent,
-    ).toContain(
-      "Discord timestamp: <t:1704111000:f>",
-    );
+    ).toContain("Discord timestamp: <t:1704111000:f>");
   });
 
   it("allows AP to be added up to one second before the desired finish", () => {
@@ -106,7 +100,7 @@ describe("ExistingMushroomCalc", () => {
     expect(
       (
         screen.getByLabelText(
-          "AP the joining player(s) need"
+          "Required total additional AP",
         ) as HTMLInputElement
       ).value,
     ).toBe("30,000");
@@ -122,7 +116,7 @@ describe("ExistingMushroomCalc", () => {
       dayjs().add(45, "minute"),
     );
 
-    fireEvent.change(screen.getByLabelText("AP the joining player(s) need"), {
+    fireEvent.change(screen.getByLabelText("Required total additional AP"), {
       target: { value: "20" },
     });
 
@@ -141,10 +135,10 @@ describe("ExistingMushroomCalc", () => {
     );
 
     const additionalApInput = screen.getByLabelText(
-      "AP the joining player(s) need",
+      "Required total additional AP",
     ) as HTMLInputElement;
     const total = additionalApInput.value;
-    fireEvent.click(screen.getByLabelText("Divide AP by 3"));
+    fireEvent.click(screen.getByText("3"));
 
     expect(additionalApInput.value).toBe(total);
     expect(screen.getByTestId("divided-ap-result").textContent).toContain(
@@ -159,11 +153,7 @@ describe("ExistingMushroomCalc", () => {
       timeRemaining: { days: 1, hours: 2, minutes: 3, seconds: 4 },
     });
 
-    expect(
-      (screen.getByLabelText("AP currently fighting") as HTMLInputElement).value
-    ).toBe(
-      "240",
-    );
+    expect((screen.getByLabelText("AP") as HTMLInputElement).value).toBe("240");
     expect(
       (screen.getByLabelText("Health remaining") as HTMLInputElement).value,
     ).toBe("1,800.5");
@@ -186,10 +176,10 @@ describe("ExistingMushroomCalc", () => {
       "At 100 AP, 1,000 remaining health should take about 16m 40s",
     );
     expect(screen.getByRole("alert").textContent).toContain(
-      "You can continue; calculations below will use the time remaining you entered.",
+      "Calculations below will use the values you entered.",
     );
 
-    fireEvent.change(screen.getByLabelText("AP currently fighting"), {
+    fireEvent.change(screen.getByLabelText("AP"), {
       target: { value: "101" },
     });
     expect(screen.queryByRole("alert")).toBeNull();
@@ -199,17 +189,16 @@ describe("ExistingMushroomCalc", () => {
     expect(screen.getByRole("alert").textContent).toContain("At 101 AP");
 
     const desiredEndInput = screen
-      .getAllByLabelText("New target finish")
+      .getAllByLabelText("Desired end time")
       .find((element) => element.tagName === "INPUT") as HTMLInputElement;
     expect(desiredEndInput.disabled).toBe(false);
-    expect(screen.getByText("3. Plan the next join")).not.toBeNull();
+    expect(screen.getByText("Join now")).not.toBeNull();
     expect(
       (
         screen.getByLabelText(
-          "AP the joining player(s) need"
+          "Required total additional AP",
         ) as HTMLInputElement
-      )
-        .value,
+      ).value,
     ).toBe("0");
   });
 });
