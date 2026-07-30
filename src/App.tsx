@@ -6,7 +6,6 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import View from "./View";
 import UpdateNotifier from "./UpdateNotifier";
-import { navbarHeight } from "./types";
 
 const darkTheme = createTheme({ palette: { mode: "dark" } });
 function App() {
@@ -22,10 +21,7 @@ function App() {
             alignItems: { xs: "stretch", md: "center" },
             overflow: { xs: "visible", md: "hidden" },
             width: "100%",
-            pb: {
-              xs: `calc(${navbarHeight}px + env(safe-area-inset-bottom) + 16px)`,
-              md: 3,
-            },
+            pb: { xs: 2, md: 3 },
           }}
         >
           <CssBaseline />

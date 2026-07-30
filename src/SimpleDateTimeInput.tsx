@@ -7,6 +7,7 @@ interface SimpleDateTimeInputProps {
   onChange: (value: Dayjs | null) => void;
   readOnly?: boolean;
   disabled?: boolean;
+  isToggled?: boolean;
   minDateTime?: Dayjs;
   maxDateTime?: Dayjs;
 }
@@ -17,6 +18,7 @@ const SimpleDateTimeInput = ({
   onChange,
   readOnly = false,
   disabled = false,
+  isToggled = false,
   minDateTime,
   maxDateTime,
 }: SimpleDateTimeInputProps) => (
@@ -30,7 +32,20 @@ const SimpleDateTimeInput = ({
     minDateTime={minDateTime}
     maxDateTime={maxDateTime}
     slotProps={{
-      textField: { fullWidth: true },
+      textField: {
+        fullWidth: true,
+        sx: {
+          "& .MuiInputLabel-root": {
+            color: isToggled ? "success.main" : undefined,
+          },
+          "& .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline": {
+            borderColor: isToggled ? "success.main" : undefined,
+          },
+          "& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline": {
+            borderColor: isToggled ? "success.main" : undefined,
+          },
+        },
+      },
       actionBar: {
         actions: ["today", "clear", "cancel", "accept"],
       },

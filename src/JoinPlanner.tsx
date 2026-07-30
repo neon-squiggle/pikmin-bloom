@@ -64,7 +64,6 @@ const JoinPlanner = ({
   );
   const [joinDelaySeconds, setJoinDelaySeconds] = useState(0);
   const [playerCount, setPlayerCount] = useState(1);
-  const sliderRef = useRef<HTMLSpanElement>(null);
   const isPlanned = variant === "planned";
 
   const baselineSeconds = baselineEndTime
@@ -85,12 +84,10 @@ const JoinPlanner = ({
     wasTargetEarlier.current = targetIsEarlier;
     if (!justRevealed || window.innerWidth > 600) return;
 
-    const slider = sliderRef.current;
-    if (!slider) return;
-    const bounds = slider.getBoundingClientRect();
-    if (bounds.top < 0 || bounds.bottom > window.innerHeight) {
-      slider.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
+    window.scrollTo({
+      top: document.documentElement.scrollHeight,
+      behavior: "smooth",
+    });
   }, [targetIsEarlier]);
 
   const sliderMax = Math.max(0, secondsUntilTarget - 1);
@@ -182,7 +179,6 @@ const JoinPlanner = ({
             </Box>
 
             <Slider
-              ref={sliderRef}
               aria-label="Time until next join"
               value={clampedDelay}
               min={0}

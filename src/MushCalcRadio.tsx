@@ -270,6 +270,7 @@ const MushCalcRadio = () => {
                 <SimpleDateTimeInput
                   label="Battle start time"
                   readOnly={derived === "startTime"}
+                  isToggled={derived === "startTime"}
                   value={startTime}
                   onChange={(value) => updateForm({ startTime: value })}
                 />
@@ -283,6 +284,7 @@ const MushCalcRadio = () => {
                 <SimpleDateTimeInput
                   label="Estimated end time"
                   readOnly={derived === "endTime"}
+                  isToggled={derived === "endTime"}
                   value={endTime}
                   onChange={(value) => updateForm({ endTime: value })}
                   minDateTime={startTime?.add(1, "minute") ?? undefined}

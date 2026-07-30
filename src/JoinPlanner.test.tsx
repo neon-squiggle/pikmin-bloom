@@ -120,33 +120,19 @@ describe("JoinPlanner", () => {
     );
   });
 
-  it("reveals an offscreen slider after a mobile user sets an end time", () => {
+  it("scrolls to the bottom after a mobile user sets an end time", () => {
     const originalWidth = window.innerWidth;
-    const originalHeight = window.innerHeight;
-    const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
-    const scrollIntoView = jest.fn();
+    const originalScrollTo = window.scrollTo;
+    const scrollTo = jest.fn();
     Object.defineProperty(window, "innerWidth", {
       configurable: true,
       value: 390,
     });
-    Object.defineProperty(window, "innerHeight", {
+    Object.defineProperty(document.documentElement, "scrollHeight", {
       configurable: true,
-      value: 844,
+      value: 2000,
     });
-    HTMLElement.prototype.scrollIntoView = scrollIntoView;
-    jest
-      .spyOn(HTMLElement.prototype, "getBoundingClientRect")
-      .mockReturnValue({
-        bottom: 940,
-        height: 48,
-        left: 0,
-        right: 320,
-        top: 892,
-        width: 320,
-        x: 0,
-        y: 892,
-        toJSON: () => ({}),
-      });
+    window.scrollTo = scrollTo;
 
     render(
       <ThemeProvider theme={createTheme({ palette: { mode: "dark" } })}>
@@ -162,24 +148,24 @@ describe("JoinPlanner", () => {
       </ThemeProvider>,
     );
 
-    fireEvent.change(screen.getByLabelText("Desired end time"), {
+    const desiredEndInput = screen.getByLabelText("Desired end time");
+    fireEvent.focus(desiredEndInput);
+    const blur = jest.spyOn(HTMLElement.prototype, "blur");
+    fireEvent.change(desiredEndInput, {
       target: { value: "01/01/2024 12:45 PM" },
     });
 
-    expect(scrollIntoView).toHaveBeenCalledWith({
+    expect(scrollTo).toHaveBeenCalledWith({
       behavior: "smooth",
-      block: "center",
+      top: 2000,
     });
+    expect(blur).not.toHaveBeenCalled();
 
-    jest.restoreAllMocks();
-    HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
+    blur.mockRestore();
+    window.scrollTo = originalScrollTo;
     Object.defineProperty(window, "innerWidth", {
       configurable: true,
       value: originalWidth,
-    });
-    Object.defineProperty(window, "innerHeight", {
-      configurable: true,
-      value: originalHeight,
     });
   });
 });
