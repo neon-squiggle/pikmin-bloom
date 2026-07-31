@@ -176,8 +176,8 @@ export default function NumberSpinner({
           }
           slotProps={{
             input: {
+              autoComplete: "off",
               inputMode: allowDecimal ? "decimal" : "numeric",
-              pattern: allowDecimal ? "[0-9]*[.]?[0-9]*" : "[0-9]*",
               "aria-label": typeof label === "string" ? label : undefined,
             },
           }}
