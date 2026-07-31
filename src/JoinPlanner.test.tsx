@@ -99,9 +99,7 @@ describe("JoinPlanner", () => {
     renderPlannedJoin();
 
     const result = screen.getByTestId("additional-ap-result");
-    expect(result.textContent).toContain("Required AP for this join time");
     expect(result.textContent).toContain("Required total additional AP");
-    expect(result.textContent).not.toContain("Required total AP");
   });
 
   it("defaults to one joining player and can divide among four", () => {

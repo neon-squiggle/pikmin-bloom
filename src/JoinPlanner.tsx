@@ -142,7 +142,7 @@ const JoinPlanner = ({
           <Stack spacing={2}>
             <Box>
               <Typography variant="overline" color="text.secondary">
-                Join time
+                Bullhorn time
               </Typography>
               <Typography variant="h5">
                 {joinTime.format("ddd, MMM D · h:mm:ss A")}
