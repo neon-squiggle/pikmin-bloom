@@ -238,16 +238,6 @@ const JoinPlanner = ({
                 },
               }}
             >
-              <Typography variant="h6" color="primary.light">
-                Required AP for this join time
-              </Typography>
-              <Typography
-                variant="body2"
-                color="text.secondary"
-                sx={{ mb: 1.5 }}
-              >
-                Total across all players joining at this time.
-              </Typography>
               <NumberSpinner
                 label="Required total additional AP"
                 min={0}
