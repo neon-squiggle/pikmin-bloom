@@ -248,4 +248,64 @@ describe("ExistingMushroomCalc", () => {
     act(() => jest.advanceTimersByTime(1));
     expect(screen.getByRole("alert")).not.toBeNull();
   });
+
+  it("keeps results mounted during a transient empty mobile replacement", () => {
+    renderCalculator(
+      {
+        currentAp: 100,
+        healthRemaining: 3000,
+        timeRemaining: { days: 0, hours: 1, minutes: 0, seconds: 0 },
+      },
+      dayjs().add(45, "minute"),
+    );
+
+    const hoursInput = screen.getByLabelText("Hours");
+    expect(screen.getByRole("slider")).not.toBeNull();
+
+    fireEvent.focus(hoursInput);
+    fireEvent.change(hoursInput, { target: { value: "" } });
+
+    expect(screen.getByRole("slider")).not.toBeNull();
+
+    fireEvent.blur(hoursInput);
+    expect(screen.queryByRole("slider")).toBeNull();
+  });
+
+  it("reveals the next offscreen duration field without changing focus", () => {
+    renderCalculator();
+    const originalWidth = window.innerWidth;
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      value: 390,
+    });
+    const minutesField = screen.getByTestId("duration-minutes");
+    const scrollIntoView = jest.fn();
+    minutesField.scrollIntoView = scrollIntoView;
+    jest.spyOn(minutesField, "getBoundingClientRect").mockReturnValue({
+      bottom: 900,
+      height: 56,
+      left: 0,
+      right: 320,
+      top: 844,
+      width: 320,
+      x: 0,
+      y: 844,
+      toJSON: () => ({}),
+    });
+
+    fireEvent.change(screen.getByLabelText("Hours"), {
+      target: { value: "1" },
+    });
+
+    expect(scrollIntoView).toHaveBeenCalledWith({
+      behavior: "smooth",
+      block: "nearest",
+    });
+
+    jest.restoreAllMocks();
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      value: originalWidth,
+    });
+  });
 });

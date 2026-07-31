@@ -157,7 +157,7 @@ export default function NumberSpinner({
             focusedRef.current = false;
             const parsed = parseNumericInput(inputValue, allowDecimal);
             if (parsed == null) {
-              setInputValue(formatFriendlyNumber(value));
+              commit(null);
               return;
             }
             commit(parsed);
@@ -170,7 +170,6 @@ export default function NumberSpinner({
             setInputValue(sanitized);
             const parsed = parseNumericInput(sanitized, allowDecimal);
             if (parsed != null) onValueChange?.(parsed);
-            if (!sanitized) onValueChange?.(null);
           }}
           endAdornment={
             unit ? <InputAdornment position="end">{unit}</InputAdornment> : undefined

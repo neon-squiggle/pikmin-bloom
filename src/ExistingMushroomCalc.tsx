@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Box, Stack, Typography } from "@mui/material";
 import dayjs, { Dayjs } from "dayjs";
 
@@ -20,6 +20,16 @@ const emptyTimeRemaining: TimeRemainingInput = {
 };
 
 const WARNING_DEBOUNCE_MS = 400;
+
+const revealNextMobileField = (element: HTMLElement | null) => {
+  if (!element || window.innerWidth > 600) return;
+
+  const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
+  const bounds = element.getBoundingClientRect();
+  if (bounds.top < 0 || bounds.bottom > viewportHeight - 16) {
+    element.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+};
 
 const formatDuration = (totalSeconds: number) => {
   const safeSeconds = Math.max(0, Math.round(totalSeconds));
@@ -61,6 +71,10 @@ const ExistingMushroomCalc = ({
   );
   const [snapshotTime] = useState<Dayjs>(() => dayjs());
   const [isEditingDuration, setIsEditingDuration] = useState(false);
+  const hoursFieldRef = useRef<HTMLDivElement>(null);
+  const minutesFieldRef = useRef<HTMLDivElement>(null);
+  const secondsFieldRef = useRef<HTMLDivElement>(null);
+  const joinPlannerRef = useRef<HTMLDivElement>(null);
   const [visibleDurationWarning, setVisibleDurationWarning] =
     useState<SnapshotDurationCheck | null>(null);
 
@@ -122,8 +136,10 @@ const ExistingMushroomCalc = ({
   const updateDuration = (
     field: keyof TimeRemainingInput,
     value: number | null,
+    nextField?: HTMLElement | null,
   ) => {
     setTimeRemaining((prev) => ({ ...prev, [field]: value }));
+    if (value != null) revealNextMobileField(nextField ?? null);
   };
 
   return (
@@ -169,41 +185,57 @@ const ExistingMushroomCalc = ({
             gap: 1.5,
           }}
         >
-          <NumberSpinner
-            label="Days"
-            min={0}
-            allowDecimal={false}
-            value={timeRemaining.days}
-            onValueChange={(value) => updateDuration("days", value)}
-            size="small"
-          />
-          <NumberSpinner
-            label="Hours"
-            min={0}
-            max={23}
-            allowDecimal={false}
-            value={timeRemaining.hours}
-            onValueChange={(value) => updateDuration("hours", value)}
-            size="small"
-          />
-          <NumberSpinner
-            label="Minutes"
-            min={0}
-            max={59}
-            allowDecimal={false}
-            value={timeRemaining.minutes}
-            onValueChange={(value) => updateDuration("minutes", value)}
-            size="small"
-          />
-          <NumberSpinner
-            label="Seconds"
-            min={0}
-            max={59}
-            allowDecimal={false}
-            value={timeRemaining.seconds}
-            onValueChange={(value) => updateDuration("seconds", value)}
-            size="small"
-          />
+          <Box data-testid="duration-days">
+            <NumberSpinner
+              label="Days"
+              min={0}
+              allowDecimal={false}
+              value={timeRemaining.days}
+              onValueChange={(value) =>
+                updateDuration("days", value, hoursFieldRef.current)
+              }
+              size="small"
+            />
+          </Box>
+          <Box ref={hoursFieldRef} data-testid="duration-hours">
+            <NumberSpinner
+              label="Hours"
+              min={0}
+              max={23}
+              allowDecimal={false}
+              value={timeRemaining.hours}
+              onValueChange={(value) =>
+                updateDuration("hours", value, minutesFieldRef.current)
+              }
+              size="small"
+            />
+          </Box>
+          <Box ref={minutesFieldRef} data-testid="duration-minutes">
+            <NumberSpinner
+              label="Minutes"
+              min={0}
+              max={59}
+              allowDecimal={false}
+              value={timeRemaining.minutes}
+              onValueChange={(value) =>
+                updateDuration("minutes", value, secondsFieldRef.current)
+              }
+              size="small"
+            />
+          </Box>
+          <Box ref={secondsFieldRef} data-testid="duration-seconds">
+            <NumberSpinner
+              label="Seconds"
+              min={0}
+              max={59}
+              allowDecimal={false}
+              value={timeRemaining.seconds}
+              onValueChange={(value) =>
+                updateDuration("seconds", value, joinPlannerRef.current)
+              }
+              size="small"
+            />
+          </Box>
         </Box>
       </Box>
 
@@ -220,14 +252,16 @@ const ExistingMushroomCalc = ({
         </Alert>
         )}
 
-      <JoinPlanner
-        variant="in-progress"
-        currentAp={currentAp ?? 0}
-        healthRemaining={healthRemaining ?? 0}
-        referenceTime={snapshotTime}
-        baselineEndTime={reportedEndTime}
-        initialTargetEndTime={initialDesiredEndTime}
-      />
+      <Box ref={joinPlannerRef}>
+        <JoinPlanner
+          variant="in-progress"
+          currentAp={currentAp ?? 0}
+          healthRemaining={healthRemaining ?? 0}
+          referenceTime={snapshotTime}
+          baselineEndTime={reportedEndTime}
+          initialTargetEndTime={initialDesiredEndTime}
+        />
+      </Box>
     </Stack>
   );
 };
