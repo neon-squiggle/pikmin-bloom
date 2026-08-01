@@ -5,8 +5,8 @@ import MushCalcRadio from "./MushCalcRadio";
 const View = () => (
   <Box
     sx={{
-      width: { xs: "100%", md: "800px" },
-      maxWidth: { md: "800px" },
+      width: { xs: "100%", md: "680px" },
+      maxWidth: { md: "680px" },
       flexGrow: 1,
     }}
   >

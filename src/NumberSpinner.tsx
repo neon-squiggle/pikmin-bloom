@@ -26,6 +26,7 @@ export interface NumberSpinnerProps {
   isToggled?: boolean;
   helperText?: React.ReactNode;
   unit?: React.ReactNode;
+  hideLabel?: boolean;
   showStepper?: boolean;
   allowDecimal?: boolean;
   onValueChange?: (value: number | null) => void;
@@ -74,6 +75,7 @@ export default function NumberSpinner({
   isToggled = false,
   helperText,
   unit,
+  hideLabel = false,
   showStepper = false,
   allowDecimal = true,
   onValueChange,
@@ -120,9 +122,20 @@ export default function NumberSpinner({
       <FormLabel
         htmlFor={id}
         sx={{
-          mb: 0.75,
+          mb: hideLabel ? 0 : 0.75,
           color: isToggled ? "success.main" : "text.primary",
           fontWeight: 500,
+          ...(hideLabel && {
+            position: "absolute",
+            width: 1,
+            height: 1,
+            p: 0,
+            m: -1,
+            overflow: "hidden",
+            clip: "rect(0 0 0 0)",
+            whiteSpace: "nowrap",
+            border: 0,
+          }),
         }}
       >
         {label}

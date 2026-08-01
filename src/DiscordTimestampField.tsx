@@ -1,6 +1,7 @@
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import { Box, IconButton, Paper, Tooltip, Typography } from "@mui/material";
+import { Box, Button } from "@mui/material";
 import { Dayjs } from "dayjs";
+import { useState } from "react";
 
 interface DiscordTimestampFieldProps {
   label: string;
@@ -8,48 +9,28 @@ interface DiscordTimestampFieldProps {
 }
 
 const DiscordTimestampField = ({ label, time }: DiscordTimestampFieldProps) => {
+  const [copied, setCopied] = useState(false);
   const timestamp = time?.isValid() ? `<t:${time.unix()}:f>` : "";
   if (!timestamp) return null;
 
+  const copyTimestamp = () => {
+    navigator.clipboard.writeText(timestamp);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1500);
+  };
+
   return (
-    <Box sx={{ width: "fit-content", maxWidth: "100%" }}>
-      <Typography
-        variant="caption"
-        color="text.secondary"
-        component="div"
-        sx={{ mb: 0.5 }}
-      >
-        {label}
-      </Typography>
-      <Paper
+    <Box sx={{ display: "flex", justifyContent: "flex-end", width: "100%" }}>
+      <Button
         variant="outlined"
-        sx={{
-          display: "inline-flex",
-          alignItems: "center",
-          maxWidth: "100%",
-          pl: 1.5,
-          overflow: "hidden",
-          bgcolor: "action.hover",
-        }}
+        size="small"
+        startIcon={<ContentCopyIcon fontSize="small" />}
+        aria-label={`Copy ${label}`}
+        onClick={copyTimestamp}
+        sx={{ whiteSpace: "nowrap", minHeight: 36 }}
       >
-        <Typography
-          component="code"
-          variant="body2"
-          aria-label={label}
-          sx={{ whiteSpace: "nowrap" }}
-        >
-          {timestamp}
-        </Typography>
-        <Tooltip title="Copy Discord timestamp" describeChild>
-          <IconButton
-            aria-label={`Copy ${label}`}
-            onClick={() => navigator.clipboard.writeText(timestamp)}
-            sx={{ width: 44, height: 44, ml: 0.5 }}
-          >
-            <ContentCopyIcon />
-          </IconButton>
-        </Tooltip>
-      </Paper>
+        {copied ? "Copied" : "Timestamp"}
+      </Button>
     </Box>
   );
 };

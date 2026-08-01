@@ -33,7 +33,7 @@ import {
 import { DerivedField, mushrooms, navbarHeight } from "./types";
 
 const getInitialState = (): NewMushroomFormState => ({
-  derived: null,
+  derived: "endTime",
   mush: null,
   health: Number.NaN,
   pikminAp: 2,
@@ -129,7 +129,7 @@ const MushCalcRadio = () => {
         ) : (
           <Stack spacing={3}>
             <FormControl>
-              <FormLabel>What should the calculator find?</FormLabel>
+              <FormLabel>What do you want to calculate?</FormLabel>
               <RadioGroup
                 row
                 value={derived}
@@ -148,13 +148,13 @@ const MushCalcRadio = () => {
                 <FormControlLabel
                   value="health"
                   control={<Radio />}
-                  label="Starting health"
+                  label="Health"
                   sx={{ m: 0 }}
                 />
                 <FormControlLabel
                   value="ap"
                   control={<Radio />}
-                  label="Starting AP"
+                  label="AP"
                   sx={{ m: 0 }}
                 />
                 <FormControlLabel
@@ -166,7 +166,7 @@ const MushCalcRadio = () => {
                 <FormControlLabel
                   value="endTime"
                   control={<Radio />}
-                  label="Estimated end time"
+                  label="End time"
                   sx={{ m: 0 }}
                 />
               </RadioGroup>
@@ -192,22 +192,19 @@ const MushCalcRadio = () => {
               }}
             >
               <NumberSpinner
-                label="Starting health"
+                label="Health"
                 min={1}
                 value={health}
                 readOnly={derived === "health"}
                 showStepper={false}
                 allowDecimal={false}
                 isToggled={derived === "health"}
-                helperText={
-                  derived === "health" && "Calculated from AP and battle times."
-                }
                 onValueChange={(value) =>
                   updateForm({ health: value ?? Number.NaN })
                 }
               />
               <NumberSpinner
-                label="Starting AP"
+                label="AP"
                 min={2}
                 value={pikminAp}
                 readOnly={derived === "ap"}
@@ -215,9 +212,6 @@ const MushCalcRadio = () => {
                 allowDecimal={false}
                 isToggled={derived === "ap"}
                 unit="AP"
-                helperText={
-                  derived === "ap" && "Calculated from health and battle times."
-                }
                 onValueChange={(value) =>
                   updateForm({ pikminAp: value ?? Number.NaN })
                 }
@@ -248,7 +242,7 @@ const MushCalcRadio = () => {
 
               <Stack spacing={1.5}>
                 <SimpleDateTimeInput
-                  label="Estimated end time"
+                  label="End time"
                   readOnly={derived === "endTime"}
                   isToggled={derived === "endTime"}
                   value={endTime}

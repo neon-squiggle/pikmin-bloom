@@ -11,6 +11,7 @@ interface SimpleDateTimeInputProps {
   showNowAction?: boolean;
   minDateTime?: Dayjs;
   maxDateTime?: Dayjs;
+  hideLabel?: boolean;
 }
 
 const SimpleDateTimeInput = ({
@@ -23,6 +24,7 @@ const SimpleDateTimeInput = ({
   showNowAction = false,
   minDateTime,
   maxDateTime,
+  hideLabel = false,
 }: SimpleDateTimeInputProps) => (
   <DateTimePicker
     enableAccessibleFieldDOMStructure={false}
@@ -40,6 +42,20 @@ const SimpleDateTimeInput = ({
         sx: {
           "& .MuiInputLabel-root": {
             color: isToggled ? "success.main" : undefined,
+            ...(hideLabel && {
+              position: "absolute",
+              width: 1,
+              height: 1,
+              p: 0,
+              m: -1,
+              overflow: "hidden",
+              clip: "rect(0 0 0 0)",
+              whiteSpace: "nowrap",
+              border: 0,
+            }),
+          },
+          "& .MuiOutlinedInput-notchedOutline legend": {
+            maxWidth: hideLabel ? 0 : undefined,
           },
           "& .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline": {
             borderColor: isToggled ? "success.main" : undefined,

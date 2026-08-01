@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   Box,
   Divider,
-  Paper,
+  OutlinedInput,
   Slider,
   Stack,
   ToggleButton,
@@ -25,27 +25,11 @@ interface JoinPlannerProps {
   initialTargetEndTime?: Dayjs | null;
 }
 
-const formatDuration = (totalSeconds: number) => {
-  const safeSeconds = Math.max(0, Math.round(totalSeconds));
-  const days = Math.floor(safeSeconds / 86400);
-  const hours = Math.floor((safeSeconds % 86400) / 3600);
-  const minutes = Math.floor((safeSeconds % 3600) / 60);
-  const seconds = safeSeconds % 60;
-
-  return [
-    days ? `${days}d` : "",
-    hours ? `${hours}h` : "",
-    minutes ? `${minutes}m` : "",
-    seconds || (!days && !hours && !minutes) ? `${seconds}s` : "",
-  ]
-    .filter(Boolean)
-    .join(" ");
-};
-
 const roundAp = (value: number) =>
   Math.round((value + Number.EPSILON) * 1000) / 1000;
 
-const formatAp = (value: number) => String(roundAp(value));
+const formatAp = (value: number) =>
+  roundAp(value).toLocaleString(undefined, { maximumFractionDigits: 3 });
 
 const JoinPlanner = ({
   variant,
@@ -90,6 +74,10 @@ const JoinPlanner = ({
   const sliderMax = Math.max(0, secondsUntilTarget - 1);
   const clampedDelay = Math.min(joinDelaySeconds, sliderMax);
   const joinTime = referenceTime.add(clampedDelay, "second");
+  const latestJoinTime = targetEndTime?.subtract(1, "second") ?? referenceTime;
+  const endpointsShareDay = referenceTime.isSame(latestJoinTime, "day");
+  const formatSliderEndpoint = (time: Dayjs) =>
+    time.format(endpointsShareDay ? "h:mm:ss A" : "MMM D · h:mm:ss A");
 
   const additionalAp = calculateAdditionalAp({
     currentAp,
@@ -99,6 +87,16 @@ const JoinPlanner = ({
   });
   const displayedAdditionalAp =
     additionalAp == null ? null : roundAp(additionalAp);
+
+  const formatRequiredApAtDelay = (delaySeconds: number) => {
+    const requiredAp = calculateAdditionalAp({
+      currentAp,
+      healthRemaining,
+      secondsUntilTarget,
+      secondsUntilApAdded: delaySeconds,
+    });
+    return requiredAp == null ? "AP unavailable" : `${formatAp(requiredAp)} AP`;
+  };
 
   const updateAdditionalAp = (value: number | null) => {
     if (value == null) return;
@@ -113,13 +111,14 @@ const JoinPlanner = ({
   };
 
   return (
-    <Stack spacing={3}>
+    <Stack spacing={4}>
       <Divider />
-      <Stack spacing={2}>
-        <Typography variant="h6">
-          {isPlanned
-            ? "Optional: with additional players, when should the battle end? "
-            : "With additional players, when should the battle end?"}
+      <Stack
+        spacing={1.5}
+        sx={{ width: "100%", maxWidth: 520, alignSelf: "center" }}
+      >
+        <Typography variant="h6" component="h2">
+          With additional players, when should the battle end?
         </Typography>
         <SimpleDateTimeInput
           label="Desired end time"
@@ -139,25 +138,36 @@ const JoinPlanner = ({
       </Stack>
 
       {targetIsEarlier && (
-        <Paper ref={resultsRef} variant="outlined" sx={{ p: { xs: 2, sm: 3 } }}>
-          <Stack spacing={2}>
-            <Box>
-              <Typography variant="overline" color="text.secondary">
-                Bullhorn time
-              </Typography>
-              <Typography variant="h5">
-                {joinTime.format("ddd, MMM D · h:mm:ss A")}
-              </Typography>
-              <Box sx={{ mt: 1.5 }}>
-                <DiscordTimestampField
-                  label="Bullhorn time Discord timestamp"
-                  time={joinTime}
-                />
-              </Box>
-            </Box>
-
+        <Stack
+          ref={resultsRef}
+          spacing={4}
+          sx={{ width: "100%", maxWidth: 520, alignSelf: "center" }}
+        >
+          <Stack spacing={1.25}>
+            <Typography variant="h6" component="p">
+              If you bullhorn at
+            </Typography>
+            <OutlinedInput
+              value={joinTime.format("ddd, MMM D · h:mm:ss A")}
+              readOnly
+              size="small"
+              slotProps={{
+                input: { "aria-label": "Selected bullhorn time" },
+              }}
+              sx={{
+                width: "100%",
+                "& input": {
+                  py: 1,
+                  fontWeight: 600,
+                },
+              }}
+            />
+            <DiscordTimestampField
+              label="Bullhorn time Discord timestamp"
+              time={joinTime}
+            />
             <Slider
-              aria-label="Time until next join"
+              aria-label="Bullhorn time"
               value={clampedDelay}
               min={0}
               max={Math.max(1, sliderMax)}
@@ -167,13 +177,14 @@ const JoinPlanner = ({
                 setJoinDelaySeconds(Array.isArray(value) ? value[0] : value)
               }
               valueLabelDisplay="auto"
-              valueLabelFormat={(value) => formatDuration(value)}
+              valueLabelFormat={formatRequiredApAtDelay}
+              getAriaValueText={formatRequiredApAtDelay}
               marks={[
                 { value: 0 },
                 ...(sliderMax > 0 ? [{ value: sliderMax }] : []),
               ]}
               sx={{
-                mt: 1,
+                mt: 1.5,
                 touchAction: "pan-y",
               }}
             />
@@ -185,8 +196,12 @@ const JoinPlanner = ({
                 mt: -1.5,
               }}
             >
-              <Typography variant="caption" color="text.secondary">
-                {isPlanned ? "Battle start" : "Now"}
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                aria-label={`${isPlanned ? "Battle start" : "Now"}: ${formatSliderEndpoint(referenceTime)}`}
+              >
+                {formatSliderEndpoint(referenceTime)}
               </Typography>
               {sliderMax > 0 && (
                 <Typography
@@ -194,56 +209,59 @@ const JoinPlanner = ({
                   color="text.secondary"
                   sx={{ textAlign: "right" }}
                 >
-                  {formatDuration(sliderMax)}
+                  {formatSliderEndpoint(latestJoinTime)}
                 </Typography>
               )}
             </Box>
+          </Stack>
 
-            <Divider />
-
-            <Paper
+          <Stack spacing={1.25}>
+            <Typography variant="h6" component="p">
+              then, in total, you’ll need
+            </Typography>
+            <Box
               data-testid="additional-ap-result"
-              variant="outlined"
               sx={{
-                width: "100%",
-                maxWidth: { sm: 520 },
-                p: 2,
-                borderWidth: 2,
-                borderColor: "primary.main",
-                bgcolor: "action.hover",
-                "& .MuiFormControl-root": {
-                  width: "100%",
+                width: { xs: "100%", sm: 240 },
+                "& .MuiInputBase-input": {
+                  fontSize: "1.15rem",
+                  fontWeight: 700,
+                  fontVariantNumeric: "tabular-nums",
                 },
               }}
             >
               <NumberSpinner
                 label="Required total additional AP"
+                hideLabel
+                unit="AP"
                 min={0}
                 value={displayedAdditionalAp ?? 0}
                 disabled={displayedAdditionalAp == null}
                 onValueChange={updateAdditionalAp}
               />
-            </Paper>
+            </Box>
+          </Stack>
 
-            {displayedAdditionalAp != null && (
-              <Box sx={{ width: "100%", maxWidth: 520 }}>
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
-                  component="div"
-                  sx={{ mb: 0.75 }}
-                >
-                  Number of joining players
-                </Typography>
+          {displayedAdditionalAp != null && (
+            <Stack spacing={1.25}>
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                  gap: 1,
+                }}
+              >
+                <Typography variant="body1">or, if</Typography>
                 <ToggleButtonGroup
                   value={playerCount}
                   exclusive
-                  fullWidth
                   size="small"
                   onChange={(_, value) =>
                     value != null && setPlayerCount(value)
                   }
                   aria-label="Number of joining players"
+                  sx={{ width: { xs: "100%", sm: 240 } }}
                 >
                   {[1, 2, 3, 4].map((count) => (
                     <ToggleButton
@@ -261,18 +279,28 @@ const JoinPlanner = ({
                     </ToggleButton>
                   ))}
                 </ToggleButtonGroup>
-
-                <Typography
-                  variant="h6"
-                  sx={{ mt: 1 }}
-                  data-testid="divided-ap-result"
-                >
-                  {formatAp(displayedAdditionalAp / playerCount)} AP per player
+                <Typography variant="body1">
+                  {playerCount === 1
+                    ? "player is joining,"
+                    : "players are joining,"}
                 </Typography>
               </Box>
-            )}
-          </Stack>
-        </Paper>
+              <Typography
+                component="output"
+                variant="h6"
+                data-testid="divided-ap-result"
+              >
+                each person needs{" "}
+                <Box
+                  component="span"
+                  sx={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}
+                >
+                  {formatAp(displayedAdditionalAp / playerCount)} AP.
+                </Box>
+              </Typography>
+            </Stack>
+          )}
+        </Stack>
       )}
     </Stack>
   );

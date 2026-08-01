@@ -19,33 +19,36 @@ describe("MushCalcRadio", () => {
     window.localStorage.clear();
   });
 
-  it("starts blank with visible calculation choices", () => {
+  it("starts blank with end time selected as the calculation target", () => {
     renderCalculator();
 
-    screen.getAllByRole("radio").forEach((radio) => {
-      expect((radio as HTMLInputElement).checked).toBe(false);
-    });
+    expect(
+      (screen.getByRole("radio", { name: "End time" }) as HTMLInputElement)
+        .checked,
+    ).toBe(true);
     expect(
       (screen.getByLabelText("Mushroom type") as HTMLInputElement).value,
     ).toBe("");
     expect(
       (
         screen.getByRole("textbox", {
-          name: "Starting health",
+          name: "Health",
         }) as HTMLInputElement
       ).value,
     ).toBe("");
     expect(
       (
         screen.getByRole("textbox", {
-          name: "Starting AP",
+          name: "AP",
         }) as HTMLInputElement
       ).value,
     ).toBe("2");
     expect(
-      (screen.getByLabelText(
-        "Copy Start time Discord timestamp",
-      ) as HTMLButtonElement).disabled,
+      (
+        screen.getByLabelText(
+          "Copy Start time Discord timestamp",
+        ) as HTMLButtonElement
+      ).disabled,
     ).toBe(false);
     expect(
       screen.queryByLabelText("Copy End time Discord timestamp"),
@@ -65,14 +68,14 @@ describe("MushCalcRadio", () => {
     expect(
       (
         screen.getByRole("textbox", {
-          name: "Starting health",
+          name: "Health",
         }) as HTMLInputElement
       ).value,
     ).toBe("3,850,200");
     expect(
       (
         screen.getByRole("textbox", {
-          name: "Starting AP",
+          name: "AP",
         }) as HTMLInputElement
       ).value,
     ).toBe("1,040");
@@ -82,24 +85,22 @@ describe("MushCalcRadio", () => {
     renderCalculator();
     const getEndTimeInput = () =>
       screen
-        .getAllByLabelText("Estimated end time")
+        .getAllByLabelText("End time")
         .find(
           (element) => element.getAttribute("type") !== "radio",
         ) as HTMLInputElement;
 
-    fireEvent.click(
-      screen.getByRole("radio", { name: "Estimated end time" }),
-    );
+    fireEvent.click(screen.getByRole("radio", { name: "End time" }));
     expect(getEndTimeInput().readOnly).toBe(true);
 
-    fireEvent.click(screen.getByRole("radio", { name: "Starting AP" }));
+    fireEvent.click(screen.getByRole("radio", { name: "AP" }));
 
     expect(getEndTimeInput().type).toBe("text");
     expect(getEndTimeInput().readOnly).toBe(false);
     expect(
       (
         screen.getByRole("textbox", {
-          name: "Starting AP",
+          name: "AP",
         }) as HTMLInputElement
       ).readOnly,
     ).toBe(true);
@@ -107,8 +108,9 @@ describe("MushCalcRadio", () => {
 
   it("accepts a typed estimated end time and creates its Discord timestamp", () => {
     renderCalculator();
+    fireEvent.click(screen.getByRole("radio", { name: "AP" }));
     const endTimeInput = screen
-      .getAllByLabelText("Estimated end time")
+      .getAllByLabelText("End time")
       .find(
         (element) => element.getAttribute("type") === "text",
       ) as HTMLInputElement;
@@ -119,14 +121,14 @@ describe("MushCalcRadio", () => {
 
     expect(endTimeInput.value).toBe("01/02/2030 12:30 PM");
     expect(
-      screen.getByLabelText("End time Discord timestamp").textContent,
-    ).toMatch(/^<t:\d+:f>$/);
+      screen.getByLabelText("Copy End time Discord timestamp"),
+    ).not.toBeNull();
   });
 
   it("uses a numeric keyboard and strips non-numeric AP characters", () => {
     renderCalculator();
 
-    const apInput = screen.getByRole("textbox", { name: "Starting AP" });
+    const apInput = screen.getByRole("textbox", { name: "AP" });
     expect(apInput.getAttribute("inputmode")).toBe("numeric");
     fireEvent.focus(apInput);
     fireEvent.change(apInput, { target: { value: "12abc,500" } });

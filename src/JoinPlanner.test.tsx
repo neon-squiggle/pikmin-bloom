@@ -33,7 +33,7 @@ describe("JoinPlanner", () => {
     });
     renderPlannedJoin();
 
-    expect(screen.getByText("<t:1704141900:f>")).not.toBeNull();
+    expect(screen.queryByText("<t:1704141900:f>")).toBeNull();
 
     fireEvent.click(
       screen.getByRole("button", {
@@ -61,13 +61,12 @@ describe("JoinPlanner", () => {
     );
 
     expect(
-      screen.getByText(
-        "Optional: with additional players, when should the battle end?",
-      ),
+      screen.getByText("With additional players, when should the battle end?"),
     ).not.toBeNull();
     expect(screen.queryByText("Finish with the starting group")).toBeNull();
-    expect(screen.getByText("Join at battle start")).not.toBeNull();
-    expect(screen.getByText("Battle start")).not.toBeNull();
+    expect(screen.getByLabelText("Desired end time")).not.toBeNull();
+    expect(screen.getByText("12:00:00 PM")).not.toBeNull();
+    expect(screen.getByText("12:44:59 PM")).not.toBeNull();
   });
 
   it("starts an in-progress join at now", () => {
@@ -76,7 +75,8 @@ describe("JoinPlanner", () => {
     expect(
       screen.getByText("With additional players, when should the battle end?"),
     ).not.toBeNull();
-    expect(screen.getByText("Join now")).not.toBeNull();
+    expect(screen.getByText(/If you bullhorn at/)).not.toBeNull();
+    expect(screen.getByText("then you’ll need")).not.toBeNull();
     expect(
       (
         screen.getByLabelText(
@@ -89,18 +89,27 @@ describe("JoinPlanner", () => {
   it("updates required AP as the joining group is delayed", () => {
     renderPlannedJoin();
 
+    const bullhornTime = screen.getByLabelText("Selected bullhorn time");
+    expect((bullhornTime as HTMLInputElement).readOnly).toBe(true);
+    const slider = screen.getByRole("slider", { name: "Bullhorn time" });
+    expect(slider.getAttribute("aria-valuetext")).toBe("11.111 AP");
+    const additionalAp = screen.getByLabelText(
+      "Required total additional AP",
+    );
     expect(
-      screen.getByText("When will the additional players join?"),
-    ).not.toBeNull();
+      bullhornTime.compareDocumentPosition(slider) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
     expect(
-      screen.getByText(
-        "Drag right to delay their join. The required AP updates automatically.",
-      ),
-    ).not.toBeNull();
+      slider.compareDocumentPosition(additionalAp) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
 
-    fireEvent.change(screen.getByRole("slider"), {
+    fireEvent.change(slider, {
       target: { value: "600" },
     });
+
+    expect(slider.getAttribute("aria-valuetext")).toBe("14.286 AP");
 
     expect(
       (
@@ -114,10 +123,6 @@ describe("JoinPlanner", () => {
   it("moves the slider when total joining AP is edited", () => {
     renderPlannedJoin();
 
-    expect(
-      screen.getByText("Editable — change AP to move the join-time slider."),
-    ).not.toBeNull();
-
     fireEvent.change(screen.getByLabelText("Required total additional AP"), {
       target: { value: "20" },
     });
@@ -130,6 +135,7 @@ describe("JoinPlanner", () => {
 
     const result = screen.getByTestId("additional-ap-result");
     expect(result.textContent).toContain("Required total additional AP");
+    expect(result.textContent).toContain("AP");
   });
 
   it("defaults to one joining player and can divide among four", () => {
@@ -141,7 +147,7 @@ describe("JoinPlanner", () => {
         .getAttribute("aria-pressed"),
     ).toBe("true");
     expect(screen.getByTestId("divided-ap-result").textContent).toContain(
-      "11.111 AP per player",
+      "each person needs 11.111 AP.",
     );
     fireEvent.change(screen.getByRole("slider"), {
       target: { value: "600" },
@@ -149,8 +155,9 @@ describe("JoinPlanner", () => {
     fireEvent.click(screen.getByText("4"));
 
     expect(screen.getByTestId("divided-ap-result").textContent).toContain(
-      "3.572 AP per player",
+      "each person needs 3.572 AP.",
     );
+    expect(screen.getByText("players are joining,")).not.toBeNull();
   });
 
   it.each([

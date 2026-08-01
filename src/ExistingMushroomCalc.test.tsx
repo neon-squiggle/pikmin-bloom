@@ -103,7 +103,11 @@ describe("ExistingMushroomCalc", () => {
     });
 
     expect(additionalApInput.value).toBe("14.286");
-    expect(screen.getByText("<t:1704111000:f>")).not.toBeNull();
+    expect(
+      screen.getByRole("button", {
+        name: "Copy Bullhorn time Discord timestamp",
+      }),
+    ).not.toBeNull();
   });
 
   it("allows AP to be added up to one second before the desired finish", () => {
@@ -165,7 +169,7 @@ describe("ExistingMushroomCalc", () => {
 
     expect(additionalApInput.value).toBe(total);
     expect(screen.getByTestId("divided-ap-result").textContent).toContain(
-      "3.704 AP per player",
+      "each person needs 3.704 AP.",
     );
   });
 
@@ -215,7 +219,7 @@ describe("ExistingMushroomCalc", () => {
       .getAllByLabelText("Desired end time")
       .find((element) => element.tagName === "INPUT") as HTMLInputElement;
     expect(desiredEndInput.disabled).toBe(false);
-    expect(screen.getByText("Join now")).not.toBeNull();
+    expect(screen.getByText(/If you bullhorn at/)).not.toBeNull();
     expect(
       (
         screen.getByLabelText(
