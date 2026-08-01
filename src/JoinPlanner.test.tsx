@@ -25,6 +25,25 @@ const renderPlannedJoin = () =>
   );
 
 describe("JoinPlanner", () => {
+  it("shows and copies the desired end-time Discord timestamp", () => {
+    const writeText = jest.fn();
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+    renderPlannedJoin();
+
+    expect(screen.getByText("<t:1704141900:f>")).not.toBeNull();
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Copy Desired end time Discord timestamp",
+      }),
+    );
+
+    expect(writeText).toHaveBeenCalledWith("<t:1704141900:f>");
+  });
+
   it("presents the join controls as optional for a planned battle", () => {
     render(
       <ThemeProvider theme={createTheme({ palette: { mode: "dark" } })}>
@@ -70,11 +89,19 @@ describe("JoinPlanner", () => {
   it("updates required AP as the joining group is delayed", () => {
     renderPlannedJoin();
 
+    expect(
+      screen.getByText("When will the additional players join?"),
+    ).not.toBeNull();
+    expect(
+      screen.getByText(
+        "Drag right to delay their join. The required AP updates automatically.",
+      ),
+    ).not.toBeNull();
+
     fireEvent.change(screen.getByRole("slider"), {
       target: { value: "600" },
     });
 
-    expect(screen.getByText("Join in 10m")).not.toBeNull();
     expect(
       (
         screen.getByLabelText(
@@ -87,12 +114,15 @@ describe("JoinPlanner", () => {
   it("moves the slider when total joining AP is edited", () => {
     renderPlannedJoin();
 
+    expect(
+      screen.getByText("Editable — change AP to move the join-time slider."),
+    ).not.toBeNull();
+
     fireEvent.change(screen.getByLabelText("Required total additional AP"), {
       target: { value: "20" },
     });
 
     expect((screen.getByRole("slider") as HTMLInputElement).value).toBe("1200");
-    expect(screen.getByText("Join in 20m")).not.toBeNull();
   });
 
   it("uses a stable full-width AP control without a duplicate heading", () => {
@@ -105,6 +135,11 @@ describe("JoinPlanner", () => {
   it("defaults to one joining player and can divide among four", () => {
     renderPlannedJoin();
 
+    expect(
+      screen
+        .getByRole("button", { name: "1 joining player" })
+        .getAttribute("aria-pressed"),
+    ).toBe("true");
     expect(screen.getByTestId("divided-ap-result").textContent).toContain(
       "11.111 AP per player",
     );
@@ -118,52 +153,54 @@ describe("JoinPlanner", () => {
     );
   });
 
-  it("scrolls to the bottom after a mobile user sets an end time", () => {
-    const originalWidth = window.innerWidth;
-    const originalScrollTo = window.scrollTo;
-    const scrollTo = jest.fn();
-    Object.defineProperty(window, "innerWidth", {
-      configurable: true,
-      value: 390,
-    });
-    Object.defineProperty(document.documentElement, "scrollHeight", {
-      configurable: true,
-      value: 2000,
-    });
-    window.scrollTo = scrollTo;
+  it.each([
+    ["mobile", 390],
+    ["desktop", 1280],
+  ])(
+    "scrolls revealed results into view on %s without blurring the input",
+    (_, width) => {
+      const originalWidth = window.innerWidth;
+      const originalScrollIntoView = Element.prototype.scrollIntoView;
+      const scrollIntoView = jest.fn();
+      Object.defineProperty(window, "innerWidth", {
+        configurable: true,
+        value: width,
+      });
+      Element.prototype.scrollIntoView = scrollIntoView;
 
-    render(
-      <ThemeProvider theme={createTheme({ palette: { mode: "dark" } })}>
-        <LocalizationProvider dateAdapter={AdapterDayjs}>
-          <JoinPlanner
-            variant="in-progress"
-            currentAp={100}
-            healthRemaining={3000}
-            referenceTime={referenceTime}
-            baselineEndTime={referenceTime.add(1, "hour")}
-          />
-        </LocalizationProvider>
-      </ThemeProvider>,
-    );
+      render(
+        <ThemeProvider theme={createTheme({ palette: { mode: "dark" } })}>
+          <LocalizationProvider dateAdapter={AdapterDayjs}>
+            <JoinPlanner
+              variant="in-progress"
+              currentAp={100}
+              healthRemaining={3000}
+              referenceTime={referenceTime}
+              baselineEndTime={referenceTime.add(1, "hour")}
+            />
+          </LocalizationProvider>
+        </ThemeProvider>,
+      );
 
-    const desiredEndInput = screen.getByLabelText("Desired end time");
-    fireEvent.focus(desiredEndInput);
-    const blur = jest.spyOn(HTMLElement.prototype, "blur");
-    fireEvent.change(desiredEndInput, {
-      target: { value: "01/01/2024 12:45 PM" },
-    });
+      const desiredEndInput = screen.getByLabelText("Desired end time");
+      fireEvent.focus(desiredEndInput);
+      const blur = jest.spyOn(HTMLElement.prototype, "blur");
+      fireEvent.change(desiredEndInput, {
+        target: { value: "01/01/2024 12:45 PM" },
+      });
 
-    expect(scrollTo).toHaveBeenCalledWith({
-      behavior: "smooth",
-      top: 2000,
-    });
-    expect(blur).not.toHaveBeenCalled();
+      expect(scrollIntoView).toHaveBeenCalledWith({
+        behavior: "smooth",
+        block: "nearest",
+      });
+      expect(blur).not.toHaveBeenCalled();
 
-    blur.mockRestore();
-    window.scrollTo = originalScrollTo;
-    Object.defineProperty(window, "innerWidth", {
-      configurable: true,
-      value: originalWidth,
-    });
-  });
+      blur.mockRestore();
+      Element.prototype.scrollIntoView = originalScrollIntoView;
+      Object.defineProperty(window, "innerWidth", {
+        configurable: true,
+        value: originalWidth,
+      });
+    },
+  );
 });

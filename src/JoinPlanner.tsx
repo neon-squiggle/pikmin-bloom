@@ -2,19 +2,17 @@ import { useEffect, useRef, useState } from "react";
 import {
   Box,
   Divider,
-  IconButton,
   Paper,
   Slider,
   Stack,
   ToggleButton,
   ToggleButtonGroup,
-  Tooltip,
   Typography,
 } from "@mui/material";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { Dayjs } from "dayjs";
 
 import { calculateAdditionalAp, calculateApAdditionDelay } from "./helpers";
+import DiscordTimestampField from "./DiscordTimestampField";
 import NumberSpinner from "./NumberSpinner";
 import SimpleDateTimeInput from "./SimpleDateTimeInput";
 
@@ -49,8 +47,6 @@ const roundAp = (value: number) =>
 
 const formatAp = (value: number) => String(roundAp(value));
 
-const toDiscordTimestamp = (time: Dayjs) => `<t:${time.unix()}:f>`;
-
 const JoinPlanner = ({
   variant,
   currentAp,
@@ -78,15 +74,16 @@ const JoinPlanner = ({
     secondsUntilTarget > 0 &&
     secondsUntilTarget < baselineSeconds;
   const wasTargetEarlier = useRef(targetIsEarlier);
+  const resultsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const justRevealed = targetIsEarlier && !wasTargetEarlier.current;
     wasTargetEarlier.current = targetIsEarlier;
-    if (!justRevealed || window.innerWidth > 600) return;
+    if (!justRevealed) return;
 
-    window.scrollTo({
-      top: document.documentElement.scrollHeight,
+    resultsRef.current?.scrollIntoView?.({
       behavior: "smooth",
+      block: "nearest",
     });
   }, [targetIsEarlier]);
 
@@ -135,10 +132,14 @@ const JoinPlanner = ({
           minDateTime={referenceTime.add(1, "second")}
           maxDateTime={baselineEndTime ?? undefined}
         />
+        <DiscordTimestampField
+          label="Desired end time Discord timestamp"
+          time={targetEndTime}
+        />
       </Stack>
 
       {targetIsEarlier && (
-        <Paper variant="outlined" sx={{ p: { xs: 2, sm: 3 } }}>
+        <Paper ref={resultsRef} variant="outlined" sx={{ p: { xs: 2, sm: 3 } }}>
           <Stack spacing={2}>
             <Box>
               <Typography variant="overline" color="text.secondary">
@@ -147,34 +148,11 @@ const JoinPlanner = ({
               <Typography variant="h5">
                 {joinTime.format("ddd, MMM D · h:mm:ss A")}
               </Typography>
-              <Typography variant="body2" color="text.secondary">
-                {clampedDelay === 0
-                  ? isPlanned
-                    ? "Join at battle start"
-                    : "Join now"
-                  : `Join in ${formatDuration(clampedDelay)}`}
-              </Typography>
-              <Box sx={{ display: "flex", alignItems: "center" }}>
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
-                  data-testid="ap-addition-discord-timestamp"
-                >
-                  Discord timestamp: {toDiscordTimestamp(joinTime)}
-                </Typography>
-                <Tooltip title="Copy Discord timestamp">
-                  <IconButton
-                    size="small"
-                    aria-label="Copy join-time Discord timestamp"
-                    onClick={() =>
-                      navigator.clipboard.writeText(
-                        toDiscordTimestamp(joinTime),
-                      )
-                    }
-                  >
-                    <ContentCopyIcon fontSize="inherit" />
-                  </IconButton>
-                </Tooltip>
+              <Box sx={{ mt: 1.5 }}>
+                <DiscordTimestampField
+                  label="Bullhorn time Discord timestamp"
+                  time={joinTime}
+                />
               </Box>
             </Box>
 
@@ -267,12 +245,11 @@ const JoinPlanner = ({
                   }
                   aria-label="Number of joining players"
                 >
-                  {[2, 3, 4].map((count) => (
+                  {[1, 2, 3, 4].map((count) => (
                     <ToggleButton
                       key={count}
                       value={count}
-                      aria-label={`${count} joining players
-                        }`}
+                      aria-label={`${count} joining ${count === 1 ? "player" : "players"}`}
                       sx={{
                         flex: "1 1 0",
                         minWidth: 0,

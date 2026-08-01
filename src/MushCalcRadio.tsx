@@ -11,7 +11,6 @@ import {
   FormControl,
   FormControlLabel,
   FormLabel,
-  IconButton,
   Radio,
   RadioGroup,
   Stack,
@@ -19,9 +18,9 @@ import {
   ToggleButton,
   ToggleButtonGroup,
 } from "@mui/material";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import RefreshIcon from "@mui/icons-material/Refresh";
 
+import DiscordTimestampField from "./DiscordTimestampField";
 import ExistingMushroomCalc from "./ExistingMushroomCalc";
 import JoinPlanner from "./JoinPlanner";
 import NumberSpinner from "./NumberSpinner";
@@ -41,40 +40,6 @@ const getInitialState = (): NewMushroomFormState => ({
   startTime: dayjs().second(0).millisecond(0),
   endTime: null,
 });
-
-const toDiscordTimestamp = (time: NewMushroomFormState["startTime"]) =>
-  time ? `<t:${time.unix()}:f>` : "";
-
-const DiscordTimestampField = ({
-  label,
-  time,
-}: {
-  label: string;
-  time: NewMushroomFormState["startTime"];
-}) => {
-  const timestamp = toDiscordTimestamp(time);
-  return (
-    <TextField
-      label={label}
-      value={timestamp}
-      fullWidth
-      slotProps={{
-        input: {
-          readOnly: true,
-          endAdornment: (
-            <IconButton
-              disabled={!timestamp}
-              aria-label={`Copy ${label}`}
-              onClick={() => navigator.clipboard.writeText(timestamp)}
-            >
-              <ContentCopyIcon />
-            </IconButton>
-          ),
-        },
-      }}
-    />
-  );
-};
 
 const MushCalcRadio = () => {
   const [calculatorMode, setCalculatorMode] = useState<"new" | "existing">(
@@ -271,6 +236,7 @@ const MushCalcRadio = () => {
                   label="Battle start time"
                   readOnly={derived === "startTime"}
                   isToggled={derived === "startTime"}
+                  showNowAction
                   value={startTime}
                   onChange={(value) => updateForm({ startTime: value })}
                 />

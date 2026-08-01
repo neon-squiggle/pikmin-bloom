@@ -103,10 +103,7 @@ describe("ExistingMushroomCalc", () => {
     });
 
     expect(additionalApInput.value).toBe("14.286");
-    expect(screen.getByText("Join in 10m")).not.toBeNull();
-    expect(
-      screen.getByTestId("ap-addition-discord-timestamp").textContent,
-    ).toContain("Discord timestamp: <t:1704111000:f>");
+    expect(screen.getByText("<t:1704111000:f>")).not.toBeNull();
   });
 
   it("allows AP to be added up to one second before the desired finish", () => {
@@ -148,7 +145,6 @@ describe("ExistingMushroomCalc", () => {
     });
 
     expect((screen.getByRole("slider") as HTMLInputElement).value).toBe("1200");
-    expect(screen.getByText("Join in 20m")).not.toBeNull();
   });
 
   it("optionally divides the AP without replacing the total", () => {

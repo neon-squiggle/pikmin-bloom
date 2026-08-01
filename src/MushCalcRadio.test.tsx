@@ -48,10 +48,8 @@ describe("MushCalcRadio", () => {
       ) as HTMLButtonElement).disabled,
     ).toBe(false);
     expect(
-      (screen.getByLabelText(
-        "Copy End time Discord timestamp",
-      ) as HTMLButtonElement).disabled,
-    ).toBe(true);
+      screen.queryByLabelText("Copy End time Discord timestamp"),
+    ).toBeNull();
     expect(
       (screen.getByLabelText("Battle start time") as HTMLInputElement).type,
     ).toBe("text");
@@ -121,11 +119,7 @@ describe("MushCalcRadio", () => {
 
     expect(endTimeInput.value).toBe("01/02/2030 12:30 PM");
     expect(
-      (
-        screen.getByLabelText(
-          "End time Discord timestamp",
-        ) as HTMLInputElement
-      ).value,
+      screen.getByLabelText("End time Discord timestamp").textContent,
     ).toMatch(/^<t:\d+:f>$/);
   });
 

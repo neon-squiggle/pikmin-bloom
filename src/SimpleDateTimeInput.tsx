@@ -8,6 +8,7 @@ interface SimpleDateTimeInputProps {
   readOnly?: boolean;
   disabled?: boolean;
   isToggled?: boolean;
+  showNowAction?: boolean;
   minDateTime?: Dayjs;
   maxDateTime?: Dayjs;
 }
@@ -19,6 +20,7 @@ const SimpleDateTimeInput = ({
   readOnly = false,
   disabled = false,
   isToggled = false,
+  showNowAction = false,
   minDateTime,
   maxDateTime,
 }: SimpleDateTimeInputProps) => (
@@ -29,6 +31,7 @@ const SimpleDateTimeInput = ({
     onChange={onChange}
     readOnly={readOnly}
     disabled={disabled}
+    localeText={showNowAction ? { todayButtonLabel: "Now" } : undefined}
     minDateTime={minDateTime}
     maxDateTime={maxDateTime}
     slotProps={{
@@ -47,7 +50,9 @@ const SimpleDateTimeInput = ({
         },
       },
       actionBar: {
-        actions: ["today", "clear", "cancel", "accept"],
+        actions: showNowAction
+          ? ["today", "clear", "cancel", "accept"]
+          : ["clear", "cancel", "accept"],
       },
     }}
   />
