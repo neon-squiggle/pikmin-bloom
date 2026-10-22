@@ -12,6 +12,7 @@ interface SimpleDateTimeInputProps {
   minDateTime?: Dayjs;
   maxDateTime?: Dayjs;
   hideLabel?: boolean;
+  showSeconds?: boolean;
 }
 
 const SimpleDateTimeInput = ({
@@ -25,6 +26,7 @@ const SimpleDateTimeInput = ({
   minDateTime,
   maxDateTime,
   hideLabel = false,
+  showSeconds = false,
 }: SimpleDateTimeInputProps) => (
   <DateTimePicker
     enableAccessibleFieldDOMStructure={false}
@@ -36,6 +38,12 @@ const SimpleDateTimeInput = ({
     localeText={showNowAction ? { todayButtonLabel: "Now" } : undefined}
     minDateTime={minDateTime}
     maxDateTime={maxDateTime}
+    views={
+      showSeconds
+        ? ["year", "day", "hours", "minutes", "seconds"]
+        : undefined
+    }
+    timeSteps={showSeconds ? { minutes: 1, seconds: 1 } : undefined}
     slotProps={{
       textField: {
         fullWidth: true,

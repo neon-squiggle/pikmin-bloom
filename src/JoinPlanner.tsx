@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import {
   Box,
   Divider,
-  OutlinedInput,
   Slider,
   Stack,
   ToggleButton,
@@ -147,19 +146,21 @@ const JoinPlanner = ({
             <Typography variant="h6" component="p">
               If you bullhorn at
             </Typography>
-            <OutlinedInput
-              value={joinTime.format("ddd, MMM D · h:mm:ss A")}
-              readOnly
-              size="small"
-              slotProps={{
-                input: { "aria-label": "Selected bullhorn time" },
-              }}
-              sx={{
-                width: "100%",
-                "& input": {
-                  py: 1,
-                  fontWeight: 600,
-                },
+            <SimpleDateTimeInput
+              label="Bullhorn time"
+              value={joinTime}
+              showSeconds
+              minDateTime={referenceTime}
+              maxDateTime={latestJoinTime}
+              onChange={(value) => {
+                if (
+                  !value?.isValid() ||
+                  value.isBefore(referenceTime) ||
+                  value.isAfter(latestJoinTime)
+                ) {
+                  return;
+                }
+                setJoinDelaySeconds(value.diff(referenceTime, "second"));
               }}
             />
             <DiscordTimestampField
@@ -217,7 +218,7 @@ const JoinPlanner = ({
 
           <Stack spacing={1.25}>
             <Typography variant="h6" component="p">
-              then, in total, you’ll need
+              then, in total, you’ll need an additional
             </Typography>
             <Box
               data-testid="additional-ap-result"

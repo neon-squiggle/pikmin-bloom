@@ -8,17 +8,20 @@ import JoinPlanner from "./JoinPlanner";
 
 const referenceTime = dayjs("2024-01-01T12:00:00");
 
-const renderPlannedJoin = () =>
+const renderPlannedJoin = (
+  variant: "planned" | "in-progress" = "in-progress",
+  startTime = referenceTime,
+) =>
   render(
     <ThemeProvider theme={createTheme({ palette: { mode: "dark" } })}>
       <LocalizationProvider dateAdapter={AdapterDayjs}>
         <JoinPlanner
-          variant="in-progress"
+          variant={variant}
           currentAp={100}
           healthRemaining={3000}
-          referenceTime={referenceTime}
-          baselineEndTime={referenceTime.add(1, "hour")}
-          initialTargetEndTime={referenceTime.add(45, "minute")}
+          referenceTime={startTime}
+          baselineEndTime={startTime.add(1, "hour")}
+          initialTargetEndTime={startTime.add(45, "minute")}
         />
       </LocalizationProvider>
     </ThemeProvider>,
@@ -76,7 +79,9 @@ describe("JoinPlanner", () => {
       screen.getByText("With additional players, when should the battle end?"),
     ).not.toBeNull();
     expect(screen.getByText(/If you bullhorn at/)).not.toBeNull();
-    expect(screen.getByText("then you’ll need")).not.toBeNull();
+    expect(
+      screen.getByText("then, in total, you’ll need an additional"),
+    ).not.toBeNull();
     expect(
       (
         screen.getByLabelText(
@@ -89,8 +94,8 @@ describe("JoinPlanner", () => {
   it("updates required AP as the joining group is delayed", () => {
     renderPlannedJoin();
 
-    const bullhornTime = screen.getByLabelText("Selected bullhorn time");
-    expect((bullhornTime as HTMLInputElement).readOnly).toBe(true);
+    const bullhornTime = screen.getByRole("textbox", { name: "Bullhorn time" });
+    expect((bullhornTime as HTMLInputElement).readOnly).toBe(false);
     const slider = screen.getByRole("slider", { name: "Bullhorn time" });
     expect(slider.getAttribute("aria-valuetext")).toBe("11.111 AP");
     const additionalAp = screen.getByLabelText(
@@ -110,6 +115,9 @@ describe("JoinPlanner", () => {
     });
 
     expect(slider.getAttribute("aria-valuetext")).toBe("14.286 AP");
+    expect((bullhornTime as HTMLInputElement).value).toBe(
+      "01/01/2024 12:10:00 PM",
+    );
 
     expect(
       (
@@ -128,14 +136,101 @@ describe("JoinPlanner", () => {
     });
 
     expect((screen.getByRole("slider") as HTMLInputElement).value).toBe("1200");
+    expect(
+      (screen.getByRole("textbox", { name: "Bullhorn time" }) as HTMLInputElement)
+        .value,
+    ).toBe("01/01/2024 12:20:00 PM");
   });
 
-  it("uses a stable full-width AP control without a duplicate heading", () => {
+  it("keeps the total AP wording in the sentence with a hidden input label", () => {
     renderPlannedJoin();
 
     const result = screen.getByTestId("additional-ap-result");
-    expect(result.textContent).toContain("Required total additional AP");
+    expect(
+      screen.getByText("then, in total, you’ll need an additional"),
+    ).not.toBeNull();
+    expect(
+      window.getComputedStyle(screen.getByText("Required total additional AP"))
+        .position,
+    ).toBe("absolute");
     expect(result.textContent).toContain("AP");
+  });
+
+  it.each(["planned", "in-progress"] as const)(
+    "updates the slider, AP totals, and timestamp when bullhorn time is edited for a %s battle",
+    (variant) => {
+      const writeText = jest.fn();
+      Object.defineProperty(navigator, "clipboard", {
+        configurable: true,
+        value: { writeText },
+      });
+      renderPlannedJoin(variant);
+      fireEvent.click(screen.getByRole("button", { name: "4 joining players" }));
+
+      fireEvent.change(screen.getByRole("textbox", { name: "Bullhorn time" }), {
+        target: { value: "01/01/2024 12:10:00 PM" },
+      });
+
+      expect((screen.getByRole("slider") as HTMLInputElement).value).toBe("600");
+      expect(
+        (screen.getByLabelText("Required total additional AP") as HTMLInputElement).value,
+      ).toBe("14.286");
+      expect(screen.getByTestId("divided-ap-result").textContent).toContain(
+        "each person needs 3.572 AP.",
+      );
+      fireEvent.click(
+        screen.getByRole("button", {
+          name: "Copy Bullhorn time Discord timestamp",
+        }),
+      );
+      expect(writeText).toHaveBeenCalledWith(
+        `<t:${referenceTime.add(10, "minute").unix()}:f>`,
+      );
+    },
+  );
+
+  it("accepts a bullhorn time on the next day through the last allowed second", () => {
+    const startTime = dayjs("2024-01-01T23:30:00");
+    renderPlannedJoin("planned", startTime);
+
+    fireEvent.change(screen.getByRole("textbox", { name: "Bullhorn time" }), {
+      target: { value: "01/02/2024 12:14:59 AM" },
+    });
+
+    expect((screen.getByRole("slider") as HTMLInputElement).value).toBe("2699");
+    expect(
+      (screen.getByLabelText("Required total additional AP") as HTMLInputElement).value,
+    ).toBe("30,000");
+
+    fireEvent.change(screen.getByRole("slider"), { target: { value: "0" } });
+    expect(
+      (screen.getByRole("textbox", { name: "Bullhorn time" }) as HTMLInputElement)
+        .value,
+    ).toBe("01/01/2024 11:30:00 PM");
+  });
+
+  it.each([
+    ["before the battle starts", "01/01/2024 11:59:59 AM"],
+    ["at the desired finish", "01/01/2024 12:45:00 PM"],
+    ["after the desired finish", "01/01/2024 01:00:00 PM"],
+    ["cleared", ""],
+    ["incomplete", "01/01/2024 hh:10:00 PM"],
+  ])("keeps valid calculations when the bullhorn time is %s", (_, value) => {
+    renderPlannedJoin();
+
+    fireEvent.change(screen.getByRole("textbox", { name: "Bullhorn time" }), {
+      target: { value },
+    });
+
+    expect((screen.getByRole("slider") as HTMLInputElement).value).toBe("0");
+    expect(
+      (screen.getByLabelText("Required total additional AP") as HTMLInputElement).value,
+    ).toBe("11.111");
+
+    fireEvent.change(screen.getByRole("textbox", { name: "Bullhorn time" }), {
+      target: { value: "01/01/2024 12:20:00 PM" },
+    });
+    expect((screen.getByRole("slider") as HTMLInputElement).value).toBe("1200");
   });
 
   it("defaults to one joining player and can divide among four", () => {

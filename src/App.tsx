@@ -21,7 +21,7 @@ function App() {
             alignItems: { xs: "stretch", md: "center" },
             overflow: { xs: "visible", md: "hidden" },
             width: "100%",
-            pb: { xs: 2, md: 3 },
+            pb: { xs: "max(40vh, 320px)", md: 3 },
           }}
         >
           <CssBaseline />
