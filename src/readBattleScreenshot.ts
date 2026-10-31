@@ -1,9 +1,9 @@
 import type { Worker } from "tesseract.js";
 import {
-  cropIdentityField,
+  cropMushroomTypeField,
   findStatsRegion,
   maskBattleField,
-  maskTitleField,
+  cropTitleField,
   PixelImage,
 } from "./screenshotImage";
 import {
@@ -248,8 +248,8 @@ export const readBattleScreenshot = async (
         try {
           pixels =
             field === "title"
-              ? maskTitleField(image)
-              : cropIdentityField(image, stats, field);
+              ? cropTitleField(image)
+              : cropMushroomTypeField(image, stats);
         } catch {
           result.warnings.push(
             `Couldn't locate mushroom ${field}. Enter it in the review.`,

@@ -1,6 +1,7 @@
 import {
   findStatsRegion,
   maskBattleField,
+  cropTitleField,
   PixelImage,
 } from "./screenshotImage";
 
@@ -66,4 +67,105 @@ it("fails clearly when the required panel or colored field is absent", () => {
   expect(() => maskBattleField(pixels, findStatsRegion(pixels), "ap")).toThrow(
     /locate ap/,
   );
+});
+
+// Actual 20 × 34 navigation glyph from IMG_4109, independent of the locator's
+// smaller template. The fixture uses the measured bubble layout, not its color.
+const arrow = `.###................
+#####...............
+######..............
+#######.............
+########............
+.########...........
+..########..........
+...########.........
+....########........
+.....########.......
+......########......
+.......########.....
+........########....
+.........########...
+..........########..
+...........########.
+............########
+.............#######
+............########
+...........########.
+..........########..
+.........########...
+........########....
+.......########.....
+......########......
+.....########.......
+....########........
+..#########.........
+.#########..........
+.########...........
+########............
+#######.............
+######..............
+.###................`.split("\n");
+
+const titleScene = (width = 1179, height = 2556, arrowLeft = 831, arrowTop = 262) => {
+  const scale = width / 1179;
+  const source = image(1179, Math.ceil(height / scale));
+  fill(source, 0, 0, source.width, source.height, [170, 180, 190]);
+  const rect = (x: number, y: number, w: number, h: number) =>
+    fill(source, x, y, w, h, [255, 255, 255]);
+  const labelLeft = 1179 - (arrowLeft + 20 + 61) + 50;
+  for (let x = labelLeft + 10; x < arrowLeft - 40; x += 40)
+    rect(x, arrowTop - 5, 20, 40);
+  arrow.forEach((row, y) => Array.from(row).forEach((pixel, x) => {
+    if (pixel === "#") rect(arrowLeft + x, arrowTop + y, 1, 1);
+  }));
+  // Artwork at the same height as the text, plus a bright curved-edge fragment.
+  rect(70, arrowTop, 80, 32);
+  rect(arrowLeft + 73, arrowTop - 15, 7, 65);
+  const pixels = image(width, height);
+  let expectedWhite = 0;
+  for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
+    const sx = Math.min(source.width - 1, Math.round(x / scale));
+    const sy = Math.min(source.height - 1, Math.round(y / scale));
+    const index = (sy * source.width + sx) * 4;
+    pixels.data.set(source.data.subarray(index, index + 4), (y * width + x) * 4);
+    if (sx >= labelLeft && sx < arrowLeft - 20 && source.data[index] === 255)
+      expectedWhite++;
+  }
+  return { pixels, expectedWhite };
+};
+
+it.each([[1179, 2556], [590, 1278], [360, 780], [600, 1000], [600, 1600]])(
+  "crops the label without the arrow or artwork at %p × %p",
+  (width, height) => {
+    const { pixels, expectedWhite } = titleScene(width, height);
+    const cropped = cropTitleField(pixels);
+    let actual = 0;
+    for (let i = 0; i < cropped.data.length; i += 4)
+      if (cropped.data[i] === 255) actual++;
+    expect(actual).toBe(expectedWhite);
+    // Preserve the source image rather than replacing its background/text.
+    expect(Array.from(cropped.data.slice(0, 3))).toEqual([170, 180, 190]);
+  },
+);
+
+it("uses the same padding for a shorter title and a vertically shifted bubble", () => {
+  const { pixels } = titleScene(1179, 2556, 733, 390);
+  const cropped = cropTitleField(pixels);
+  let white = 0;
+  for (let i = 0; i < cropped.data.length; i += 4) if (cropped.data[i] === 255) white++;
+  expect(white).toBe(7 * 20 * 40);
+});
+
+it("preserves detached accents and punctuation inside the label", () => {
+  const { pixels } = titleScene();
+  fill(pixels, 342, 248, 4, 3, [255, 255, 255]);
+  fill(pixels, 790, 268, 3, 16, [255, 255, 255]);
+  const cropped = cropTitleField(pixels);
+  let white = 0;
+  for (let i = 0; i < cropped.data.length; i += 4) if (cropped.data[i] === 255) white++;
+  expect(white).toBe(12 * 20 * 40 + 4 * 3 + 3 * 16);
+});
+
+it("asks for manual entry when the title arrow cannot be located", () => {
+  expect(() => cropTitleField(image(600, 1300))).toThrow(/title/);
 });

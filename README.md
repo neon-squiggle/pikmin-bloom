@@ -40,3 +40,7 @@ Copy actions use text buttons. A failed copy leaves a selectable timestamp besid
 
 
 Uploaded mushrooms accept an optional Start date in screenshot review and in Edit, using the same date field as planned tries. Explicit dates count toward daily free tries; unknown starts do not. Screenshot updates preserve an existing start date unless explicitly changed or cleared. A reupload for the same running name/type updates that record and clears stage exclusion without duplication. Ticket-funded and excluded records retain their existing accounting semantics.
+
+Title OCR uses one calibrated layout in `screenshotImage`: locate the navigation chevron using a small template, infer the horizontally centered bubble from its fixed padding, and crop its label area. Coordinates scale with screenshot width, and the anchor can move within the upper quarter of the screen. Tesseract receives the original cropped pixels. There is no capsule-boundary fitting, title component filtering, flood-fill cleanup, broad-strip fallback, or punctuation stripping. Missing anchors use normal manual title entry in screenshot review.
+
+All seven supplied screenshots read their titles exactly with this crop, including Heide, Montour and the German title. Layout tests also exercise rescaled screens, different aspect ratios, shifted anchors, shorter labels and preserved accents/punctuation. These samples share one phone format; the width-scaled, centered layout remains an assumption to verify on other devices.

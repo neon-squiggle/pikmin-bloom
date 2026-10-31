@@ -17,8 +17,8 @@ jest.mock("./screenshotImage", () => {
   return {
     findStatsRegion: () => ({}),
     maskBattleField: pixels,
-    maskTitleField: pixels,
-    cropIdentityField: pixels,
+    cropTitleField: pixels,
+    cropMushroomTypeField: pixels,
   };
 });
 const recognize = jest.fn();

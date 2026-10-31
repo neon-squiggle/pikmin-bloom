@@ -106,15 +106,5 @@ export const parseMushroomType = (text: string): string | null => {
 };
 
 export const parseMushroomTitle = (text: string): string | null => {
-  const lines = text
-    .split(/\n/)
-    .map((line) =>
-      line
-        .trim()
-        .replace(/\s*[>›»❯]+\s*$/, "")
-        .trim(),
-    )
-    .filter(Boolean);
-  const title = lines.sort((a, b) => b.length - a.length)[0];
-  return title && /\p{L}/u.test(title) ? title : null;
+  return text.trim().replace(/\s+/g, " ") || null;
 };

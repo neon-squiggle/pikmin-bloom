@@ -188,24 +188,11 @@ export const maskBattleField = (
   return { width: outputWidth, height: outputHeight, data: output };
 };
 
-// The title capsule is in the upper image. Mushroom text starts below the
-// detected sheet edge and can wrap to two lines for event types.
-export const cropIdentityField = (
-  image: PixelImage,
-  stats: ImageRegion,
-  field: "title" | "type",
-): PixelImage => {
-  const sheetTop = stats.top + stats.height;
-  const left = Math.floor(image.width * 0.04);
-  const right = Math.ceil(image.width * 0.96);
-  const top =
-    field === "title"
-      ? Math.floor(image.height * 0.075)
-      : sheetTop + Math.floor(image.height * 0.025);
-  const bottom =
-    field === "title"
-      ? Math.floor(image.height * 0.15)
-      : Math.min(image.height, sheetTop + Math.floor(image.height * 0.13));
+const cropRegion = (image: PixelImage, region: ImageRegion): PixelImage => {
+  const left = Math.max(0, Math.floor(region.left));
+  const top = Math.max(0, Math.floor(region.top));
+  const right = Math.min(image.width, Math.ceil(region.left + region.width));
+  const bottom = Math.min(image.height, Math.ceil(region.top + region.height));
   const width = right - left;
   const height = bottom - top;
   const data = new Uint8ClampedArray(width * height * 4);
@@ -216,91 +203,114 @@ export const cropIdentityField = (
   return { width, height, data };
 };
 
-export const maskTitleField = (image: PixelImage): PixelImage => {
-  const top = Math.floor(image.height * 0.055);
-  const left = Math.floor(image.width * 0.025);
-  const width = Math.floor(image.width * 0.95);
-  const height = Math.floor(image.height * 0.13);
-  const mask = new Uint8Array(width * height);
+// Mushroom text begins below the sheet edge and can wrap for event types.
+export const cropMushroomTypeField = (
+  image: PixelImage,
+  stats: ImageRegion,
+): PixelImage => {
+  const sheetTop = stats.top + stats.height;
+  const top = sheetTop + Math.floor(image.height * 0.025);
+  const bottom = Math.min(
+    image.height,
+    sheetTop + Math.floor(image.height * 0.13),
+  );
+  const left = Math.floor(image.width * 0.04);
+  return cropRegion(image, {
+    left,
+    top,
+    width: Math.ceil(image.width * 0.96) - left,
+    height: bottom - top,
+  });
+};
+
+// A single measured UI layout, in units where the screenshot is 590 wide.
+// Bubble width follows the title; height and internal padding remain fixed.
+const TITLE_LAYOUT = {
+  width: 590,
+  bubbleHeight: 70,
+  arrowWidth: 10,
+  arrowHeight: 17,
+  arrowTop: 26,
+  arrowRight: 31,
+  labelLeft: 24,
+  labelRight: 49,
+  labelTop: 18,
+  labelBottom: 14,
+};
+
+// Navigation chevron template, including its surrounding dark pixels.
+const TITLE_ARROW = `.#........
+###.......
+.###......
+..###.....
+...###....
+....###...
+.....###..
+......###.
+.......###
+......####
+.....####.
+....####..
+...####...
+..####....
+.####.....
+####......
+.##.......`
+  .split("\n")
+  .flatMap((row, y) =>
+    Array.from(row).flatMap((pixel, x) => pixel === "#" ? [[x, y]] : []),
+  );
+
+export const cropTitleField = (image: PixelImage): PixelImage => {
+  const layout = TITLE_LAYOUT;
+  const scale = image.width / layout.width;
+  const width = layout.width;
+  // Search the upper quarter, allowing different status-bar and screen heights.
+  const height = Math.ceil(image.height / scale / 4);
+  const white = new Uint8Array(width * height);
+  const sums = new Uint32Array((width + 1) * (height + 1));
   for (let y = 0; y < height; y++)
     for (let x = 0; x < width; x++) {
-      const i = ((top + y) * image.width + left + x) * 4;
-      if (isWhite(image.data[i], image.data[i + 1], image.data[i + 2]))
-        mask[y * width + x] = 1;
+      const sx = Math.min(image.width - 1, Math.round(x * scale));
+      const sy = Math.min(image.height - 1, Math.round(y * scale));
+      const index = (sy * image.width + sx) * 4;
+      white[y * width + x] = isWhite(
+        image.data[index], image.data[index + 1], image.data[index + 2],
+      ) ? 1 : 0;
+      sums[(y + 1) * (width + 1) + x + 1] =
+        white[y * width + x] + sums[y * (width + 1) + x + 1] +
+        sums[(y + 1) * (width + 1) + x] - sums[y * (width + 1) + x];
     }
-  const seen = new Uint8Array(mask.length);
-  const glyphs: {
-    left: number;
-    right: number;
-    top: number;
-    bottom: number;
-    center: number;
-  }[] = [];
-  for (let i = 0; i < mask.length; i++) {
-    if (!mask[i] || seen[i]) continue;
-    const queue = [i];
-    seen[i] = 1;
-    let minX = width,
-      maxX = 0,
-      minY = height,
-      maxY = 0;
-    for (let j = 0; j < queue.length; j++) {
-      const pixel = queue[j],
-        x = pixel % width,
-        y = Math.floor(pixel / width);
-      minX = Math.min(minX, x);
-      maxX = Math.max(maxX, x);
-      minY = Math.min(minY, y);
-      maxY = Math.max(maxY, y);
-      for (const next of [
-        pixel - width,
-        pixel + width,
-        ...(x > 0 ? [pixel - 1] : []),
-        ...(x < width - 1 ? [pixel + 1] : []),
-      ]) {
-        if (next >= 0 && next < mask.length && mask[next] && !seen[next]) {
-          seen[next] = 1;
-          queue.push(next);
-        }
-      }
+  let best = { score: 0.7, left: 0, top: 0 };
+  for (let y = 0; y <= height - layout.arrowHeight; y++)
+    for (let x = width / 2; x <= width - layout.arrowWidth; x++) {
+      const right = x + layout.arrowWidth, bottom = y + layout.arrowHeight;
+      const count = sums[bottom * (width + 1) + right] -
+        sums[y * (width + 1) + right] - sums[bottom * (width + 1) + x] +
+        sums[y * (width + 1) + x];
+      // Skip candidates whose best possible intersection-over-union is too low.
+      if (Math.min(count, TITLE_ARROW.length) / Math.max(count, TITLE_ARROW.length) <= best.score)
+        continue;
+      let overlap = 0;
+      for (const [dx, dy] of TITLE_ARROW)
+        overlap += white[(y + dy) * width + x + dx];
+      const score = overlap / (count + TITLE_ARROW.length - overlap);
+      if (score > best.score) best = { score, left: x, top: y };
     }
-    const glyphHeight = maxY - minY + 1;
-    if (
-      queue.length >= 8 &&
-      glyphHeight >= image.height * 0.006 &&
-      glyphHeight <= image.height * 0.028 &&
-      maxX - minX < image.width * 0.08
-    ) {
-      glyphs.push({
-        left: minX,
-        right: maxX,
-        top: minY,
-        bottom: maxY,
-        center: (minY + maxY) / 2,
-      });
-    }
-  }
-  const groups = glyphs.map((glyph) =>
-    glyphs.filter(
-      (other) => Math.abs(other.center - glyph.center) < image.height * 0.0075,
-    ),
-  );
-  groups.sort((a, b) => b.length - a.length);
-  const line = groups[0];
-  if (!line || line.length < 3)
-    throw new Error("Couldn't locate the title text.");
-  const x0 = Math.min(...line.map((glyph) => glyph.left));
-  const x1 = Math.max(...line.map((glyph) => glyph.right));
-  const y0 = Math.min(...line.map((glyph) => glyph.top));
-  const y1 = Math.max(...line.map((glyph) => glyph.bottom));
-  const outputWidth = x1 - x0 + 25;
-  const outputHeight = y1 - y0 + 25;
-  const data = new Uint8ClampedArray(outputWidth * outputHeight * 4).fill(255);
-  for (let y = y0; y <= y1; y++)
-    for (let x = x0; x <= x1; x++) {
-      if (!mask[y * width + x]) continue;
-      const i = ((y - y0 + 12) * outputWidth + x - x0 + 12) * 4;
-      data[i] = data[i + 1] = data[i + 2] = 0;
-    }
-  return { width: outputWidth, height: outputHeight, data };
+  if (!best.left) throw new Error("Couldn't locate the title arrow.");
+  const bubbleRight = best.left + layout.arrowWidth + layout.arrowRight;
+  const bubbleLeft = width - bubbleRight;
+  const bubbleTop = best.top - layout.arrowTop;
+  const left = bubbleLeft + layout.labelLeft;
+  const top = bubbleTop + layout.labelTop;
+  const right = bubbleRight - layout.labelRight;
+  const bottom = bubbleTop + layout.bubbleHeight - layout.labelBottom;
+  if (left < 0 || top < 0 || right <= left || bottom * scale > image.height)
+    throw new Error("Couldn't locate the title text area.");
+  return cropRegion(image, {
+    left: left * scale,
+    top: top * scale,
+    width: (right - left) * scale,
+    height: (bottom - top) * scale,
+  });
 };

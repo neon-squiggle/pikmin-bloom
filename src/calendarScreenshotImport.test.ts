@@ -16,14 +16,14 @@ const draft: ScreenshotDraft = {
   countdown: { days: 2, hours: 0, minutes: 38, seconds: 26 },
   warnings: [],
 };
-it("extracts wrapped event types without a fixed color vocabulary and removes the title chevron", () => {
+it("extracts wrapped event types without a fixed color vocabulary and accepts the cropped title", () => {
   expect(parseMushroomType("Giant Halloween\nMushroom")).toBe(
     "Giant Halloween Mushroom",
   );
   expect(parseMushroomType("Small Ice Blue Mushroom")).toBe(
     "Small Ice Blue Mushroom",
   );
-  expect(parseMushroomTitle("Die trauernde Frau ›")).toBe("Die trauernde Frau");
+  expect(parseMushroomTitle("Die trauernde Frau")).toBe("Die trauernde Frau");
 });
 it("updates the matching battle without duplicating it and preserves capture-based elapsed time across DST", () => {
   const result = mergeScreenshotDrafts(initialPlannerFinishes(), [draft]);

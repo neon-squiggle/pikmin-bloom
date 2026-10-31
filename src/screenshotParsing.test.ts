@@ -1,10 +1,21 @@
 import {
   parseCaptureTime,
+  parseMushroomTitle,
   parseScreenshotCountdown,
   parseStatNumber,
 } from "./screenshotParsing";
 
 describe("battle screenshot parsing", () => {
+  it.each([
+    [" Montour Trail Mile 7\n", "Montour Trail Mile 7"],
+    ["  Die   trauernde Frau ", "Die trauernde Frau"],
+    ["Place (7) >", "Place (7) >"],
+    ["7", "7"],
+    ["\n ", null],
+  ])("preserves the cropped title %p as %p", (text, expected) => {
+    expect(parseMushroomTitle(text)).toBe(expected);
+  });
+
   it.each([
     ["17 510\n", 17510],
     ["745,735", 745735],
