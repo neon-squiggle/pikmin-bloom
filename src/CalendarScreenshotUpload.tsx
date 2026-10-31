@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import {
+  Alert,
   Box,
   Button,
   Fab,
@@ -23,7 +24,6 @@ import ScreenshotFileInput from "./ScreenshotFileInput";
 import FilePickerButton from "./FilePickerButton";
 import ScreenshotReadingStatus from "./ScreenshotReadingStatus";
 import AppNotice from "./AppNotice";
-import ActionFeedback, { useFeedbackFab } from "./ActionFeedback";
 import {
   draftFinishTime,
   mergeScreenshotDrafts,
@@ -220,7 +220,6 @@ const CalendarScreenshotUpload = ({
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  useFeedbackFab(isMobile && active);
   const input = useRef<HTMLInputElement>(null);
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   const [open, setOpen] = useState(false);
@@ -433,9 +432,9 @@ const CalendarScreenshotUpload = ({
           />
         )}
         {errors.length > 0 && (
-          <ActionFeedback severity="error"
-            message={errors.length === 1 ? errors[0] : `${errors.length} screenshots could not be read. Retry the pending screenshots.`}
-            noticeKey={errors.length} onClose={() => setErrors([])} />
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {errors.length === 1 ? errors[0] : `${errors.length} screenshots could not be read. Retry the pending screenshots.`}
+          </Alert>
         )}
         {drafts.map((draft, index) => (
           <ReviewRow

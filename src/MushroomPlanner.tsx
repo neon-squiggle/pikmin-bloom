@@ -27,7 +27,6 @@ import PlannerFinishEditor from "./PlannerFinishEditor";
 import PlannerFinishRow from "./PlannerFinishRow";
 import PlannerSettings from "./PlannerSettings";
 import PlannerChangeFeedback from "./PlannerChangeFeedback";
-import ActionFeedback from "./ActionFeedback";
 import { mobileNavigationHeight } from "./types";
 import usePlannerState from "./usePlannerState";
 import { mergePlannerChanges } from "./plannerPersistence";
@@ -242,7 +241,7 @@ const MushroomPlanner = ({
       <Typography variant="body2" color="text.secondary" sx={{ px: 2, pb: 1 }}>
         Mushrooms are deduped based on name and type, last write wins.
       </Typography>
-      {undo && (
+      {active && undo && (
           <PlannerChangeFeedback
             message={undo.message}
             noticeKey={undo.noticeKey}
@@ -544,9 +543,6 @@ const MushroomPlanner = ({
             )
           }
         />
-        {storageError && (
-          <ActionFeedback severity="error" message="Changes could not be saved on this device." noticeKey={undo?.noticeKey} />
-        )}
       </CardContent>
       {editing && (
         <PlannerFinishEditor

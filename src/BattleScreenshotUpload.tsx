@@ -1,12 +1,11 @@
 import { useEffect, useState } from "react";
-import { Box, Button, Stack } from "@mui/material";
+import { Box, Button, FormHelperText, Stack } from "@mui/material";
 import AddPhotoAlternateOutlinedIcon from "@mui/icons-material/AddPhotoAlternateOutlined";
 
 import { BattleScreenshotResult } from "./readBattleScreenshot";
 import useScreenshotReader from "./useScreenshotReader";
 import FilePickerButton from "./FilePickerButton";
 import ScreenshotReadingStatus from "./ScreenshotReadingStatus";
-import ActionFeedback from "./ActionFeedback";
 
 const BattleScreenshotUpload = ({
   onRead,
@@ -16,19 +15,14 @@ const BattleScreenshotUpload = ({
   onBusyChange: (busy: boolean) => void;
 }) => {
   const [error, setError] = useState("");
-  const [filename, setFilename] = useState("");
   const { reading, progress, pendingFiles, readFiles, cancel } =
     useScreenshotReader();
   useEffect(() => onBusyChange(reading), [reading, onBusyChange]);
 
   const upload = (files: File[]) => {
     setError("");
-    setFilename("");
     void readFiles(files.slice(0, 1), {
-      onRead: (result, file) => {
-        onRead(result);
-        setFilename(file.name);
-      },
+      onRead,
       onError: ({ timedOut, message }) =>
         setError(
           timedOut
@@ -58,10 +52,7 @@ const BattleScreenshotUpload = ({
         )}
       </Box>
       <ScreenshotReadingStatus progress={progress} />
-      {error && <ActionFeedback severity="error" message={error} onClose={() => setError("")} />}
-      {filename && (
-        <ActionFeedback message={`Screenshot loaded: ${filename}`} onClose={() => setFilename("")} />
-      )}
+      {error && <FormHelperText error role="alert">{error}</FormHelperText>}
     </Stack>
   );
 };

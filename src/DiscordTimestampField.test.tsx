@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import dayjs from "dayjs";
 import DiscordTimestampField from "./DiscordTimestampField";
-it("announces copy only after the clipboard operation succeeds", async () => {
+it("copies without a notification", async () => {
   let resolve!: () => void;
   const writeText = jest.fn(
     () =>
@@ -19,9 +19,9 @@ it("announces copy only after the clipboard operation succeeds", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Copy Finish" }));
   expect(screen.queryByRole("status")).toBeNull();
   resolve();
-  await waitFor(() =>
-    expect(screen.getByRole("status").textContent).toBe("Copied"),
-  );
+  await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1));
+  expect(screen.queryByText("Copied")).toBeNull();
+  expect(screen.queryByRole("status")).toBeNull();
 });
 it("shows selectable text when copying is denied", async () => {
   Object.defineProperty(navigator, "clipboard", {
@@ -33,6 +33,7 @@ it("shows selectable text when copying is denied", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Copy Finish" }));
   await screen.findByText(`<t:${time.unix()}:f>`);
   expect(screen.getByRole("alert").textContent).toContain("Copy failed");
-  fireEvent.click(screen.getByRole("button", { name: "Dismiss notification" }));
+  expect(screen.queryByRole("status")).toBeNull();
+  expect(screen.queryByRole("button", { name: "Dismiss notification" })).toBeNull();
   expect(screen.getByText(`<t:${time.unix()}:f>`)).not.toBeNull();
 });

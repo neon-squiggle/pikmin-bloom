@@ -7,7 +7,6 @@ import BattleScreenshotUpload from "./BattleScreenshotUpload";
 import { BattleScreenshotResult } from "./readBattleScreenshot";
 import NumberSpinner from "./NumberSpinner";
 import CountdownFields from "./CountdownFields";
-import AppNotice from "./AppNotice";
 import { pairedFieldGridSx } from "./formStyles";
 import SimpleDateTimeInput from "./SimpleDateTimeInput";
 import {
@@ -127,17 +126,15 @@ const ExistingMushroomCalc = ({
           {importedScreenshot && (
             <Stack spacing={1.5}>
               {importedScreenshot.warnings.length > 0 && (
-                <AppNotice severity="warning" message={importedScreenshot.warnings.join(" ")} noticeKey={snapshotRevision} />
-              )}
-              {!snapshotTime && (
-                <AppNotice severity="warning" message="Capture time is missing. Choose when this screenshot was taken to calculate its end time correctly." />
-              )}
-              {captureIsFuture && (
-                <AppNotice severity="warning" message="The capture time is in the future. Check the date and time before planning." />
+                <Typography variant="body2" color="error" role="alert">{importedScreenshot.warnings.join(" ")}</Typography>
               )}
               <SimpleDateTimeInput
                 label="Screenshot captured at"
                 value={snapshotTime}
+                error={!snapshotTime || captureIsFuture}
+                helperText={!snapshotTime
+                  ? "Capture time is missing. Choose when this screenshot was taken to calculate its end time correctly."
+                  : captureIsFuture ? "The capture time is in the future. Check the date and time before planning." : undefined}
                 onChange={(value) => {
                   setSnapshotTime(value);
                   setPlanningTime(dayjs());
@@ -168,7 +165,7 @@ const ExistingMushroomCalc = ({
           </Box>
 
           {screenshotHasEnded && (
-            <AppNotice severity="info" message="This screenshot’s countdown has already ended. Upload a newer screenshot to plan this battle." />
+            <Typography variant="body2" color="error" role="alert">This screenshot’s countdown has already ended. Upload a newer screenshot to plan this battle.</Typography>
           )}
 
           <Box>

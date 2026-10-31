@@ -136,9 +136,8 @@ it("preserves successful screenshots when another file fails and allows cancella
   upload(["bad.png", "good.png"]);
   await screen.findByRole("region", { name: "Review good.png" });
   expect(screen.getByText("bad.png: Invalid image")).not.toBeNull();
-  const failure = screen.getByRole("alert");
-  fireEvent.click(within(failure).getByRole("button", { name: "Dismiss notification" }));
-  expect(screen.queryByText("bad.png: Invalid image")).toBeNull();
+  expect(screen.queryByRole("status")).toBeNull();
+  expect(screen.getByRole("alert").textContent).toContain("Invalid image");
   expect(screen.getByRole("region", { name: "Review good.png" })).not.toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   expect(onSave).not.toHaveBeenCalled();

@@ -18,7 +18,6 @@ const PlannerChangeFeedback = ({
 }) => (
   <ActionFeedback
     message={message}
-    severity="success"
     onClose={onDismiss}
     noticeKey={noticeKey}
     action={<>

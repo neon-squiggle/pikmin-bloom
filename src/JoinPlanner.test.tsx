@@ -52,7 +52,7 @@ it("updates bullhorn time from a feasible AP entry and explains an impossible en
     target: { value: "20" },
   });
   expect(value("Bullhorn time")).toBe("01/01/2024 12:20:00 PM");
-  expect(screen.getByText("Bullhorn time adjusted")).not.toBeNull();
+  expect(screen.queryByText("Bullhorn time adjusted")).toBeNull();
   fireEvent.change(screen.getByLabelText("Additional AP"), {
     target: { value: "1" },
   });

@@ -75,7 +75,7 @@ const focusField = () => {
   });
 };
 
-it("reserves actual keyboard overlap, reveals the focused field, and restores space after dismissal", () => {
+it("reserves keyboard overlap without competing with native scrolling and restores space after dismissal", () => {
   const { unmount } = render(<Harness />);
   focusField();
   act(() => {
@@ -84,7 +84,7 @@ it("reserves actual keyboard overlap, reveals the focused field, and restores sp
     jest.advanceTimersByTime(32);
   });
   expect(status()).toEqual({ open: true, bottomInset: 364 });
-  expect(window.scrollBy).toHaveBeenCalledWith({ top: 316, behavior: "auto" });
+  expect(window.scrollBy).not.toHaveBeenCalled();
   expect(document.documentElement.hasAttribute("data-keyboard-open")).toBe(
     true,
   );
@@ -94,9 +94,7 @@ it("reserves actual keyboard overlap, reveals the focused field, and restores sp
   });
   expect(status()).toEqual({ open: false, bottomInset: 0 });
   unmount();
-  expect(
-    document.documentElement.style.getPropertyValue("--keyboard-inset"),
-  ).toBe("");
+  expect(document.documentElement.hasAttribute("data-keyboard-open")).toBe(false);
 });
 
 it("does not add keyboard height twice when the layout already resized", () => {
@@ -118,7 +116,7 @@ it("does not add keyboard height twice when the layout already resized", () => {
   expect(status().open).toBe(true);
 });
 
-it("accounts for a panned visual viewport and ignores pinch zoom", () => {
+it("measures keyboard overlap when the viewport starts panned", () => {
   render(<Harness />);
   focusField();
   act(() => {
@@ -128,7 +126,26 @@ it("accounts for a panned visual viewport and ignores pinch zoom", () => {
     jest.advanceTimersByTime(32);
   });
   expect(status()).toEqual({ open: true, bottomInset: 264 });
-  expect(window.scrollBy).toHaveBeenCalledWith({ top: 216, behavior: "auto" });
+  expect(window.scrollBy).not.toHaveBeenCalled();
+});
+
+it("does not react to browser panning or briefly losing input focus while the keyboard remains visible", () => {
+  render(<Harness />);
+  focusField();
+  act(() => {
+    viewport.height = 480;
+    viewport.dispatchEvent(new Event("resize"));
+    jest.advanceTimersByTime(400);
+  });
+  const inset = status().bottomInset;
+  act(() => {
+    viewport.offsetTop = 100;
+    viewport.dispatchEvent(new Event("scroll"));
+    screen.getByLabelText("Bottom field").blur();
+    jest.advanceTimersByTime(400);
+  });
+  expect(status()).toEqual({ open: true, bottomInset: inset });
+  expect(window.scrollBy).not.toHaveBeenCalled();
 });
 
 it("does not mistake zooming for a software keyboard", () => {

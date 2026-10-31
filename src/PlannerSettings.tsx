@@ -10,7 +10,6 @@ import { pairedFieldGridSx } from "./formStyles";
 import FilePickerButton from "./FilePickerButton";
 import EventProgressSettings from "./EventProgressSettings";
 import PlannerTimeField from "./PlannerTimeField";
-import ActionFeedback from "./ActionFeedback";
 
 const PlannerSettings = ({
   state, month, onChange, onImport, storageError = false, onRetry,
@@ -122,7 +121,7 @@ const PlannerSettings = ({
           </Stack>
         </Stack>
       </Stack>
-      {error && <ActionFeedback severity="error" message={error} onClose={() => setError("")} />}
+      {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
     </SectionAccordion>
   );
 };

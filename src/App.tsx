@@ -6,10 +6,8 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { ThemeProvider } from "@mui/material/styles";
 import View from "./View";
 import appTheme from "./theme";
-import UpdateNotifier from "./UpdateNotifier";
 import { mobileNavigationHeight } from "./types";
 import useMobileKeyboard from "./useMobileKeyboard";
-import { ActionFeedbackProvider } from "./ActionFeedback";
 
 function App() {
   const isMobile = useMediaQuery(appTheme.breakpoints.down("sm"));
@@ -36,10 +34,7 @@ function App() {
           }}
         >
           <CssBaseline />
-          <ActionFeedbackProvider>
-            <View keyboardOpen={keyboard.open} />
-            <UpdateNotifier />
-          </ActionFeedbackProvider>
+          <View keyboardOpen={keyboard.open} />
         </Container>
       </LocalizationProvider>
     </ThemeProvider>

@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom";
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import ActionFeedback, { ActionFeedbackProvider } from "./ActionFeedback";
+import ActionFeedback from "./ActionFeedback";
 
 beforeEach(() => jest.useFakeTimers());
 afterEach(() => { jest.clearAllTimers(); jest.useRealTimers(); });
@@ -17,9 +17,9 @@ it("shows a temporary snackbar with Undo and expires after five seconds", () => 
   expect(onClose).toHaveBeenCalledTimes(1);
 });
 it("gives repeated saves their own timeout instead of inheriting the previous timer", () => {
-  const { rerender } = render(<ActionFeedback message="Mushroom saved" noticeKey={1} />);
+  const { rerender } = render(<ActionFeedback message="Mushroom saved" noticeKey={1} action={<button>Undo</button>} />);
   act(() => { jest.advanceTimersByTime(4000); });
-  rerender(<ActionFeedback message="Mushroom saved" noticeKey={2} />);
+  rerender(<ActionFeedback message="Mushroom saved" noticeKey={2} action={<button>Undo</button>} />);
   act(() => { jest.advanceTimersByTime(4000); });
   expect(screen.getByText("Mushroom saved")).toBeInTheDocument();
   act(() => { jest.advanceTimersByTime(1000); });
@@ -34,21 +34,11 @@ it("pauses while a user focuses Undo, then resumes when focus leaves", () => {
   act(() => { jest.advanceTimersByTime(2500); });
   expect(screen.queryByText("Mushroom saved")).not.toBeInTheDocument();
 });
-it("shows only the latest feedback and does not resurrect a superseded message", () => {
-  render(<ActionFeedbackProvider>
-    <ActionFeedback message="Mushroom saved" />
-    <ActionFeedback message="Copied" />
-  </ActionFeedbackProvider>);
-  expect(screen.queryByText("Mushroom saved")).not.toBeInTheDocument();
-  expect(screen.getByText("Copied")).toBeInTheDocument();
-  act(() => { jest.advanceTimersByTime(5000); });
-  expect(screen.queryByRole("status")).not.toBeInTheDocument();
-});
 it("allows early dismissal without calling close again at the timeout", () => {
   const onClose = jest.fn();
-  render(<ActionFeedback message="Copy failed" severity="error" onClose={onClose} />);
+  render(<ActionFeedback message="Mushroom removed" action={<button>Undo</button>} onClose={onClose} />);
   fireEvent.click(screen.getByRole("button", { name: "Dismiss notification" }));
   act(() => { jest.advanceTimersByTime(10000); });
-  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  expect(screen.queryByRole("status")).not.toBeInTheDocument();
   expect(onClose).toHaveBeenCalledTimes(1);
 });

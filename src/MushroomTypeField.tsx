@@ -22,7 +22,7 @@ const MushroomTypeField = (props: MushroomTypeFieldProps) => {
   if (props.variant === "preset")
     return (
       <Autocomplete
-        disablePortal
+        clearOnBlur={false}
         options={mushrooms}
         value={props.value}
         onChange={(_, value) => props.onChange(value)}

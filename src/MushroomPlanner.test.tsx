@@ -81,6 +81,17 @@ it("clears mushroom-update feedback five seconds after the latest save without u
   }
 });
 
+it("hides planner Undo notifications when the calculator is active", () => {
+  const view = render(<MushroomPlanner />);
+  fireEvent.click(screen.getByRole("button", { name: "Edit Prien Lake Mall East Entrance" }));
+  const editor = within(screen.getByRole("dialog", { name: "Edit mushroom" }));
+  fireEvent.change(editor.getByRole("textbox", { name: "Title" }), { target: { value: "Updated park" } });
+  fireEvent.click(editor.getByRole("button", { name: "Save" }));
+  expect(screen.getByRole("button", { name: "Undo" })).toBeInTheDocument();
+  view.rerender(<LocalizationProvider dateAdapter={AdapterDayjs}><MushroomPlanner active={false} /></LocalizationProvider>);
+  expect(screen.queryByRole("button", { name: "Undo" })).toBeNull();
+});
+
 it("always shows non-mushroom steps, including when an old plan hid them", () => {
   localStorage.setItem(
     PLANNER_STORAGE_KEY,
@@ -458,6 +469,7 @@ it("adds a mushroom from its countdown and restores its finish from storage", ()
 });
 
 it("counts daily allowance on the try date even when mushrooms finish in another month", () => {
+  jest.spyOn(Date, "now").mockReturnValue(Date.parse("2026-10-30T18:00:00Z"));
   render(<MushroomPlanner />);
   for (let index = 0; index < 3; index++)
     addPlannedTry("11/02/2026 12:00:00 PM");

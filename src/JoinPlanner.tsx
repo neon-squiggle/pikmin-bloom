@@ -13,7 +13,6 @@ import { calculateAdditionalAp, calculateApAdditionDelay } from "./helpers";
 import DiscordTimestampField from "./DiscordTimestampField";
 import NumberSpinner from "./NumberSpinner";
 import SimpleDateTimeInput from "./SimpleDateTimeInput";
-import ActionFeedback from "./ActionFeedback";
 
 interface JoinPlannerProps {
   variant: "planned" | "in-progress";
@@ -45,7 +44,6 @@ const JoinPlanner = ({
   );
   const [apDraft, setApDraft] = useState<number | null | undefined>(undefined);
   const [apError, setApError] = useState("");
-  const [apAdjusted, setApAdjusted] = useState(false);
   const baselineSeconds = baselineEndTime?.diff(referenceTime, "second") ?? 0;
   const secondsUntilTarget = targetEndTime?.diff(referenceTime, "second") ?? 0;
   const targetIsEarlier = Boolean(
@@ -97,7 +95,6 @@ const JoinPlanner = ({
   const resetAp = () => {
     setApDraft(undefined);
     setApError("");
-    setApAdjusted(false);
   };
   return (
     <SectionAccordion title="Additional players">
@@ -213,7 +210,6 @@ const JoinPlanner = ({
                 helperText={apError || undefined}
                 onValueChange={(value) => {
                   setApDraft(value);
-                  setApAdjusted(false);
                   const immediateAp = calculateAdditionalAp({
                     currentAp,
                     healthRemaining,
@@ -237,13 +233,9 @@ const JoinPlanner = ({
                     setJoinDelaySeconds(Math.round(delay));
                     setBullhornDraft(undefined);
                     setApError("");
-                    setApAdjusted(true);
                   }
                 }}
               />
-              {apAdjusted && (
-                <ActionFeedback message="Bullhorn time adjusted" noticeKey={joinDelaySeconds} onClose={() => setApAdjusted(false)} />
-              )}
             </Box>
             {displayedAp != null && !apError && !bullhornError && (
               <Stack spacing={1}>

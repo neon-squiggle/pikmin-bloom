@@ -40,7 +40,9 @@ const upload = async (result: BattleScreenshotResult) => {
       files: [new File(["screenshot"], "battle.png", { type: "image/png" })],
     },
   });
-  await screen.findByText("Screenshot loaded: battle.png");
+  await waitFor(() => expect(input("Upload battle screenshot").disabled).toBe(false));
+  expect(screen.queryByText("Screenshot loaded: battle.png")).toBeNull();
+  expect(screen.queryByRole("status")).toBeNull();
   const additional = screen.getByRole("button", { name: "Additional players" });
   if (additional.getAttribute("aria-expanded") !== "true") fireEvent.click(additional);
 };
@@ -112,8 +114,8 @@ it("preserves manual values if reading fails", async () => {
   expect(screen.getByRole("alert").textContent).toContain(
     "Couldn't read the battle stats",
   );
-  fireEvent.click(screen.getByRole("button", { name: "Dismiss notification" }));
-  expect(screen.queryByRole("alert")).toBeNull();
+  expect(screen.queryByRole("status")).toBeNull();
+  expect(screen.queryByRole("button", { name: "Dismiss notification" })).toBeNull();
   expect(screen.getByRole("button", { name: "Retry screenshot" })).not.toBeNull();
   expect(input("AP").value).toBe("240");
 });

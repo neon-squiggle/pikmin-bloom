@@ -10,23 +10,6 @@ body,
     scroll-padding-top: 16px;
   }
 
-  input,
-  textarea,
-  button,
-  [tabindex] {
-    scroll-margin-bottom: calc(88px + env(safe-area-inset-bottom));
-    scroll-margin-top: 16px;
-  }
-
-  html[data-keyboard-open] {
-    scroll-padding-bottom: calc(24px + var(--keyboard-inset, 0px));
-  }
-
-  html[data-keyboard-open] .MuiDialog-root .MuiDialog-container {
-    height: var(--visual-viewport-height);
-    margin-top: var(--visual-viewport-top);
-  }
-
   html[data-keyboard-open] .screenshot-fab {
     display: none;
   }
