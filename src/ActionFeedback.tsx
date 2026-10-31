@@ -4,11 +4,12 @@ import CloseIcon from "@mui/icons-material/Close";
 import { mobileNavigationHeight } from "./types";
 
 export const noticeDuration = 5000;
-const ActionFeedback = ({ message, action, onClose, noticeKey }: {
+const ActionFeedback = ({ message, action, onClose, noticeKey, aboveFab = false }: {
   message: string;
-  action: ReactNode;
+  action?: ReactNode;
   onClose?: () => void;
   noticeKey?: string | number;
+  aboveFab?: boolean;
 }) => {
   const [open, setOpen] = useState(true);
   const closeRef = useRef(onClose);
@@ -26,7 +27,7 @@ const ActionFeedback = ({ message, action, onClose, noticeKey }: {
     open
     autoHideDuration={noticeDuration}
     onClose={(_, reason) => { if (reason !== "clickaway") close(); }}
-    sx={{ bottom: { xs: `calc(${mobileNavigationHeight + 72}px + env(safe-area-inset-bottom))`, sm: 24 } }}
+    sx={{ bottom: { xs: `calc(${mobileNavigationHeight + 16 + (aboveFab ? 56 : 0)}px + env(safe-area-inset-bottom))`, sm: 24 } }}
   >
     <SnackbarContent
       role="status"

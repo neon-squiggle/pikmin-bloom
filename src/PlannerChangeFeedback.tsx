@@ -17,6 +17,7 @@ const PlannerChangeFeedback = ({
   noticeKey: number;
 }) => (
   <ActionFeedback
+    aboveFab
     message={message}
     onClose={onDismiss}
     noticeKey={noticeKey}

@@ -1,53 +1,53 @@
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import { Box, Button, FormHelperText } from "@mui/material";
+import { Box, FormHelperText, IconButton, Tooltip } from "@mui/material";
 import { Dayjs } from "dayjs";
-import { useState } from "react";
+import { ReactNode, useState } from "react";
+import ActionFeedback from "./ActionFeedback";
 
 interface DiscordTimestampFieldProps {
   label: string;
   time: Dayjs | null;
+  children: ReactNode;
 }
 
-const DiscordTimestampField = ({ label, time }: DiscordTimestampFieldProps) => {
+// Keep each field's copy action alongside it and any error underneath.
+const DiscordTimestampField = ({ label, time, children }: DiscordTimestampFieldProps) => {
   const [copyError, setCopyError] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [copyRevision, setCopyRevision] = useState(0);
   const timestamp = time?.isValid() ? `<t:${time.unix()}:f>` : "";
-  if (!timestamp) return null;
 
   const copyTimestamp = async () => {
     try {
       await navigator.clipboard.writeText(timestamp);
       setCopyError(false);
+      setCopyRevision((revision) => revision + 1);
+      setCopied(true);
     } catch {
+      setCopied(false);
       setCopyError(true);
     }
   };
 
   return (
-    <Box
-      sx={{
-        display: "flex",
-        flexWrap: "wrap",
-        gap: 1,
-        justifyContent: "flex-end",
-        width: "100%",
-      }}
-    >
-      <Button
-        variant="text"
-        size="small"
-        startIcon={<ContentCopyIcon fontSize="small" />}
-        aria-label={`Copy ${label}`}
-        onClick={copyTimestamp}
-        sx={{ whiteSpace: "nowrap", minHeight: { xs: 44, sm: 36 } }}
-      >
-        Copy Discord time
-      </Button>
-      {copyError && <>
-        <FormHelperText error role="alert" sx={{ width: "100%", textAlign: "right" }}>
+    <Box sx={{ minWidth: 0 }}>
+      <Box sx={{ display: "flex", gap: 0.5, alignItems: "flex-start", justifyContent: "flex-end" }}>
+        <Box sx={{ flex: 1, minWidth: 0 }}>{children}</Box>
+        <Tooltip title="Copy Discord time">
+          <span>
+            <IconButton aria-label={`Copy ${label}`} disabled={!timestamp} onClick={copyTimestamp}>
+              <ContentCopyIcon fontSize="small" />
+            </IconButton>
+          </span>
+        </Tooltip>
+      </Box>
+      {timestamp && copyError && <>
+        <FormHelperText error role="alert">
           Copy failed. Select the timestamp below to copy it manually.
         </FormHelperText>
-        <Box component="code" tabIndex={0} aria-label="Discord timestamp" sx={{ width: "100%", userSelect: "all", overflowWrap: "anywhere", textAlign: "right" }}>{timestamp}</Box>
+        <Box component="code" tabIndex={0} aria-label="Discord timestamp" sx={{ display: "block", userSelect: "all", overflowWrap: "anywhere" }}>{timestamp}</Box>
       </>}
+      {copied && <ActionFeedback message="Copied" noticeKey={copyRevision} onClose={() => setCopied(false)} />}
     </Box>
   );
 };

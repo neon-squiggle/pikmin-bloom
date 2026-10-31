@@ -1,3 +1,4 @@
+import "@testing-library/jest-dom";
 import { setDateField } from "./testFixtures/dateFields";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
@@ -30,7 +31,6 @@ const renderCalculator = () => {
       <ExistingMushroomCalc />
     </LocalizationProvider>,
   );
-  fireEvent.click(screen.getByRole("button", { name: "Additional players" }));
   return view;
 };
 const upload = async (result: BattleScreenshotResult) => {
@@ -42,9 +42,7 @@ const upload = async (result: BattleScreenshotResult) => {
   });
   await waitFor(() => expect(input("Upload battle screenshot").disabled).toBe(false));
   expect(screen.queryByText("Screenshot loaded: battle.png")).toBeNull();
-  expect(screen.queryByRole("status")).toBeNull();
-  const additional = screen.getByRole("button", { name: "Additional players" });
-  if (additional.getAttribute("aria-expanded") !== "true") fireEvent.click(additional);
+  expect(screen.queryByText("Copied")).toBeNull();
 };
 const input = (label: string): HTMLInputElement => {
   if (label === "Upload battle screenshot") return screen.getByLabelText(label);
@@ -75,7 +73,7 @@ it("fills editable stats and bases the planner's finish on capture time", async 
   const target = new Date("2026-11-01T18:36:00Z");
   const dayjs = (await import("dayjs")).default;
   setDateField(screen.getByRole("group", { name: "Desired end time" }), dayjs(target).format("MM/DD/YYYY hh:mm A"));
-  expect(screen.queryByRole("slider")).toBeNull();
+  expect(screen.getByRole("slider")).toBeDisabled();
   setDateField(screen.getByRole("group", { name: "Desired end time" }), dayjs("2026-11-01T17:00:00Z").format("MM/DD/YYYY hh:mm A"));
   expect(input("Additional AP").value).toBe("0.336");
   fireEvent.change(input("AP"), { target: { value: "20" } });
@@ -114,7 +112,7 @@ it("preserves manual values if reading fails", async () => {
   expect(screen.getByRole("alert").textContent).toContain(
     "Couldn't read the battle stats",
   );
-  expect(screen.queryByRole("status")).toBeNull();
+  expect(screen.queryByText("Copied")).toBeNull();
   expect(screen.queryByRole("button", { name: "Dismiss notification" })).toBeNull();
   expect(screen.getByRole("button", { name: "Retry screenshot" })).not.toBeNull();
   expect(input("AP").value).toBe("240");

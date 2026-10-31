@@ -1,3 +1,4 @@
+import "@testing-library/jest-dom";
 import { setDateField } from "./testFixtures/dateFields";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
@@ -22,7 +23,6 @@ const renderCalculator = (
       </LocalizationProvider>
     </ThemeProvider>,
   );
-  fireEvent.click(screen.getByRole("button", { name: "Additional players" }));
   return view;
 };
 
@@ -193,7 +193,7 @@ describe("ExistingMushroomCalc", () => {
     ).toBe("false");
   });
 
-  it("hides unavailable results while a duration is cleared", () => {
+  it("disables unavailable controls while a duration is cleared", () => {
     renderCalculator(
       {
         currentAp: 100,
@@ -209,10 +209,10 @@ describe("ExistingMushroomCalc", () => {
     fireEvent.focus(hoursInput);
     fireEvent.change(hoursInput, { target: { value: "" } });
 
-    expect(screen.queryByRole("slider")).toBeNull();
+    expect(screen.getByRole("slider")).toBeDisabled();
 
     fireEvent.blur(hoursInput);
-    expect(screen.queryByRole("slider")).toBeNull();
+    expect(screen.getByRole("slider")).toBeDisabled();
   });
 
   it("does not scroll away from the edited duration field", () => {

@@ -1,3 +1,4 @@
+import "@testing-library/jest-dom";
 import { setDateField, readDateField } from "./testFixtures/dateFields";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
@@ -8,7 +9,7 @@ const reference = dayjs("2024-01-01T12:00:00");
 const show = (
   variant: "planned" | "in-progress" = "in-progress",
   start = reference,
-  expand = true,
+  target: dayjs.Dayjs | null = start.add(45, "minute"),
 ) => {
   render(
     <LocalizationProvider dateAdapter={AdapterDayjs}>
@@ -18,23 +19,43 @@ const show = (
         healthRemaining={3000}
         referenceTime={start}
         baselineEndTime={start.add(1, "hour")}
-        initialTargetEndTime={start.add(45, "minute")}
+        initialTargetEndTime={target}
       />
     </LocalizationProvider>,
   );
-  if (expand)
-    fireEvent.click(screen.getByRole("button", { name: "Additional players" }));
 };
 const value = (name: string) =>
   name.includes("time") ? readDateField(screen.getByRole("group", { name })) : (screen.getByRole("textbox", { name }) as HTMLInputElement).value;
-it("keeps additional-player planning collapsed by default", () => {
-  show("planned", reference, false);
-  expect(
-    screen
-      .getByRole("button", { name: "Additional players" })
-      .getAttribute("aria-expanded"),
-  ).toBe("false");
-  expect(screen.queryByRole("slider")).toBeNull();
+it("shows additional-player planning without an expansion step", () => {
+  show("planned");
+  expect(screen.getByRole("heading", { name: "Additional players" })).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Additional players" })).toBeNull();
+  expect(screen.getByRole("slider")).toBeEnabled();
+});
+it("shows the complete form immediately and enables the same controls after entering a valid desired time", () => {
+  show("in-progress", reference, null);
+  const ap = screen.getByRole("textbox", { name: "Additional AP" });
+  const slider = screen.getByRole("slider", { name: "Bullhorn time" });
+  const players = screen.getByRole("button", { name: "4 joining players" });
+  const bullhorn = screen.getByRole("group", { name: "Bullhorn time" });
+  expect(ap).toBeDisabled();
+  expect(slider).toBeDisabled();
+  expect(players).toBeDisabled();
+  expect(value("Bullhorn time")).toBe("");
+  expect(screen.getByRole("button", { name: "Copy Bullhorn time Discord timestamp" })).toBeDisabled();
+  expect(screen.getByTestId("divided-ap-result")).toHaveTextContent("— AP each");
+  setDateField(screen.getByRole("group", { name: "Desired end time" }), "01/01/2024 12:45 PM");
+  expect(screen.getByRole("textbox", { name: "Additional AP" })).toBe(ap);
+  expect(screen.getByRole("group", { name: "Bullhorn time" })).toBe(bullhorn);
+  expect(ap).toBeEnabled();
+  expect(slider).toBeEnabled();
+  expect(players).toBeEnabled();
+  expect(value("Additional AP")).toBe("11.111");
+  expect(screen.getByRole("button", { name: "Copy Bullhorn time Discord timestamp" })).toBeEnabled();
+  setDateField(screen.getByRole("group", { name: "Desired end time" }), "");
+  expect(screen.getByRole("textbox", { name: "Additional AP" })).toBe(ap);
+  expect(ap).toBeDisabled();
+  expect(players).toBeDisabled();
 });
 it("recomputes AP when bullhorn time is delayed and exposes time and AP to assistive technology", () => {
   show();
@@ -108,7 +129,7 @@ it.each(["01/01/2024 11:00 AM", "01/01/2024 02:00 PM"])(
     expect(
       screen.getByText(/Choose an end time (after|before)/),
     ).not.toBeNull();
-    expect(screen.queryByRole("slider")).toBeNull();
+    expect(screen.getByRole("slider")).toBeDisabled();
   },
 );
 it("allows the last second before a next-day desired finish", () => {

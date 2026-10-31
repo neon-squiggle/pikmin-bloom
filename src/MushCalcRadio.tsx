@@ -302,7 +302,7 @@ const MushCalcRadio = ({
             </Box>
 
             <Box sx={pairedFieldGridSx}>
-              <Stack spacing={1.5}>
+              <DiscordTimestampField label="Start time Discord timestamp" time={startTime}>
                 <SimpleDateTimeInput
                   label="Battle start time"
                   readOnly={derived === "startTime"}
@@ -310,13 +310,9 @@ const MushCalcRadio = ({
                   value={startTime}
                   onChange={(value) => updateForm({ startTime: value })}
                 />
-                <DiscordTimestampField
-                  label="Start time Discord timestamp"
-                  time={startTime}
-                />
-              </Stack>
+              </DiscordTimestampField>
 
-              <Stack spacing={1.5}>
+              <DiscordTimestampField label="End time Discord timestamp" time={endTime}>
                 <SimpleDateTimeInput
                   label="End time"
                   readOnly={derived === "endTime"}
@@ -324,22 +320,16 @@ const MushCalcRadio = ({
                   onChange={(value) => updateForm({ endTime: value })}
                   minDateTime={startTime?.add(1, "minute") ?? undefined}
                 />
-                <DiscordTimestampField
-                  label="End time Discord timestamp"
-                  time={endTime}
-                />
-              </Stack>
+              </DiscordTimestampField>
             </Box>
 
-            {hasCompleteBattlePlan && startTime && (
-              <JoinPlanner
-                variant="planned"
-                currentAp={pikminAp}
-                healthRemaining={health}
-                referenceTime={startTime}
-                baselineEndTime={endTime}
-              />
-            )}
+            <JoinPlanner
+              variant="planned"
+              currentAp={pikminAp}
+              healthRemaining={health}
+              referenceTime={startTime?.isValid() ? startTime : dayjs()}
+              baselineEndTime={hasCompleteBattlePlan ? endTime : null}
+            />
           </Stack>
         </Box>
       </CardContent>

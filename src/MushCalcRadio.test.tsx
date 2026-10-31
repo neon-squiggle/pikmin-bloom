@@ -52,8 +52,10 @@ describe("MushCalcRadio", () => {
       ).disabled,
     ).toBe(false);
     expect(
-      screen.queryByLabelText("Copy End time Discord timestamp"),
-    ).toBeNull();
+      (screen.getByRole("button", { name: "Copy End time Discord timestamp" }) as HTMLButtonElement).disabled,
+    ).toBe(true);
+    expect(screen.getByRole("heading", { name: "Additional players" })).not.toBeNull();
+    expect((screen.getByRole("textbox", { name: "Additional AP" }) as HTMLInputElement).disabled).toBe(true);
     expect(screen.getByRole("group", { name: "Battle start time" })).not.toBeNull();
   });
 
