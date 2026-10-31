@@ -150,7 +150,7 @@ const JoinPlanner = ({
           }}
         />
       </DiscordTimestampField>
-      <Box>
+      <Box sx={{ px: { xs: 3, sm: 0 } }}>
         <Slider
           aria-label="Bullhorn time"
           value={clampedDelay}
