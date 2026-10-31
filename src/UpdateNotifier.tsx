@@ -1,4 +1,6 @@
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Button } from "@mui/material";
+import ActionFeedback from "./ActionFeedback";
 
 interface AssetManifest {
   files?: {
@@ -17,15 +19,13 @@ export const hasNewMainScript = (
 ) =>
   Boolean(
     latestMainScript &&
-      loadedMainScript &&
-      !loadedMainScript.endsWith(latestMainScript),
+    loadedMainScript &&
+    !loadedMainScript.endsWith(latestMainScript),
   );
 
-const RELOAD_ATTEMPT_KEY = "pikmin-bloom:reload-attempt";
-const RELOAD_RETRY_MS = 60_000;
-let attemptedMainScript: string | null = null;
-
 const UpdateNotifier = () => {
+  const [available, setAvailable] = useState<string | null>(null);
+  const dismissed = useRef<string | null>(null);
   const checkForUpdate = useCallback(async () => {
     if (process.env.NODE_ENV !== "production") return;
 
@@ -43,38 +43,10 @@ const UpdateNotifier = () => {
 
       if (
         latestMainScript &&
-        hasNewMainScript(loadedMainScript, latestMainScript)
+        hasNewMainScript(loadedMainScript, latestMainScript) &&
+        latestMainScript !== dismissed.current
       ) {
-        if (attemptedMainScript === latestMainScript) return;
-
-        try {
-          const previousAttempt = sessionStorage.getItem(RELOAD_ATTEMPT_KEY);
-          const [previousScript, previousTime] =
-            previousAttempt?.split("\n") ?? [];
-          if (
-            previousScript === latestMainScript &&
-            Date.now() - Number(previousTime) < RELOAD_RETRY_MS
-          ) {
-            return;
-          }
-          sessionStorage.setItem(
-            RELOAD_ATTEMPT_KEY,
-            `${latestMainScript}\n${Date.now()}`,
-          );
-        } catch {
-          // The in-memory guard still prevents a reload loop when storage is
-          // unavailable.
-        }
-
-        attemptedMainScript = latestMainScript;
-        window.location.reload();
-      } else if (latestMainScript && loadedMainScript) {
-        attemptedMainScript = null;
-        try {
-          sessionStorage.removeItem(RELOAD_ATTEMPT_KEY);
-        } catch {
-          // Storage can be unavailable in privacy-restricted browsers.
-        }
+        setAvailable(latestMainScript);
       }
     } catch {
       // A failed update check should never interrupt the calculator.
@@ -95,7 +67,12 @@ const UpdateNotifier = () => {
     };
   }, [checkForUpdate]);
 
-  return null;
+  const dismiss = () => { dismissed.current = available; setAvailable(null); };
+  if (!available) return null;
+  return (
+    <ActionFeedback key={available} message="Update available" severity="info" onClose={dismiss}
+      action={<Button size="small" onClick={() => window.location.reload()}>Reload</Button>} />
+  );
 };
 
 export default UpdateNotifier;

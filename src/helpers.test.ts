@@ -92,11 +92,7 @@ describe("calculateHealthTimeRange", () => {
   it("returns zero for reversed times or invalid AP", () => {
     const startTime = dayjs("2024-01-01T12:00:00");
     expect(
-      calculateHealthTimeRange(
-        100,
-        startTime,
-        startTime.subtract(1, "second"),
-      ),
+      calculateHealthTimeRange(100, startTime, startTime.subtract(1, "second")),
     ).toBe(0);
     expect(
       calculateHealthTimeRange(Number.NaN, startTime, startTime.add(1, "hour")),
@@ -168,7 +164,11 @@ describe("diffToTimeRemaining", () => {
   it("calculates remaining time from now to target", () => {
     // Target is 1 day, 2 hours, 30 min, 45 sec from mocked "now"
     const now = dayjs();
-    const target = now.add(1, "day").add(2, "hour").add(30, "minute").add(45, "second");
+    const target = now
+      .add(1, "day")
+      .add(2, "hour")
+      .add(30, "minute")
+      .add(45, "second");
     const result = diffToTimeRemaining(target);
     expect(result).toEqual({
       days: 1,
@@ -216,14 +216,24 @@ describe("diffToTimeRemaining", () => {
 
 describe("isInvalidDuration", () => {
   it("returns true when all values are zero", () => {
-    expect(isInvalidDuration({ days: 0, hours: 0, minutes: 0, seconds: 0 })).toBe(true);
+    expect(
+      isInvalidDuration({ days: 0, hours: 0, minutes: 0, seconds: 0 }),
+    ).toBe(true);
   });
 
   it("returns false when any value is non-zero", () => {
-    expect(isInvalidDuration({ days: 1, hours: 0, minutes: 0, seconds: 0 })).toBe(false);
-    expect(isInvalidDuration({ days: 0, hours: 1, minutes: 0, seconds: 0 })).toBe(false);
-    expect(isInvalidDuration({ days: 0, hours: 0, minutes: 1, seconds: 0 })).toBe(false);
-    expect(isInvalidDuration({ days: 0, hours: 0, minutes: 0, seconds: 1 })).toBe(false);
+    expect(
+      isInvalidDuration({ days: 1, hours: 0, minutes: 0, seconds: 0 }),
+    ).toBe(false);
+    expect(
+      isInvalidDuration({ days: 0, hours: 1, minutes: 0, seconds: 0 }),
+    ).toBe(false);
+    expect(
+      isInvalidDuration({ days: 0, hours: 0, minutes: 1, seconds: 0 }),
+    ).toBe(false);
+    expect(
+      isInvalidDuration({ days: 0, hours: 0, minutes: 0, seconds: 1 }),
+    ).toBe(false);
   });
 
   it("rejects negative and non-finite durations", () => {
@@ -418,8 +428,7 @@ describe("calculateAdditionalAp", () => {
     expect(additionalAp).not.toBeNull();
     const cumulativeApSeconds =
       currentAp * secondsUntilTarget +
-      (additionalAp as number) *
-        (secondsUntilTarget - secondsUntilApAdded);
+      (additionalAp as number) * (secondsUntilTarget - secondsUntilApAdded);
     expect(cumulativeApSeconds).toBeCloseTo(healthRemaining * 100, 5);
   });
 });

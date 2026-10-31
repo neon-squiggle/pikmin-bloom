@@ -61,3 +61,84 @@ describe("NumberSpinner", () => {
     },
   );
 });
+
+it.each(["1.5", "-2", "words"])(
+  "preserves invalid integer input for correction: %s",
+  (raw) => {
+    const onChange = jest.fn();
+    render(
+      <NumberSpinner
+        label="Days"
+        value={0}
+        allowDecimal={false}
+        min={0}
+        onValueChange={onChange}
+      />,
+    );
+    const input = screen.getByRole("textbox", {
+      name: "Days",
+    }) as HTMLInputElement;
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: raw } });
+    fireEvent.blur(input);
+    expect(input.value).toBe(raw);
+    expect(input.getAttribute("aria-invalid")).toBe("true");
+    expect(screen.getByText("Enter a whole number.")).not.toBeNull();
+    expect(
+      Number.isNaN(onChange.mock.calls[onChange.mock.calls.length - 1][0]),
+    ).toBe(true);
+    fireEvent.change(input, { target: { value: "2" } });
+    expect(onChange).toHaveBeenLastCalledWith(2);
+  },
+);
+it("does not silently clamp an out-of-range countdown", () => {
+  render(
+    <NumberSpinner
+      label="Hours"
+      value={0}
+      min={0}
+      max={23}
+      allowDecimal={false}
+    />,
+  );
+  const input = screen.getByRole("textbox", {
+    name: "Hours",
+  }) as HTMLInputElement;
+  fireEvent.focus(input);
+  fireEvent.change(input, { target: { value: "24" } });
+  fireEvent.blur(input);
+  expect(input.value).toBe("24");
+  expect(screen.getByText("Enter 0–23.")).not.toBeNull();
+});
+
+it.each(["de-DE", "fr-FR", "ar-EG"])(
+  "keeps localized values unchanged on focus and blur in %s",
+  (locale) => {
+    const change = jest.fn();
+    const view = render(
+      <NumberSpinner
+        locale={locale}
+        label="AP"
+        value={1234}
+        allowDecimal={false}
+        onValueChange={change}
+      />,
+    );
+    const input = screen.getByRole("textbox", { name: "AP" });
+    fireEvent.focus(input);
+    fireEvent.blur(input);
+    expect(change).toHaveBeenLastCalledWith(1234);
+    expect(input.getAttribute("aria-invalid")).not.toBe("true");
+    view.rerender(
+      <NumberSpinner
+        locale={locale}
+        label="AP"
+        value={1.5}
+        onValueChange={change}
+      />,
+    );
+    fireEvent.focus(input);
+    fireEvent.blur(input);
+    expect(change).toHaveBeenLastCalledWith(1.5);
+  },
+);

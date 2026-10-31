@@ -1,4 +1,5 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { setDateField, readDateField } from "./testFixtures/dateFields";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
@@ -53,9 +54,7 @@ describe("MushCalcRadio", () => {
     expect(
       screen.queryByLabelText("Copy End time Discord timestamp"),
     ).toBeNull();
-    expect(
-      (screen.getByLabelText("Battle start time") as HTMLInputElement).type,
-    ).toBe("text");
+    expect(screen.getByRole("group", { name: "Battle start time" })).not.toBeNull();
   });
 
   it("fills full health and the initial minimum AP from one mushroom selection", () => {
@@ -83,20 +82,14 @@ describe("MushCalcRadio", () => {
 
   it("keeps the estimated end time visible and makes it editable for another target", () => {
     renderCalculator();
-    const getEndTimeInput = () =>
-      screen
-        .getAllByLabelText("End time")
-        .find(
-          (element) => element.getAttribute("type") !== "radio",
-        ) as HTMLInputElement;
+    const getEndTimeInput = () => within(screen.getByRole("group", { name: "End time" })).getByRole("spinbutton", { name: "Month" });
 
     fireEvent.click(screen.getByRole("radio", { name: "End time" }));
-    expect(getEndTimeInput().readOnly).toBe(true);
+    expect(getEndTimeInput().getAttribute("aria-readonly")).toBe("true");
 
     fireEvent.click(screen.getByRole("radio", { name: "AP" }));
 
-    expect(getEndTimeInput().type).toBe("text");
-    expect(getEndTimeInput().readOnly).toBe(false);
+        expect(getEndTimeInput().getAttribute("aria-readonly")).toBe("false");
     expect(
       (
         screen.getByRole("textbox", {
@@ -109,23 +102,17 @@ describe("MushCalcRadio", () => {
   it("accepts a typed estimated end time and creates its Discord timestamp", () => {
     renderCalculator();
     fireEvent.click(screen.getByRole("radio", { name: "AP" }));
-    const endTimeInput = screen
-      .getAllByLabelText("End time")
-      .find(
-        (element) => element.getAttribute("type") === "text",
-      ) as HTMLInputElement;
+    const endTimeInput = screen.getByRole("group", { name: "End time" });
 
-    fireEvent.change(endTimeInput, {
-      target: { value: "01/02/2030 12:30 PM" },
-    });
+    setDateField(endTimeInput, "01/02/2030 12:30 PM");
 
-    expect(endTimeInput.value).toBe("01/02/2030 12:30 PM");
+    expect(readDateField(endTimeInput)).toBe("01/02/2030 12:30 PM");
     expect(
       screen.getByLabelText("Copy End time Discord timestamp"),
     ).not.toBeNull();
   });
 
-  it("uses a numeric keyboard and strips non-numeric AP characters", () => {
+  it("uses a numeric keyboard and preserves invalid input for correction", () => {
     renderCalculator();
 
     const apInput = screen.getByRole("textbox", { name: "AP" });
@@ -134,7 +121,8 @@ describe("MushCalcRadio", () => {
     fireEvent.change(apInput, { target: { value: "12abc,500" } });
     fireEvent.blur(apInput);
 
-    expect((apInput as HTMLInputElement).value).toBe("12,500");
+    expect((apInput as HTMLInputElement).value).toBe("12abc,500");
+    expect(apInput.getAttribute("aria-invalid")).toBe("true");
   });
 
   it("preserves an in-progress battle while switching tabs", () => {
@@ -145,7 +133,9 @@ describe("MushCalcRadio", () => {
         name: "Plan a battle in progress",
       }),
     );
-    const apInput = screen.getByLabelText("AP") as HTMLInputElement;
+    const apInput = screen.getByRole("textbox", {
+      name: "AP",
+    }) as HTMLInputElement;
     const healthInput = screen.getByLabelText(
       "Health remaining",
     ) as HTMLInputElement;
@@ -159,7 +149,15 @@ describe("MushCalcRadio", () => {
       }),
     );
 
-    expect(apInput.value).toBe("240");
-    expect(healthInput.value).toBe("1,800");
+    expect(
+      (screen.getByRole("textbox", { name: "AP" }) as HTMLInputElement).value,
+    ).toBe("240");
+    expect(
+      (
+        screen.getByRole("textbox", {
+          name: "Health remaining",
+        }) as HTMLInputElement
+      ).value,
+    ).toBe("1,800");
   });
 });

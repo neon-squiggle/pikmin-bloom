@@ -1,9 +1,7 @@
 import * as React from "react";
-import AddIcon from "@mui/icons-material/Add";
-import RemoveIcon from "@mui/icons-material/Remove";
+import { formatNumericInput, parseNumericInput } from "./numericInput";
 import {
   Box,
-  Button,
   FormControl,
   FormHelperText,
   FormLabel,
@@ -12,102 +10,83 @@ import {
 } from "@mui/material";
 
 export interface NumberSpinnerProps {
+  locale?: string;
   id?: string;
   label?: React.ReactNode;
   value?: number | null;
   min?: number;
   max?: number;
-  step?: number;
   disabled?: boolean;
   readOnly?: boolean;
   required?: boolean;
   error?: boolean;
   size?: "small" | "medium";
-  isToggled?: boolean;
   helperText?: React.ReactNode;
   unit?: React.ReactNode;
-  hideLabel?: boolean;
-  showStepper?: boolean;
   allowDecimal?: boolean;
   onValueChange?: (value: number | null) => void;
 }
 
-const sanitizeNumericInput = (rawValue: string, allowDecimal: boolean) => {
-  const digitsAndDots = rawValue.replace(/[,\s]/g, "").replace(/[^\d.]/g, "");
-  if (!allowDecimal) return digitsAndDots.replace(/\./g, "");
-
-  const [whole = "", ...decimalParts] = digitsAndDots.split(".");
-  return decimalParts.length
-    ? `${whole}.${decimalParts.join("")}`
-    : whole;
-};
-
-const parseNumericInput = (
-  rawValue: string,
-  allowDecimal: boolean,
-): number | null => {
-  const normalized = sanitizeNumericInput(rawValue, allowDecimal);
-  if (!normalized) return null;
-
-  const value = Number(normalized);
-  return Number.isFinite(value) ? value : null;
-};
-
-const formatFriendlyNumber = (value: number | null | undefined) => {
-  if (value == null || !Number.isFinite(value)) return "";
-  return value.toLocaleString(undefined, {
-    maximumFractionDigits: 3,
-  });
-};
-
 export default function NumberSpinner({
+  locale,
   id: idProp,
   label,
   value = null,
   min,
   max,
-  step = 1,
   disabled = false,
   readOnly = false,
   required = false,
   error = false,
   size = "medium",
-  isToggled = false,
   helperText,
   unit,
-  hideLabel = false,
-  showStepper = false,
   allowDecimal = true,
   onValueChange,
 }: NumberSpinnerProps) {
   const generatedId = React.useId();
   const id = idProp ?? generatedId;
   const [inputValue, setInputValue] = React.useState(() =>
-    formatFriendlyNumber(value),
+    formatNumericInput(value, locale),
   );
   const focusedRef = React.useRef(false);
+  const [touched, setTouched] = React.useState(false);
 
   React.useEffect(() => {
-    if (!focusedRef.current) setInputValue(formatFriendlyNumber(value));
-  }, [value]);
+    if (
+      !focusedRef.current &&
+      (readOnly || !touched || value == null || Number.isFinite(value))
+    )
+      setInputValue(formatNumericInput(value, locale));
+  }, [value, readOnly, touched, locale]);
 
-  const clamp = (nextValue: number) =>
-    Math.min(max ?? Number.POSITIVE_INFINITY, Math.max(min ?? Number.NEGATIVE_INFINITY, nextValue));
-
-  const commit = (nextValue: number | null) => {
-    if (nextValue == null) {
-      setInputValue("");
-      onValueChange?.(null);
-      return;
-    }
-    const clamped = clamp(nextValue);
-    setInputValue(formatFriendlyNumber(clamped));
-    onValueChange?.(clamped);
-  };
-
-  const adjust = (direction: -1 | 1) => {
-    const parsed = parseNumericInput(inputValue, allowDecimal);
-    commit((parsed ?? value ?? min ?? 0) + direction * step);
+  const isValidValue = (next: number | null) =>
+    next != null &&
+    (min == null || next >= min) &&
+    (max == null || next <= max);
+  const parsedInput = parseNumericInput(inputValue, allowDecimal, locale);
+  const inputError =
+    !disabled &&
+    !readOnly &&
+    touched &&
+    (inputValue.trim() ? !isValidValue(parsedInput) : required);
+  const validationText = inputError
+    ? !inputValue.trim()
+      ? "Enter a value."
+      : parsedInput == null
+        ? allowDecimal
+          ? "Enter a valid number."
+          : "Enter a whole number."
+        : min != null && max != null
+          ? `Enter ${min}–${max}.`
+          : min != null && parsedInput < min
+            ? `Enter ${min} or more.`
+            : `Enter ${max} or less.`
+    : undefined;
+  const descriptionId = `${id}-helper`;
+  const commit = (next: number | null) => {
+    setInputValue(formatNumericInput(next, locale));
+    onValueChange?.(next);
   };
 
   return (
@@ -116,47 +95,20 @@ export default function NumberSpinner({
       size={size}
       disabled={disabled}
       required={required}
-      error={error}
+      error={Boolean(error || inputError)}
       variant="outlined"
     >
       <FormLabel
         htmlFor={id}
         sx={{
-          mb: hideLabel ? 0 : 0.75,
-          color: isToggled ? "success.main" : "text.primary",
+          mb: 0.75,
+          color: "text.primary",
           fontWeight: 500,
-          ...(hideLabel && {
-            position: "absolute",
-            width: 1,
-            height: 1,
-            p: 0,
-            m: -1,
-            overflow: "hidden",
-            clip: "rect(0 0 0 0)",
-            whiteSpace: "nowrap",
-            border: 0,
-          }),
         }}
       >
         {label}
       </FormLabel>
       <Box sx={{ display: "flex" }}>
-        {showStepper && !readOnly && (
-          <Button
-            variant="outlined"
-            aria-label={`Decrease ${String(label ?? "value")} by ${step}`}
-            disabled={disabled || (min != null && (value ?? min) <= min)}
-            onClick={() => adjust(-1)}
-            sx={{
-              minWidth: { xs: 48, sm: 44 },
-              borderTopRightRadius: 0,
-              borderBottomRightRadius: 0,
-              borderRight: 0,
-            }}
-          >
-            <RemoveIcon fontSize={size} />
-          </Button>
-        )}
         <OutlinedInput
           id={id}
           value={inputValue}
@@ -168,62 +120,51 @@ export default function NumberSpinner({
           }}
           onBlur={() => {
             focusedRef.current = false;
-            const parsed = parseNumericInput(inputValue, allowDecimal);
-            if (parsed == null) {
-              commit(null);
-              return;
-            }
-            commit(parsed);
+            setTouched(true);
+            const parsed = parseNumericInput(inputValue, allowDecimal, locale);
+            if (!inputValue.trim()) commit(null);
+            else if (isValidValue(parsed)) commit(parsed);
           }}
           onChange={(event) => {
-            const sanitized = sanitizeNumericInput(
-              event.target.value,
-              allowDecimal,
+            const raw = event.target.value;
+            setInputValue(raw);
+            setTouched(true);
+            const parsed = parseNumericInput(raw, allowDecimal, locale);
+            onValueChange?.(
+              !raw.trim() ? null : isValidValue(parsed) ? parsed : Number.NaN,
             );
-            setInputValue(sanitized);
-            const parsed = parseNumericInput(sanitized, allowDecimal);
-            if (parsed != null) onValueChange?.(parsed);
           }}
+          aria-describedby={
+            validationText || helperText ? descriptionId : undefined
+          }
           endAdornment={
-            unit ? <InputAdornment position="end">{unit}</InputAdornment> : undefined
+            unit ? (
+              <InputAdornment position="end">{unit}</InputAdornment>
+            ) : undefined
           }
           slotProps={{
             input: {
               autoComplete: "off",
               inputMode: allowDecimal ? "decimal" : "numeric",
+              enterKeyHint: "done",
               "aria-label": typeof label === "string" ? label : undefined,
             },
           }}
           sx={{
             flex: 1,
             minWidth: 0,
-            borderRadius: showStepper && !readOnly ? 0 : 1,
+            borderRadius: 1,
             "& input": {
               textAlign: readOnly ? "left" : "right",
             },
-            "& .MuiOutlinedInput-notchedOutline": {
-              borderColor: isToggled ? "success.main" : undefined,
-            },
           }}
         />
-        {showStepper && !readOnly && (
-          <Button
-            variant="outlined"
-            aria-label={`Increase ${String(label ?? "value")} by ${step}`}
-            disabled={disabled || (max != null && (value ?? max) >= max)}
-            onClick={() => adjust(1)}
-            sx={{
-              minWidth: { xs: 48, sm: 44 },
-              borderTopLeftRadius: 0,
-              borderBottomLeftRadius: 0,
-              borderLeft: 0,
-            }}
-          >
-            <AddIcon fontSize={size} />
-          </Button>
-        )}
       </Box>
-      {helperText && <FormHelperText>{helperText}</FormHelperText>}
+      {(validationText || helperText) && (
+        <FormHelperText id={descriptionId}>
+          {validationText || helperText}
+        </FormHelperText>
+      )}
     </FormControl>
   );
 }

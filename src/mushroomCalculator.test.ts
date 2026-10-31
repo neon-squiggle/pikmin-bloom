@@ -1,12 +1,6 @@
 import dayjs from "dayjs";
 
 import {
-  calculateBattleDurationSeconds,
-  durationToSeconds,
-} from "./helpers";
-import {
-  checkSnapshotDuration,
-  createExistingMushroomSeed,
   getApForSelectedMushroom,
   NewMushroomFormState,
   recomputeDerived,
@@ -33,9 +27,9 @@ describe("new mushroom calculations", () => {
     expect(recomputeDerived(state)).toEqual(state);
   });
 
-  it("leaves the form unchanged until a mushroom is selected", () => {
+  it("clears the derived result when the mushroom is cleared", () => {
     const state = createState({ derived: "ap", mush: null });
-    expect(recomputeDerived(state)).toEqual(state);
+    expect(Number.isNaN(recomputeDerived(state).pikminAp)).toBe(true);
   });
 
   it("derives AP from health and elapsed time", () => {
@@ -80,9 +74,7 @@ describe("new mushroom calculations", () => {
         endTime: null,
       }),
     );
-    expect(result.endTime?.unix()).toBe(
-      startTime.add(1000, "second").unix(),
-    );
+    expect(result.endTime?.unix()).toBe(startTime.add(1000, "second").unix());
   });
 
   it("does not replace a derived date until its inputs are valid", () => {
@@ -107,24 +99,6 @@ describe("new mushroom calculations", () => {
   });
 });
 
-describe("checkSnapshotDuration", () => {
-  it("flags values whose implied and reported durations materially disagree", () => {
-    const result = checkSnapshotDuration(100, 1000, 86400);
-
-    expect(result).not.toBeNull();
-    expect(result?.calculatedSeconds).toBe(1000);
-    expect(result?.isConsistent).toBe(false);
-  });
-
-  it("accepts differences up to five minutes as rounding", () => {
-    expect(checkSnapshotDuration(100, 1000, 1300)?.isConsistent).toBe(true);
-  });
-
-  it("flags differences greater than five minutes", () => {
-    expect(checkSnapshotDuration(100, 1000, 1301)?.isConsistent).toBe(false);
-  });
-});
-
 describe("mushroom selection", () => {
   it("uses the mushroom minimum when AP is still at the default", () => {
     expect(getApForSelectedMushroom(2, mushrooms[16])).toBe(
@@ -144,116 +118,25 @@ describe("mushroom selection", () => {
   });
 });
 
-describe("createExistingMushroomSeed", () => {
-  const largeGray = mushrooms.find(({ key }) => key === "lg");
-
-  if (!largeGray) {
-    throw new Error("Large Gray mushroom fixture is missing");
-  }
-
-  it("rolls a fresh 350 AP Large Gray into exactly ten days", () => {
-    const snapshotTime = dayjs("2024-01-01T12:00:00");
-    const seed = createExistingMushroomSeed(
-      createState({
-        mush: largeGray,
-        health: largeGray.value,
-        pikminAp: 350,
-        startTime: snapshotTime,
-      }),
-      snapshotTime,
-    );
-
-    expect(seed).toEqual({
-      currentAp: 350,
-      healthRemaining: 3024000,
-      timeRemaining: { days: 10, hours: 0, minutes: 0, seconds: 0 },
-    });
-  });
-
-  it("subtracts elapsed damage while preserving the projected finish", () => {
-    const startTime = dayjs("2024-01-01T12:00:00");
-    const snapshotTime = startTime.add(1, "hour");
-    const seed = createExistingMushroomSeed(
-      createState({
-        mush: largeGray,
-        health: largeGray.value,
-        pikminAp: 350,
-        startTime,
-      }),
-      snapshotTime,
-    );
-
-    expect(seed).toEqual({
-      currentAp: 350,
-      healthRemaining: 3011400,
-      timeRemaining: { days: 9, hours: 23, minutes: 0, seconds: 0 },
-    });
-    expect(snapshotTime.add(9, "day").add(23, "hour").unix()).toBe(
-      startTime.add(10, "day").unix(),
-    );
-  });
-
-  it("rejects a mushroom that has not started", () => {
-    const snapshotTime = dayjs("2024-01-01T12:00:00");
-    expect(
-      createExistingMushroomSeed(
-        createState({ startTime: snapshotTime.add(1, "minute") }),
-        snapshotTime,
-      ),
-    ).toBeNull();
-  });
-
-  it("rejects a finished mushroom", () => {
-    const startTime = dayjs("2024-01-01T12:00:00");
-    expect(
-      createExistingMushroomSeed(
-        createState({
-          health: 1000,
-          pikminAp: 100,
-          startTime,
-        }),
-        startTime.add(1000, "second"),
-      ),
-    ).toBeNull();
-  });
-
-  it("rejects non-finite state instead of producing an invalid duration", () => {
-    expect(
-      createExistingMushroomSeed(
-        createState({ pikminAp: Number.POSITIVE_INFINITY }),
-        dayjs("2024-01-01T10:00:00"),
-      ),
-    ).toBeNull();
-  });
-
-  it("preserves remaining duration within one second for every mushroom", () => {
-    const snapshotTime = dayjs("2024-01-10T12:00:00");
-
-    mushrooms.forEach((mushroom) => {
-      const ap = Math.max(mushroom.minimum, 350);
-      const fullDuration = calculateBattleDurationSeconds(mushroom.value, ap);
-      if (fullDuration == null) throw new Error("Invalid mushroom fixture");
-
-      const elapsedSeconds = Math.min(12345, Math.floor(fullDuration / 2));
-      const seed = createExistingMushroomSeed(
-        createState({
-          mush: mushroom,
-          health: mushroom.value,
-          pikminAp: ap,
-          startTime: snapshotTime.subtract(elapsedSeconds, "second"),
-        }),
-        snapshotTime,
-      );
-      if (!seed) throw new Error(`Could not roll over ${mushroom.label}`);
-
-      const expectedSecondsRemaining = fullDuration - elapsedSeconds;
-      const actualSecondsRemaining = durationToSeconds(seed.timeRemaining);
-      expect(actualSecondsRemaining).toBeLessThanOrEqual(
-        expectedSecondsRemaining,
-      );
-      expect(actualSecondsRemaining).toBeGreaterThan(
-        expectedSecondsRemaining - 1,
-      );
-    });
-  });
+it("clears a stale calculated finish when the entered AP becomes invalid", () => {
+  const result = recomputeDerived(
+    createState({ derived: "endTime", pikminAp: Number.NaN }),
+  );
+  expect(result.endTime).toBeNull();
 });
+
+it.each([
+  ["ap", { endTime: null }, "pikminAp"],
+  ["ap", { health: Number.NaN }, "pikminAp"],
+  ["health", { pikminAp: Number.NaN }, "health"],
+  ["health", { startTime: null }, "health"],
+] as const)(
+  "clears calculated %s when a dependency is missing",
+  (derived, missing, field) => {
+    expect(
+      Number.isNaN(
+        recomputeDerived(createState({ derived, ...missing }))[field],
+      ),
+    ).toBe(true);
+  },
+);

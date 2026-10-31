@@ -2,12 +2,9 @@ import { Dayjs } from "dayjs";
 
 import {
   calculateApTimeRange,
-  calculateBattleDurationSeconds,
   calculateEndTime,
   calculateHealthTimeRange,
-  calculateRemainingHealth,
   calculateStartTime,
-  secondsToDuration,
 } from "./helpers";
 import { DerivedField, Mushroom, TimeRemaining } from "./types";
 
@@ -26,55 +23,42 @@ export interface ExistingMushroomSeed {
   timeRemaining: TimeRemaining;
 }
 
-export interface SnapshotDurationCheck {
-  calculatedSeconds: number;
-  reportedSeconds: number;
-  toleranceSeconds: number;
-  isConsistent: boolean;
-}
-
-const isPositiveFinite = (value: number) =>
-  Number.isFinite(value) && value > 0;
-
-const DURATION_TOLERANCE_SECONDS = 5 * 60;
-
-export const checkSnapshotDuration = (
-  currentAp: number,
-  healthRemaining: number,
-  reportedSeconds: number,
-): SnapshotDurationCheck | null => {
-  const calculatedSeconds = calculateBattleDurationSeconds(
-    healthRemaining,
-    currentAp,
-  );
-  if (calculatedSeconds == null || !isPositiveFinite(reportedSeconds)) {
-    return null;
-  }
-
-  return {
-    calculatedSeconds,
-    reportedSeconds,
-    toleranceSeconds: DURATION_TOLERANCE_SECONDS,
-    isConsistent:
-      Math.abs(calculatedSeconds - reportedSeconds) <=
-      DURATION_TOLERANCE_SECONDS,
-  };
-};
+const isPositiveFinite = (value: number) => Number.isFinite(value) && value > 0;
 
 export const recomputeDerived = (
   state: NewMushroomFormState,
 ): NewMushroomFormState => {
   const { derived, mush, health, pikminAp, startTime, endTime } = state;
 
-  if (!mush) return state;
+  const cleared =
+    derived === "ap"
+      ? { ...state, pikminAp: Number.NaN }
+      : derived === "health"
+        ? { ...state, health: Number.NaN }
+        : derived === "startTime"
+          ? { ...state, startTime: null }
+          : derived === "endTime"
+            ? { ...state, endTime: null }
+            : state;
+  if (!mush) return cleared;
 
-  if (derived === "ap" && startTime && endTime) {
+  if (
+    derived === "ap" &&
+    startTime?.isValid() &&
+    endTime?.isValid() &&
+    isPositiveFinite(health)
+  ) {
     return {
       ...state,
       pikminAp: calculateApTimeRange(health, startTime, endTime),
     };
   }
-  if (derived === "health" && startTime && endTime && pikminAp > 0) {
+  if (
+    derived === "health" &&
+    startTime?.isValid() &&
+    endTime?.isValid() &&
+    isPositiveFinite(pikminAp)
+  ) {
     return {
       ...state,
       health: calculateHealthTimeRange(pikminAp, startTime, endTime),
@@ -82,7 +66,7 @@ export const recomputeDerived = (
   }
   if (
     derived === "startTime" &&
-    endTime &&
+    endTime?.isValid() &&
     isPositiveFinite(health) &&
     isPositiveFinite(pikminAp)
   ) {
@@ -93,7 +77,7 @@ export const recomputeDerived = (
   }
   if (
     derived === "endTime" &&
-    startTime &&
+    startTime?.isValid() &&
     isPositiveFinite(health) &&
     isPositiveFinite(pikminAp)
   ) {
@@ -102,46 +86,10 @@ export const recomputeDerived = (
       endTime: calculateEndTime(health, pikminAp, startTime),
     };
   }
-  return state;
+  return cleared;
 };
 
 export const getApForSelectedMushroom = (
   currentAp: number,
   mushroom: Mushroom,
 ) => (currentAp === 2 ? mushroom.minimum : currentAp);
-
-export const createExistingMushroomSeed = (
-  state: NewMushroomFormState,
-  snapshotTime: Dayjs,
-): ExistingMushroomSeed | null => {
-  const { mush, health, pikminAp, startTime } = state;
-  if (
-    !mush ||
-    !startTime ||
-    !startTime.isValid() ||
-    !snapshotTime.isValid() ||
-    startTime.isAfter(snapshotTime) ||
-    !isPositiveFinite(health) ||
-    !isPositiveFinite(pikminAp)
-  ) {
-    return null;
-  }
-
-  const elapsedSeconds = Math.max(0, snapshotTime.diff(startTime, "second"));
-  const healthRemaining = calculateRemainingHealth(
-    health,
-    pikminAp,
-    elapsedSeconds,
-  );
-  const secondsRemaining = calculateBattleDurationSeconds(
-    healthRemaining,
-    pikminAp,
-  );
-  if (secondsRemaining == null) return null;
-
-  return {
-    currentAp: pikminAp,
-    healthRemaining,
-    timeRemaining: secondsToDuration(secondsRemaining),
-  };
-};

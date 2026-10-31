@@ -1,4 +1,5 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { setDateField } from "./testFixtures/dateFields";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
@@ -10,8 +11,8 @@ import { ExistingMushroomSeed } from "./mushroomCalculator";
 const renderCalculator = (
   initialValues?: ExistingMushroomSeed,
   initialDesiredEndTime?: Dayjs,
-) =>
-  render(
+) => {
+  const view = render(
     <ThemeProvider theme={createTheme({ palette: { mode: "dark" } })}>
       <LocalizationProvider dateAdapter={AdapterDayjs}>
         <ExistingMushroomCalc
@@ -21,6 +22,9 @@ const renderCalculator = (
       </LocalizationProvider>
     </ThemeProvider>,
   );
+  fireEvent.click(screen.getByRole("button", { name: "Additional players" }));
+  return view;
+};
 
 describe("ExistingMushroomCalc", () => {
   beforeEach(() => {
@@ -64,20 +68,14 @@ describe("ExistingMushroomCalc", () => {
     fireEvent.change(screen.getByLabelText("Health remaining"), {
       target: { value: "3000" },
     });
-    fireEvent.change(screen.getByLabelText("Hours"), {
+    fireEvent.change(screen.getByRole("textbox", { name: "Hours" }), {
       target: { value: "1" },
     });
 
-    const desiredEndInput = screen.getByLabelText(
-      "Desired end time",
-    ) as HTMLInputElement;
-    expect(desiredEndInput.disabled).toBe(false);
+    const desiredEndInput = screen.getByRole("group", { name: "Desired end time" });
+    expect(within(desiredEndInput).getByRole("spinbutton", { name: "Month" }).getAttribute("aria-disabled")).toBe("false");
 
-    fireEvent.change(desiredEndInput, {
-      target: {
-        value: dayjs().add(45, "minute").format("MM/DD/YYYY hh:mm A"),
-      },
-    });
+    setDateField(desiredEndInput, dayjs().add(45, "minute").format("MM/DD/YYYY hh:mm A"));
 
     expect(screen.getByRole("slider")).not.toBeNull();
   });
@@ -93,7 +91,7 @@ describe("ExistingMushroomCalc", () => {
     );
 
     const additionalApInput = screen.getByLabelText(
-      "Required total additional AP",
+      "Additional AP",
     ) as HTMLInputElement;
     expect(additionalApInput.value).toBe("11.111");
 
@@ -126,11 +124,7 @@ describe("ExistingMushroomCalc", () => {
     fireEvent.change(slider, { target: { value: "2699" } });
 
     expect(
-      (
-        screen.getByLabelText(
-          "Required total additional AP",
-        ) as HTMLInputElement
-      ).value,
+      (screen.getByLabelText("Additional AP") as HTMLInputElement).value,
     ).toBe("30,000");
   });
 
@@ -144,7 +138,7 @@ describe("ExistingMushroomCalc", () => {
       dayjs().add(45, "minute"),
     );
 
-    fireEvent.change(screen.getByLabelText("Required total additional AP"), {
+    fireEvent.change(screen.getByLabelText("Additional AP"), {
       target: { value: "20" },
     });
 
@@ -162,14 +156,14 @@ describe("ExistingMushroomCalc", () => {
     );
 
     const additionalApInput = screen.getByLabelText(
-      "Required total additional AP",
+      "Additional AP",
     ) as HTMLInputElement;
     const total = additionalApInput.value;
     fireEvent.click(screen.getByText("3"));
 
     expect(additionalApInput.value).toBe(total);
     expect(screen.getByTestId("divided-ap-result").textContent).toContain(
-      "each person needs 3.704 AP.",
+      "3.704 AP each",
     );
   });
 
@@ -186,70 +180,20 @@ describe("ExistingMushroomCalc", () => {
     ).toBe("1,800.5");
   });
 
-  it("debounces a mismatch warning without blocking the calculator", () => {
-    renderCalculator(
-      {
-        currentAp: 100,
-        healthRemaining: 1000,
-        timeRemaining: { days: 1, hours: 0, minutes: 0, seconds: 0 },
-      },
-      dayjs().add(1, "hour"),
-    );
-
-    expect(screen.queryByRole("alert")).toBeNull();
-    act(() => jest.advanceTimersByTime(400));
-
-    expect(screen.getByRole("alert").textContent).toContain(
-      "At 100 AP, 1,000 remaining health should take about 16m 40s",
-    );
-    expect(screen.getByRole("alert").textContent).toContain(
-      "Calculations below will use the values you entered.",
-    );
-
-    fireEvent.change(screen.getByLabelText("AP"), {
-      target: { value: "101" },
-    });
-    expect(screen.queryByRole("alert")).toBeNull();
-    act(() => jest.advanceTimersByTime(399));
-    expect(screen.queryByRole("alert")).toBeNull();
-    act(() => jest.advanceTimersByTime(1));
-    expect(screen.getByRole("alert").textContent).toContain("At 101 AP");
-
-    const desiredEndInput = screen
-      .getAllByLabelText("Desired end time")
-      .find((element) => element.tagName === "INPUT") as HTMLInputElement;
-    expect(desiredEndInput.disabled).toBe(false);
-    expect(screen.getByText(/If you bullhorn at/)).not.toBeNull();
-    expect(
-      (
-        screen.getByLabelText(
-          "Required total additional AP",
-        ) as HTMLInputElement
-      ).value,
-    ).toBe("0");
-  });
-
-  it("waits until the user leaves the duration fields before warning", () => {
+  it("uses entered values without showing snapshot discrepancy warnings", () => {
     renderCalculator({
       currentAp: 100,
       healthRemaining: 1000,
       timeRemaining: { days: 1, hours: 0, minutes: 0, seconds: 0 },
     });
-
-    const hoursInput = screen.getByLabelText("Hours");
-    fireEvent.focus(hoursInput);
     act(() => jest.advanceTimersByTime(1000));
     expect(screen.queryByRole("alert")).toBeNull();
-
-    fireEvent.blur(hoursInput);
-    act(() => jest.advanceTimersByTime(399));
-    expect(screen.queryByRole("alert")).toBeNull();
-
-    act(() => jest.advanceTimersByTime(1));
-    expect(screen.getByRole("alert")).not.toBeNull();
+    expect(
+      within(screen.getByRole("group", { name: "Desired end time" })).getByRole("spinbutton", { name: "Month" }).getAttribute("aria-disabled"),
+    ).toBe("false");
   });
 
-  it("keeps results mounted during a transient empty mobile replacement", () => {
+  it("hides unavailable results while a duration is cleared", () => {
     renderCalculator(
       {
         currentAp: 100,
@@ -259,19 +203,19 @@ describe("ExistingMushroomCalc", () => {
       dayjs().add(45, "minute"),
     );
 
-    const hoursInput = screen.getByLabelText("Hours");
+    const hoursInput = screen.getByRole("textbox", { name: "Hours" });
     expect(screen.getByRole("slider")).not.toBeNull();
 
     fireEvent.focus(hoursInput);
     fireEvent.change(hoursInput, { target: { value: "" } });
 
-    expect(screen.getByRole("slider")).not.toBeNull();
+    expect(screen.queryByRole("slider")).toBeNull();
 
     fireEvent.blur(hoursInput);
     expect(screen.queryByRole("slider")).toBeNull();
   });
 
-  it("reveals the next offscreen duration field without changing focus", () => {
+  it("does not scroll away from the edited duration field", () => {
     renderCalculator();
     const originalWidth = window.innerWidth;
     Object.defineProperty(window, "innerWidth", {
@@ -293,14 +237,11 @@ describe("ExistingMushroomCalc", () => {
       toJSON: () => ({}),
     });
 
-    fireEvent.change(screen.getByLabelText("Hours"), {
+    fireEvent.change(screen.getByRole("textbox", { name: "Hours" }), {
       target: { value: "1" },
     });
 
-    expect(scrollIntoView).toHaveBeenCalledWith({
-      behavior: "smooth",
-      block: "nearest",
-    });
+    expect(scrollIntoView).not.toHaveBeenCalled();
 
     jest.restoreAllMocks();
     Object.defineProperty(window, "innerWidth", {

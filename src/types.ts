@@ -1,7 +1,5 @@
-import { Dayjs } from "dayjs";
-import { red, orange, yellow, blue, purple, teal } from "@mui/material/colors";
-
 export const navbarHeight = 56;
+export const mobileNavigationHeight = 64;
 
 export interface Mushroom {
   key: string;
@@ -51,25 +49,6 @@ export const mushrooms: Mushroom[] = [
   { key: "gm", label: "Giant Event", value: 2880000, minimum: 2 * 20 },
 ];
 
-export interface ChallengeStage {
-  stage: string;
-  tries: number;
-}
-
-export const mushStages: ChallengeStage[] = [
-  { stage: "1-4", tries: 2 },
-  { stage: "2-2", tries: 2 },
-  { stage: "2-3", tries: 3 },
-  { stage: "2-4", tries: 4 },
-  { stage: "3-2", tries: 3 },
-  { stage: "3-3", tries: 4 },
-  { stage: "3-4", tries: 5 },
-  { stage: "4-1", tries: 3 },
-  { stage: "4-2", tries: 4 },
-  { stage: "4-3", tries: 4 },
-  { stage: "4-4", tries: 5 },
-];
-
 export type Mode = "calculator" | "calendar";
 
 export interface TimeRemaining {
@@ -86,30 +65,4 @@ export interface TimeRemainingInput {
   seconds: number | null;
 }
 
-export interface MushroomEvent {
-  id: string;
-  name?: string;
-  mush: Mushroom;
-  health: number;
-  pikminAp: number;
-  startTime: Dayjs;
-  endTime: Dayjs;
-}
-
 export type TimeUnit = "day" | "hour" | "minute" | "second";
-
-export interface Segment {
-  px: number;
-  color: string;
-}
-
-const shade = 700;
-
-export const colorPalette: string[] = [
-  blue[shade],
-  orange[shade],
-  purple[shade],
-  teal[shade],
-  yellow[shade],
-  red[shade],
-];

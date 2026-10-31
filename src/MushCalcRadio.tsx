@@ -1,7 +1,6 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import dayjs from "dayjs";
 import {
-  Autocomplete,
   Box,
   Button,
   Card,
@@ -14,23 +13,31 @@ import {
   Radio,
   RadioGroup,
   Stack,
-  TextField,
   ToggleButton,
   ToggleButtonGroup,
+  Typography,
 } from "@mui/material";
 import RefreshIcon from "@mui/icons-material/Refresh";
 
+import {
+  calculatorFormForFinish,
+  finishFromCalculator,
+  PlannerCalculationRequest,
+} from "./plannerCalculator";
+import { PlannerFinish } from "./stagePlanner";
 import DiscordTimestampField from "./DiscordTimestampField";
 import ExistingMushroomCalc from "./ExistingMushroomCalc";
 import JoinPlanner from "./JoinPlanner";
 import NumberSpinner from "./NumberSpinner";
 import SimpleDateTimeInput from "./SimpleDateTimeInput";
+import MushroomTypeField from "./MushroomTypeField";
+import { pairedFieldGridSx } from "./formStyles";
 import {
   getApForSelectedMushroom,
   NewMushroomFormState,
   recomputeDerived,
 } from "./mushroomCalculator";
-import { DerivedField, mushrooms, navbarHeight } from "./types";
+import { DerivedField, navbarHeight } from "./types";
 
 const getInitialState = (): NewMushroomFormState => ({
   derived: "endTime",
@@ -41,14 +48,47 @@ const getInitialState = (): NewMushroomFormState => ({
   endTime: null,
 });
 
-const MushCalcRadio = () => {
+const MushCalcRadio = ({
+  planningRequest,
+  onUsePlan,
+  onCancelPlan,
+  embedded = false,
+}: {
+  embedded?: boolean;
+  planningRequest?: PlannerCalculationRequest | null;
+  onUsePlan?: (finish: PlannerFinish) => void;
+  onCancelPlan?: () => void;
+}) => {
   const [calculatorMode, setCalculatorMode] = useState<"new" | "existing">(
     "new",
   );
+  const [newFormKey, setNewFormKey] = useState(0);
   const [existingFormKey, setExistingFormKey] = useState(0);
+  const [hasOpenedExisting, setHasOpenedExisting] = useState(false);
   const [form, setForm] = useState<NewMushroomFormState>(() =>
     getInitialState(),
   );
+
+  const originalDraft = useRef<{
+    form: NewMushroomFormState;
+    mode: "new" | "existing";
+  } | null>(null);
+  useEffect(() => {
+    if (planningRequest) {
+      setForm((previous) => {
+        if (!originalDraft.current)
+          originalDraft.current = { form: previous, mode: calculatorMode };
+        return calculatorFormForFinish(planningRequest.finish);
+      });
+      setCalculatorMode("new");
+    } else if (originalDraft.current) {
+      setForm(originalDraft.current.form);
+      setCalculatorMode(originalDraft.current.mode);
+      originalDraft.current = null;
+    }
+    // The request is an explicit handoff, independent of subsequent form edits.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [planningRequest]);
 
   const { derived, mush, health, pikminAp, startTime, endTime } = form;
 
@@ -57,6 +97,7 @@ const MushCalcRadio = () => {
       setExistingFormKey((key) => key + 1);
       return;
     }
+    setNewFormKey((key) => key + 1);
     setForm(getInitialState());
   };
 
@@ -89,13 +130,19 @@ const MushCalcRadio = () => {
 
   return (
     <Card
-      variant="elevation"
+      elevation={embedded ? 0 : 1}
       sx={{
-        maxHeight: { xs: "none", md: `calc(100dvh - ${navbarHeight}px)` },
+        ...(embedded && {
+          borderRadius: 0,
+          bgcolor: "transparent",
+          backgroundImage: "none",
+        }),
+        maxHeight: { xs: "none", md: `calc(100dvh - ${navbarHeight + 64}px)` },
         overflowY: { xs: "visible", md: "auto" },
       }}
     >
       <CardHeader
+        slotProps={{ title: { component: "h1" } }}
         title="Mushroom calculator"
         action={
           <Button
@@ -108,30 +155,60 @@ const MushCalcRadio = () => {
         }
       />
       <CardContent>
+        {planningRequest && (
+          <Box component="section" aria-label="Planner calculation" sx={{ mb: 2, p: 2, border: 1, borderColor: "divider", borderRadius: 1 }}>
+            <Typography variant="body2">{planningRequest.finish.title}</Typography>
+            <Stack direction="row" flexWrap="wrap" gap={1} sx={{ mt: 1 }}>
+              <Button
+                disabled={!hasCompleteBattlePlan || calculatorMode !== "new"}
+                onClick={() => {
+                  const finish = finishFromCalculator(
+                    planningRequest.finish,
+                    form,
+                  );
+                  if (finish) onUsePlan?.(finish);
+                }}
+              >
+                Use in planner
+              </Button>
+              <Button color="inherit" onClick={onCancelPlan}>
+                Cancel start-time plan
+              </Button>
+            </Stack>
+          </Box>
+        )}
         <ToggleButtonGroup
           value={calculatorMode}
           exclusive
           fullWidth
-          onChange={(_, value) => value && setCalculatorMode(value)}
+          onChange={(_, value) => {
+            if (!value) return;
+            if (value === "existing") setHasOpenedExisting(true);
+            setCalculatorMode(value);
+          }}
           aria-label="Mushroom calculator mode"
-          sx={{ mb: 3 }}
+          sx={{ mb: 3, "& .MuiToggleButton-root": { minHeight: 48, px: 1 } }}
         >
-          <ToggleButton value="new" sx={{ textTransform: "none" }}>
-            Plan a new battle
+          <ToggleButton value="new" aria-label="Plan a new battle">
+            New battle
           </ToggleButton>
-          <ToggleButton value="existing" sx={{ textTransform: "none" }}>
-            Plan a battle in progress
+          <ToggleButton value="existing" aria-label="Plan a battle in progress">
+            In progress
           </ToggleButton>
         </ToggleButtonGroup>
 
-        {calculatorMode === "existing" ? (
-          <ExistingMushroomCalc key={existingFormKey} />
-        ) : (
+        {hasOpenedExisting && (
+          <Box hidden={calculatorMode !== "existing"}>
+            <ExistingMushroomCalc key={existingFormKey} />
+          </Box>
+        )}
+        <Box key={newFormKey} hidden={calculatorMode !== "new"}>
           <Stack spacing={3}>
             <FormControl>
-              <FormLabel>What do you want to calculate?</FormLabel>
+              <FormLabel id="calculate-label">Calculate</FormLabel>
               <RadioGroup
                 row
+                aria-labelledby="calculate-label"
                 value={derived}
                 onChange={(_, value) =>
                   updateForm({ derived: value as DerivedField })
@@ -143,62 +220,70 @@ const MushCalcRadio = () => {
                     sm: "repeat(4, minmax(0, 1fr))",
                   },
                   columnGap: 1,
+                  rowGap: 0.5,
+                  "& .MuiFormControlLabel-root": {
+                    minHeight: 48,
+                    borderRadius: 1,
+                  },
                 }}
               >
                 <FormControlLabel
                   value="health"
                   control={<Radio />}
                   label="Health"
-                  sx={{ m: 0 }}
+                  sx={{
+                    m: 0,
+                    bgcolor:
+                      derived === "health" ? "action.selected" : undefined,
+                  }}
                 />
                 <FormControlLabel
                   value="ap"
                   control={<Radio />}
                   label="AP"
-                  sx={{ m: 0 }}
+                  sx={{
+                    m: 0,
+                    bgcolor: derived === "ap" ? "action.selected" : undefined,
+                  }}
                 />
                 <FormControlLabel
                   value="startTime"
                   control={<Radio />}
                   label="Start time"
-                  sx={{ m: 0 }}
+                  sx={{
+                    m: 0,
+                    bgcolor:
+                      derived === "startTime" ? "action.selected" : undefined,
+                  }}
                 />
                 <FormControlLabel
                   value="endTime"
                   control={<Radio />}
                   label="End time"
-                  sx={{ m: 0 }}
+                  sx={{
+                    m: 0,
+                    bgcolor:
+                      derived === "endTime" ? "action.selected" : undefined,
+                  }}
                 />
               </RadioGroup>
             </FormControl>
 
             <Divider />
 
-            <Autocomplete
-              disablePortal
-              options={mushrooms}
+            <MushroomTypeField
+              variant="preset"
               value={mush}
-              onChange={(_, newMush) => handleMushChange(newMush)}
-              renderInput={(params) => (
-                <TextField {...params} label="Mushroom type" />
-              )}
+              onChange={handleMushChange}
             />
 
-            <Box
-              sx={{
-                display: "grid",
-                gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
-                gap: 2,
-              }}
-            >
+            <Box sx={pairedFieldGridSx}>
               <NumberSpinner
                 label="Health"
                 min={1}
                 value={health}
                 readOnly={derived === "health"}
-                showStepper={false}
                 allowDecimal={false}
-                isToggled={derived === "health"}
                 onValueChange={(value) =>
                   updateForm({ health: value ?? Number.NaN })
                 }
@@ -208,9 +293,7 @@ const MushCalcRadio = () => {
                 min={2}
                 value={pikminAp}
                 readOnly={derived === "ap"}
-                showStepper={false}
                 allowDecimal={false}
-                isToggled={derived === "ap"}
                 unit="AP"
                 onValueChange={(value) =>
                   updateForm({ pikminAp: value ?? Number.NaN })
@@ -218,18 +301,11 @@ const MushCalcRadio = () => {
               />
             </Box>
 
-            <Box
-              sx={{
-                display: "grid",
-                gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
-                gap: 2,
-              }}
-            >
+            <Box sx={pairedFieldGridSx}>
               <Stack spacing={1.5}>
                 <SimpleDateTimeInput
                   label="Battle start time"
                   readOnly={derived === "startTime"}
-                  isToggled={derived === "startTime"}
                   showNowAction
                   value={startTime}
                   onChange={(value) => updateForm({ startTime: value })}
@@ -244,7 +320,6 @@ const MushCalcRadio = () => {
                 <SimpleDateTimeInput
                   label="End time"
                   readOnly={derived === "endTime"}
-                  isToggled={derived === "endTime"}
                   value={endTime}
                   onChange={(value) => updateForm({ endTime: value })}
                   minDateTime={startTime?.add(1, "minute") ?? undefined}
@@ -266,7 +341,7 @@ const MushCalcRadio = () => {
               />
             )}
           </Stack>
-        )}
+        </Box>
       </CardContent>
     </Card>
   );

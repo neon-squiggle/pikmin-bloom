@@ -1,8 +1,13 @@
 import dayjs, { Dayjs } from "dayjs";
-import { TimeRemaining, TimeRemainingInput } from "./types";
+import { TimeRemaining, TimeRemainingInput, TimeUnit } from "./types";
 
-const isPositiveFinite = (value: number) =>
-  Number.isFinite(value) && value > 0;
+// Countdown days are always 24 elapsed hours, even across local clock changes.
+export const addElapsedTime = (time: Dayjs, amount: number, unit: TimeUnit) => {
+  const secondsPerUnit = { day: 86400, hour: 3600, minute: 60, second: 1 };
+  return time.add(amount * secondsPerUnit[unit], "second");
+};
+
+const isPositiveFinite = (value: number) => Number.isFinite(value) && value > 0;
 
 export const calculateBattleDurationSeconds = (
   health: number,
@@ -215,12 +220,7 @@ export const calculateApAdditionDelay = ({
   secondsUntilTarget,
   additionalAp,
 }: ApAdditionDelayInput): number | null => {
-  const values = [
-    currentAp,
-    healthRemaining,
-    secondsUntilTarget,
-    additionalAp,
-  ];
+  const values = [currentAp, healthRemaining, secondsUntilTarget, additionalAp];
   if (
     values.some((value) => !Number.isFinite(value)) ||
     currentAp <= 0 ||
