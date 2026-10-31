@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { MenuItem, Stack, TextField } from "@mui/material";
+import { Stack } from "@mui/material";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import WallClockProvider from "./WallClockProvider";
 import SimpleDateTimeInput from "./SimpleDateTimeInput";
 import { finishTimeCandidates } from "./stagePlanner";
+import ClockOccurrenceField from "./ClockOccurrenceField";
 
 dayjs.extend(utc);
 
@@ -37,19 +38,23 @@ const PlannerFinishField = ({
       <WallClockProvider>
         <SimpleDateTimeInput
           label={label}
+          timezone="UTC"
           // This UTC value carries only the displayed clock. Intl below resolves
           // the chosen IANA zone, including gaps and both repeated occurrences.
           value={value ? dayjs.utc(value) : null}
           onChange={(date) => {
             setTouched(true);
-            onChange(
-              date?.isValid()
+            const next = date?.isValid()
                 ? date.format("YYYY-MM-DDTHH:mm:ss")
                 : date
                   ? "invalid"
-                  : "",
-            );
-            onOccurrenceChange("");
+                  : "";
+            onChange(next);
+            const choices = finishTimeCandidates(next, timezone);
+            const previous = candidates.indexOf(Number(occurrence));
+            onOccurrenceChange(candidates.length > 1 && choices.length > 1 && previous >= 0
+              ? String(choices[previous])
+              : "");
           }}
           showSeconds
           minDateTime={minValue ? dayjs.utc(minValue) : undefined}
@@ -61,28 +66,12 @@ const PlannerFinishField = ({
           }
         />
       </WallClockProvider>
-      {candidates.length > 1 && (
-        <TextField
-          select
-          fullWidth
-          label="Clock occurrence"
-          value={occurrence}
-          onChange={(event) => onOccurrenceChange(event.target.value)}
-          helperText="Choose first or second occurrence."
-        >
-          {candidates.map((candidate, index) => (
-            <MenuItem key={candidate} value={String(candidate)}>
-              {index === 0 ? "First" : "Second"} ·{" "}
-              {new Intl.DateTimeFormat(undefined, {
-                timeZone: timezone,
-                hour: "numeric",
-                minute: "2-digit",
-                timeZoneName: "short",
-              }).format(new Date(candidate))}
-            </MenuItem>
-          ))}
-        </TextField>
-      )}
+      <ClockOccurrenceField
+        candidates={candidates}
+        value={occurrence}
+        onChange={onOccurrenceChange}
+        timezone={timezone}
+      />
     </Stack>
   );
 };

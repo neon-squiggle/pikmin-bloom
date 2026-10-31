@@ -1,6 +1,12 @@
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
 import { ReactNode, useState } from "react";
-import { Dayjs } from "dayjs";
+import dayjs, { Dayjs } from "dayjs";
+import utc from "dayjs/plugin/utc";
+import { Stack } from "@mui/material";
+import ClockOccurrenceField from "./ClockOccurrenceField";
+import { finishTimeCandidates, localDateTime, preserveClockOccurrence } from "./wallClock";
+
+dayjs.extend(utc);
 
 interface SimpleDateTimeInputProps {
   label: string;
@@ -15,6 +21,7 @@ interface SimpleDateTimeInputProps {
   required?: boolean;
   error?: boolean;
   helperText?: ReactNode;
+  timezone?: "system" | "UTC";
 }
 
 const SimpleDateTimeInput = ({
@@ -30,8 +37,18 @@ const SimpleDateTimeInput = ({
   required = false,
   error,
   helperText,
+  timezone = "system",
 }: SimpleDateTimeInputProps) => {
   const [pickerError, setPickerError] = useState<string | null>(null);
+  const zone = timezone === "system"
+    ? Intl.DateTimeFormat().resolvedOptions().timeZone
+    : timezone;
+  const candidates = value?.isValid()
+    ? finishTimeCandidates(localDateTime(value.valueOf(), zone), zone)
+    : [];
+  const fromInstant = (instant: number) => timezone === "system"
+    ? dayjs(instant)
+    : dayjs.utc(instant);
   const errorMessage =
     pickerError == null
       ? undefined
@@ -45,34 +62,50 @@ const SimpleDateTimeInput = ({
             : "Choose an earlier date."
           : "Enter a valid date and time.";
   return (
-    <DateTimePicker
-      onError={(reason) => setPickerError(reason)}
-      label={label}
-      value={value}
-      onChange={onChange}
-      readOnly={readOnly}
-      disabled={disabled}
-      localeText={showNowAction ? { todayButtonLabel: "Now" } : undefined}
-      minDateTime={minDateTime}
-      maxDateTime={maxDateTime}
-      views={
-        showSeconds ? ["year", "day", "hours", "minutes", "seconds"] : undefined
-      }
-      timeSteps={showSeconds ? { minutes: 1, seconds: 1 } : undefined}
-      slotProps={{
-        textField: {
-          fullWidth: true,
-          required,
-          error: error ?? Boolean(pickerError),
-          helperText: helperText ?? errorMessage,
-        },
-        actionBar: {
-          actions: showNowAction
-            ? ["today", "clear", "cancel", "accept"]
-            : ["clear", "cancel", "accept"],
-        },
-      }}
-    />
+    <Stack spacing={2}>
+      <DateTimePicker
+        onError={(reason) => setPickerError(reason)}
+        label={label}
+        value={value}
+        timezone={timezone}
+        onChange={(next) => {
+          if (!next?.isValid()) return onChange(next);
+          const instant = preserveClockOccurrence(next.valueOf(), value?.valueOf(), zone);
+          onChange(instant === next.valueOf() ? next : fromInstant(instant));
+        }}
+        readOnly={readOnly}
+        disabled={disabled}
+        localeText={showNowAction ? { todayButtonLabel: "Now" } : undefined}
+        minDateTime={minDateTime}
+        maxDateTime={maxDateTime}
+        views={
+          showSeconds ? ["year", "day", "hours", "minutes", "seconds"] : undefined
+        }
+        timeSteps={showSeconds ? { minutes: 1, seconds: 1 } : undefined}
+        slotProps={{
+          textField: {
+            fullWidth: true,
+            required,
+            error: error ?? Boolean(pickerError),
+            helperText: helperText ?? errorMessage,
+          },
+          actionBar: {
+            actions: showNowAction
+              ? ["today", "clear", "cancel", "accept"]
+              : ["clear", "cancel", "accept"],
+          },
+        }}
+      />
+      <ClockOccurrenceField
+        candidates={candidates}
+        timezone={zone}
+        value={value?.isValid() ? String(Math.floor(value.valueOf() / 1000) * 1000) : ""}
+        onChange={(instant) => onChange(fromInstant(Number(instant) + (value?.millisecond() ?? 0)))}
+        disabled={disabled || readOnly}
+        min={minDateTime?.valueOf()}
+        max={maxDateTime?.valueOf()}
+      />
+    </Stack>
   );
 };
 
