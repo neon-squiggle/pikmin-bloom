@@ -1,5 +1,6 @@
 import { createWorker } from "tesseract.js";
 import { readBattleScreenshot } from "./readBattleScreenshot";
+import { locateBattleFields } from "./screenshotImage";
 
 jest.mock("tesseract.js", () => ({
   createWorker: jest.fn(),
@@ -16,6 +17,7 @@ jest.mock("./screenshotImage", () => {
   });
   return {
     findStatsRegion: () => ({}),
+    locateBattleFields: jest.fn(() => ({ health: {}, ap: {}, countdown: {} })),
     maskBattleField: pixels,
     cropTitleField: pixels,
     cropMushroomTypeField: pixels,
@@ -54,7 +56,8 @@ let originalCreate: typeof URL.createObjectURL;
 let originalRevoke: typeof URL.revokeObjectURL;
 beforeEach(() => {
   recognize.mockReset();
-  (createWorker as jest.Mock).mockResolvedValue({
+  (locateBattleFields as jest.Mock).mockReturnValue({ health: {}, ap: {}, countdown: {} });
+  (createWorker as jest.Mock).mockReset().mockResolvedValue({
     recognize,
     setParameters: jest.fn().mockResolvedValue(undefined),
     terminate: jest.fn().mockResolvedValue(undefined),
@@ -119,4 +122,14 @@ it("requests digit confidence for stats and warns only for uncertain numeric rea
   expect(
     recognize.mock.calls.slice(3).every((call) => call[2] === undefined),
   ).toBe(true);
+});
+
+it("requests manual entry before OCR when the battle icons cannot be located", async () => {
+  (locateBattleFields as jest.Mock).mockReturnValue({});
+  await expect(readBattleScreenshot(
+    new File(["pixels"], "battle.png", { type: "image/png" }),
+    new AbortController().signal,
+    jest.fn(),
+  )).rejects.toThrow(/Couldn't locate the health and AP icons/);
+  expect(createWorker).not.toHaveBeenCalled();
 });

@@ -19,11 +19,17 @@ describe("battle screenshot parsing", () => {
   it.each([
     ["17 510\n", 17510],
     ["745,735", 745735],
+    ["2,782,742\n", 2782742],
+    ["2782 742", null],
+    ["2,782742", null],
+    ["2782742", 2782742],
     ["40.690", 40690],
     ["369", 369],
     ["１０", 10],
     ["١٢٣", 123],
     ["10 20", null],
+    ["2,78,742", null],
+    ["2,,782,742", null],
     ["1O", null],
     ["10 AP", null],
     ["", null],
@@ -60,6 +66,8 @@ describe("battle screenshot parsing", () => {
       seconds: 16,
     });
     expect(parseScreenshotCountdown("8 xxx 16 yyy")).toBeNull();
+    expect(parseScreenshotCountdown("2 days 8 hrs. Bmins. 16 secs. left")).toBeNull();
+    expect(parseScreenshotCountdown("Pays 15 hrs. 6 mins. 39 secs. left")).toBeNull();
     expect(parseScreenshotCountdown("2 days 25 hrs 5 mins 4 secs")).toBeNull();
     expect(parseScreenshotCountdown("2 hrs 4 hrs")).toBeNull();
     expect(parseScreenshotCountdown("0 secs left")).toBeNull();

@@ -2,6 +2,7 @@ import type { Worker } from "tesseract.js";
 import {
   cropMushroomTypeField,
   findStatsRegion,
+  locateBattleFields,
   maskBattleField,
   cropTitleField,
   PixelImage,
@@ -66,7 +67,12 @@ const loadPixels = async (
         "This image is too large. Use the original phone screenshot or resize it below 24 megapixels.",
       );
     const canvas = document.createElement("canvas");
-    const scale = Math.min(1, 1600 / image.width);
+    // Normalize small images before locating strokes: a fixed 3-pixel icon
+    // filter must not erase digits in a screenshot resized for sharing.
+    const scale = Math.min(
+      Math.min(1600, Math.max(1000, image.width)) / image.width,
+      Math.sqrt(24_000_000 / (image.width * image.height)),
+    );
     canvas.width = Math.round(image.width * scale);
     canvas.height = Math.round(image.height * scale);
     const context = canvas.getContext("2d", { willReadFrequently: true });
@@ -115,6 +121,9 @@ export const readBattleScreenshot = async (
     throw error;
   });
   const stats = findStatsRegion(image);
+  const fields = locateBattleFields(image, stats);
+  if (!Object.keys(fields).length)
+    throw new Error("Couldn't locate the health and AP icons. Use a full battle screenshot, or enter the values manually.");
   const { parse } = await import("exifr");
   let capturedAt: string | null = null;
   try {
@@ -185,7 +194,7 @@ export const readBattleScreenshot = async (
       );
       let canvas: HTMLCanvasElement;
       try {
-        canvas = toCanvas(maskBattleField(image, stats, field));
+        canvas = toCanvas(maskBattleField(image, stats, field, fields));
       } catch {
         result.warnings.push(`Couldn't locate ${field}. Enter it manually.`);
         continue;

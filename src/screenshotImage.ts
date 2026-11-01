@@ -1,3 +1,5 @@
+import { findBattleStatAnchors, isApGreen, isHealthRed } from "./battleStatAnchors";
+
 export interface PixelImage {
   data: Uint8ClampedArray;
   width: number;
@@ -49,143 +51,113 @@ export const findStatsRegion = ({
   };
 };
 
+export type BattleField = "health" | "ap" | "countdown";
+export type BattleFieldRegions = Partial<Record<BattleField, ImageRegion>>;
+
+// Icon dimensions provide the font scale and spacing. Screenshot height is
+// deliberately absent from these offsets: adding space below the battle must
+// not move or truncate any numeric field.
+export const locateBattleFields = (image: PixelImage, stats: ImageRegion): BattleFieldRegions => {
+  const { health, ap } = findBattleStatAnchors(image, stats);
+  const fields: BattleFieldRegions = {};
+  if (health) {
+    const left = health.left + health.width + health.unit;
+    const right = ap ? ap.left - 4 * ap.unit : image.width * 0.75;
+    fields.health = { left, top: health.top - 2 * health.unit,
+      width: right - left, height: health.height + 6 * health.unit };
+  }
+  if (ap) {
+    const left = ap.left + ap.width + ap.unit;
+    fields.ap = { left, top: ap.top - 2 * ap.unit,
+      width: image.width * 0.99 - left, height: ap.height + 6 * ap.unit };
+  }
+  const anchor = health ?? ap;
+  if (anchor) {
+    const left = health?.left ?? image.width * 0.025;
+    const right = Math.min(image.width * 0.7, ap ? ap.left - 4 * ap.unit : image.width);
+    const top = anchor.top + anchor.height + 2 * anchor.unit;
+    const bottom = Math.min(top + 28 * anchor.unit, stats.top + stats.height - 3 * anchor.unit);
+    fields.countdown = { left, top, width: right - left, height: bottom - top };
+  }
+  return fields;
+};
+
 export const maskBattleField = (
   image: PixelImage,
   stats: ImageRegion,
-  field: "health" | "ap" | "countdown",
+  field: BattleField,
+  regions = locateBattleFields(image, stats),
 ): PixelImage => {
-  const { width, height, data } = image;
-  const sheetTop = stats.top + stats.height;
-  const x0 = Math.floor(
-    width * (field === "health" ? 0.105 : field === "ap" ? 0.65 : 0.025),
-  );
-  const x1 = Math.floor(
-    width * (field === "health" ? 0.7 : field === "ap" ? 0.99 : 0.7),
-  );
-  const y0 =
-    field === "countdown" ? Math.floor(sheetTop - height * 0.032) : stats.top;
-  const y1 = Math.floor(
-    sheetTop - height * (field === "countdown" ? 0.008 : 0.034),
-  );
-  const cropWidth = x1 - x0;
-  const cropHeight = y1 - y0;
-  const mask = new Uint8Array(cropWidth * cropHeight);
-  for (let y = 0; y < cropHeight; y++) {
-    for (let x = 0; x < cropWidth; x++) {
-      const i = ((y + y0) * width + x + x0) * 4;
-      const [r, g, b] = [data[i], data[i + 1], data[i + 2]];
-      const foreground =
-        field === "health"
-          ? r > 195 && g < 180 && b < 190 && r > g * 1.3
-          : field === "ap"
-            ? g > 85 && g > r * 1.3 && g > b * 1.5
-            : isWhite(r, g, b);
-      if (foreground) mask[y * cropWidth + x] = 1;
-    }
-  }
-
-  // Erode colored fills to remove the thin Pikmin icons beside AP. Keep the
-  // substantial connected digit strokes; commas may disappear harmlessly.
-  if (field !== "countdown") {
-    const eroded = new Uint8Array(mask.length);
-    for (let y = 1; y < cropHeight - 1; y++) {
-      for (let x = 1; x < cropWidth - 1; x++) {
-        let full = true;
-        for (let dy = -1; dy <= 1 && full; dy++) {
-          for (let dx = -1; dx <= 1; dx++) {
-            if (!mask[(y + dy) * cropWidth + x + dx]) {
-              full = false;
-              break;
-            }
-          }
-        }
-        if (full) eroded[y * cropWidth + x] = 1;
-      }
-    }
-    const visited = new Uint8Array(mask.length);
-    const components: number[][] = [];
-    for (let i = 0; i < eroded.length; i++) {
-      if (!eroded[i] || visited[i]) continue;
-      const component = [i];
-      visited[i] = 1;
-      for (let j = 0; j < component.length; j++) {
-        const pixel = component[j];
-        const x = pixel % cropWidth;
-        for (const next of [
-          pixel - cropWidth,
-          pixel + cropWidth,
-          ...(x > 0 ? [pixel - 1] : []),
-          ...(x < cropWidth - 1 ? [pixel + 1] : []),
-        ]) {
-          if (
-            next >= 0 &&
-            next < eroded.length &&
-            eroded[next] &&
-            !visited[next]
-          ) {
-            visited[next] = 1;
-            component.push(next);
-          }
-        }
-      }
-      components.push(component);
-    }
-    const largest = Math.max(
-      0,
-      ...components.map((component) => component.length),
-    );
-    const componentHeight = (component: number[]) => {
-      let top = cropHeight,
-        bottom = 0;
-      component.forEach((pixel) => {
-        const y = Math.floor(pixel / cropWidth);
-        top = Math.min(top, y);
-        bottom = Math.max(bottom, y);
-      });
-      return bottom - top + 1;
-    };
-    const tallest = Math.max(0, ...components.map(componentHeight));
-    mask.fill(0);
-    for (const component of components) {
-      if (
-        component.length >= Math.max(12, largest * 0.22) &&
-        componentHeight(component) >= tallest * 0.7
-      ) {
-        component.forEach((pixel) => {
-          mask[pixel] = 1;
-        });
-      }
-    }
-  }
-
-  let left = cropWidth,
-    right = 0,
-    top = cropHeight,
-    bottom = 0;
-  for (let i = 0; i < mask.length; i++) {
-    if (!mask[i]) continue;
-    const x = i % cropWidth,
-      y = Math.floor(i / cropWidth);
+  const region = regions[field];
+  if (!region || region.width <= 0 || region.height <= 0)
+    throw new Error(`Couldn't locate ${field} in the screenshot.`);
+  const crop = cropRegion(image, region);
+  // Keep the main white timer line separate from white outlines of health
+  // commas above it. Red/green number strokes are never eroded or edited.
+  if (field === "countdown") return maskCountdownLine(crop);
+  const mask = new Uint8Array(crop.width * crop.height);
+  let left = crop.width, right = -1, top = crop.height, bottom = -1;
+  for (let y = 0; y < crop.height; y++) for (let x = 0; x < crop.width; x++) {
+    const i = (y * crop.width + x) * 4;
+    if (!(field === "health" ? isHealthRed : isApGreen)(crop.data[i], crop.data[i + 1], crop.data[i + 2]))
+      continue;
+    mask[y * crop.width + x] = 1;
     left = Math.min(left, x);
     right = Math.max(right, x);
     top = Math.min(top, y);
     bottom = Math.max(bottom, y);
   }
-  if (left > right || top > bottom)
+  if (right < left || bottom < top)
     throw new Error(`Couldn't locate ${field} in the screenshot.`);
-  const outputWidth = right - left + 1 + 24;
-  const outputHeight = bottom - top + 1 + 24;
-  const output = new Uint8ClampedArray(outputWidth * outputHeight * 4).fill(
-    255,
-  );
-  for (let y = top; y <= bottom; y++) {
-    for (let x = left; x <= right; x++) {
-      if (!mask[y * cropWidth + x]) continue;
-      const i = ((y - top + 12) * outputWidth + x - left + 12) * 4;
-      output[i] = output[i + 1] = output[i + 2] = 0;
+  const width = right - left + 25, height = bottom - top + 25;
+  const data = new Uint8ClampedArray(width * height * 4).fill(255);
+  for (let y = top; y <= bottom; y++) for (let x = left; x <= right; x++) {
+    if (!mask[y * crop.width + x]) continue;
+    const i = ((y - top + 12) * width + x - left + 12) * 4;
+    data[i] = data[i + 1] = data[i + 2] = 0;
+  }
+  return { width, height, data };
+};
+
+const maskCountdownLine = (crop: PixelImage): PixelImage => {
+  // The font is always white. Locate its dominant uninterrupted text row;
+  // a detached health-comma fragment must not affect OCR word segmentation.
+  let start = 0, ink = 0, bestInk = 0, top = 0, bottom = 0;
+  for (let y = 0; y <= crop.height; y++) {
+    let count = 0;
+    if (y < crop.height) for (let x = 0; x < crop.width; x++) {
+      const i = (y * crop.width + x) * 4;
+      if (Math.min(crop.data[i], crop.data[i + 1], crop.data[i + 2]) > 200) count++;
+    }
+    if (count) {
+      if (!ink) start = y;
+      ink += count;
+    } else {
+      if (ink > bestInk) { bestInk = ink; top = start; bottom = y; }
+      ink = 0;
     }
   }
-  return { width: outputWidth, height: outputHeight, data: output };
+  if (!bestInk) throw new Error("Couldn't locate countdown in the screenshot.");
+  let left = crop.width, right = -1;
+  for (let y = top; y < bottom; y++) for (let x = 0; x < crop.width; x++) {
+    const i = (y * crop.width + x) * 4;
+    if (Math.min(crop.data[i], crop.data[i + 1], crop.data[i + 2]) > 200) {
+      left = Math.min(left, x); right = Math.max(right, x);
+    }
+  }
+  left = Math.max(0, left - 1); right = Math.min(crop.width - 1, right + 1);
+  top = Math.max(0, top - 1); bottom = Math.min(crop.height, bottom + 1);
+  const width = right - left + 25, height = bottom - top + 24;
+  const data = new Uint8ClampedArray(width * height * 4).fill(255);
+  for (let y = top; y < bottom; y++) for (let x = left; x <= right; x++) {
+    const i = (y * crop.width + x) * 4;
+    // Preserve soft edges as gray, with the known white fill rendered black.
+    const light = Math.min(crop.data[i], crop.data[i + 1], crop.data[i + 2]);
+    const gray = 255 - Math.max(0, Math.min(255, (light - 170) * 3));
+    const out = ((y - top + 12) * width + x - left + 12) * 4;
+    data[out] = data[out + 1] = data[out + 2] = gray;
+  }
+  return { width, height, data };
 };
 
 const cropRegion = (image: PixelImage, region: ImageRegion): PixelImage => {

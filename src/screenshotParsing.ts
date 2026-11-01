@@ -37,7 +37,18 @@ export const parseScreenshotCountdown = (
       /(\d+)\s*(days?|hours?|hrs?|minutes?|mins?|seconds?|secs?)\b/gi,
     ),
   );
-  if (!matches.length || matches.length !== numbers.length) return null;
+  // A visible unit with an unreadable value (for example "Bmins") is not an
+  // omitted unit. Do not silently replace that unreadable number with zero.
+  const labels = normalized.match(/(?:days?|hours?|hrs?|minutes?|mins?|seconds?|secs?)\b/gi) ?? [];
+  if (!matches.length || matches.length !== numbers.length || labels.length !== matches.length)
+    return null;
+  // A damaged label such as "Pays" may have lost its day value too. Unknown
+  // words must not be interpreted as an omitted unit with a value of zero.
+  const unparsed = normalized
+    .replace(/\d+\s*(days?|hours?|hrs?|minutes?|mins?|seconds?|secs?)\b/gi, "")
+    .replace(/\bleft\b/gi, "")
+    .replace(/[\s.,:;…]/g, "");
+  if (unparsed) return null;
   const countdown = { days: 0, hours: 0, minutes: 0, seconds: 0 };
   const seen = new Set<string>();
   for (const [, value, label] of matches) {

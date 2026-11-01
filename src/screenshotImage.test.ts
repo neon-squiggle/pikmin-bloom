@@ -50,14 +50,54 @@ it.each([
   },
 );
 
-it("removes the thin green icons beside substantial AP digits", () => {
+it("preserves AP strokes inside the located number crop", () => {
   const pixels = image(600, 1200);
   fill(pixels, 0, 600, 600, 600, [255, 255, 255]);
   fill(pixels, 510, 525, 15, 30, [90, 180, 20]);
   fill(pixels, 540, 525, 20, 30, [90, 180, 20]);
   fill(pixels, 465, 520, 3, 35, [90, 180, 20]);
-  const field = maskBattleField(pixels, findStatsRegion(pixels), "ap");
-  expect(field.width).toBe(72); // Only the two digits and their padding.
+  const field = maskBattleField(pixels, findStatsRegion(pixels), "ap", { ap: { left: 500, top: 515, width: 80, height: 44 } });
+  expect(field.width).toBe(74); // Original digit strokes and padding, no icons.
+  let ink = 0;
+  for (let i = 0; i < field.data.length; i += 4)
+    if (field.data[i] === 0) ink++;
+  expect(ink).toBe((15 + 20) * 30);
+});
+
+it("preserves health digit strokes and small thousands separators", () => {
+  const pixels = image(600, 1200);
+  fill(pixels, 0, 600, 600, 600, [255, 255, 255]);
+  fill(pixels, 100, 510, 20, 30, [255, 90, 100]);
+  fill(pixels, 140, 510, 20, 30, [255, 90, 100]);
+  fill(pixels, 125, 536, 4, 8, [255, 90, 100]);
+  const field = maskBattleField(pixels, findStatsRegion(pixels), "health", { health: { left: 80, top: 500, width: 100, height: 59 } });
+  let ink = 0;
+  for (let i = 0; i < field.data.length; i += 4)
+    if (field.data[i] === 0) ink++;
+  expect(ink).toBe(2 * 20 * 30 + 4 * 8);
+});
+
+it("preserves AP thousands separators below the digit baseline", () => {
+  const pixels = image(600, 1200);
+  fill(pixels, 0, 600, 600, 600, [255, 255, 255]);
+  fill(pixels, 510, 525, 15, 30, [90, 180, 20]);
+  fill(pixels, 540, 525, 20, 30, [90, 180, 20]);
+  fill(pixels, 530, 555, 4, 4, [90, 180, 20]);
+  const field = maskBattleField(pixels, findStatsRegion(pixels), "ap", { ap: { left: 500, top: 515, width: 80, height: 44 } });
+  let ink = 0;
+  for (let i = 0; i < field.data.length; i += 4)
+    if (field.data[i] === 0) ink++;
+  expect(ink).toBe((15 + 20) * 30 + 4 * 4);
+});
+
+it("preserves antialiased countdown edges as gray instead of erasing them", () => {
+  const pixels = image(600, 1200);
+  fill(pixels, 0, 600, 600, 600, [255, 255, 255]);
+  fill(pixels, 30, 570, 3, 12, [255, 255, 255]);
+  fill(pixels, 29, 570, 1, 12, [210, 220, 220]);
+  const field = maskBattleField(pixels, findStatsRegion(pixels), "countdown", { countdown: { left: 15, top: 561, width: 405, height: 30 } });
+  expect(Array.from(field.data).some((value, i) => i % 4 === 0 && value === 135)).toBe(true);
+  expect(Array.from(field.data).some((value, i) => i % 4 === 0 && value === 0)).toBe(true);
 });
 
 it("fails clearly when the required panel or colored field is absent", () => {
