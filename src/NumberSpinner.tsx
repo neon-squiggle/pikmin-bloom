@@ -51,13 +51,20 @@ export default function NumberSpinner({
   );
   const focusedRef = React.useRef(false);
   const inputRef = React.useRef<HTMLInputElement>(null);
-  const selectAfterFormatting = React.useRef(false);
+  const selectionAfterFormatting = React.useRef<{
+    start: number;
+    end: number;
+    direction: "forward" | "backward" | "none";
+  } | null>(null);
   const [touched, setTouched] = React.useState(false);
 
   React.useLayoutEffect(() => {
-    if (selectAfterFormatting.current) {
-      inputRef.current?.select();
-      selectAfterFormatting.current = false;
+    const selection = selectionAfterFormatting.current;
+    if (selection) {
+      const input = inputRef.current;
+      if (input && document.activeElement === input)
+        input.setSelectionRange(selection.start, selection.end, selection.direction);
+      selectionAfterFormatting.current = null;
     }
   }, [inputValue]);
 
@@ -133,13 +140,24 @@ export default function NumberSpinner({
               if (parsed != null) {
                 const draft = formatNumericInput(parsed, locale, false);
                 if (draft !== inputValue) {
-                  // Restore select-on-focus after React replaces the formatted text.
-                  selectAfterFormatting.current = true;
+                  // Removing grouping must not replace the browser's caret or
+                  // selection with a forced jump or select-all.
+                  const input = inputRef.current;
+                  if (input?.selectionStart != null && input.selectionEnd != null) {
+                    const group = new Intl.NumberFormat(locale).formatToParts(12345)
+                      .find((part) => part.type === "group")?.value;
+                    const offset = (position: number) => Math.min(draft.length,
+                      group ? inputValue.slice(0, position).split(group).join("").length : position);
+                    selectionAfterFormatting.current = {
+                      start: offset(input.selectionStart),
+                      end: offset(input.selectionEnd),
+                      direction: input.selectionDirection ?? "none",
+                    };
+                  }
                   setInputValue(draft);
                 }
               }
             }
-            inputRef.current?.select();
           }}
           onBlur={() => {
             focusedRef.current = false;

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 
@@ -32,15 +32,48 @@ describe("NumberSpinner", () => {
     expect(input.value).toBe("12,945");
   });
 
-  it("keeps the focus selection available for replacing a formatted value", () => {
+  it("allows explicitly selecting all to replace a formatted value", () => {
     const onChange = jest.fn();
     render(<NumberSpinner label="AP" value={123456} allowDecimal={false} onValueChange={onChange} />);
     const input = screen.getByRole("textbox", { name: "AP" }) as HTMLInputElement;
     userEvent.click(input);
+    input.setSelectionRange(0, input.value.length);
     userEvent.type(input, "42", { skipClick: true });
     expect(input.value).toBe("42");
     expect(onChange).toHaveBeenLastCalledWith(42);
   });
+
+  it("leaves ordinary focus caret placement to the browser", () => {
+    render(<NumberSpinner label="AP" value={123} allowDecimal={false} />);
+    const input = screen.getByRole("textbox", { name: "AP" }) as HTMLInputElement;
+    input.setSelectionRange(1, 1);
+    act(() => input.focus());
+    expect([input.selectionStart, input.selectionEnd]).toEqual([1, 1]);
+  });
+
+  it.each(["en-US", "de-DE", "fr-FR", "hi-IN", "ar-EG"])(
+    "preserves a caret or partial selection while removing grouping in %s", (locale) => {
+      const onChange = jest.fn();
+      render(<NumberSpinner locale={locale} label="Health" value={123456} allowDecimal={false} onValueChange={onChange} />);
+      const input = screen.getByRole("textbox", { name: "Health" }) as HTMLInputElement;
+      const digit = new Intl.NumberFormat(locale, { useGrouping: false });
+      input.setSelectionRange(input.value.indexOf(digit.format(4)) + 1, input.value.indexOf(digit.format(4)) + 1);
+      act(() => input.focus());
+      expect(input.value).toBe(digit.format(123456));
+      expect([input.selectionStart, input.selectionEnd]).toEqual([4, 4]);
+      userEvent.type(input, "{backspace}", { skipClick: true });
+      expect(onChange).toHaveBeenLastCalledWith(12356);
+      userEvent.tab();
+
+      const first = input.value.indexOf(digit.format(2));
+      const last = input.value.indexOf(digit.format(5)) + 1;
+      input.setSelectionRange(first, last, "backward");
+      act(() => input.focus());
+      expect([input.selectionStart, input.selectionEnd, input.selectionDirection]).toEqual([1, 4, "backward"]);
+      userEvent.type(input, "{backspace}", { skipClick: true });
+      expect(onChange).toHaveBeenLastCalledWith(16);
+    },
+  );
 
   it("keeps a formatted integer valid and editable after repeated edits", () => {
     const onValueChange = jest.fn();
