@@ -12,8 +12,9 @@ const getBuildVersion = (command, filename = path.join(__dirname, '../build-vers
 };
 
 if (require.main === module) {
-  const command = process.argv[2];
-  const version = getBuildVersion(command);
+  const requestedCommand = process.argv[2];
+  const command = requestedCommand === 'check-build' ? 'build' : requestedCommand;
+  const version = getBuildVersion(requestedCommand);
   const result = spawnSync(process.execPath, [require.resolve('react-scripts/bin/react-scripts'), command], {
     stdio: 'inherit',
     env: {

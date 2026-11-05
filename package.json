@@ -27,6 +27,7 @@
   "scripts": {
     "start": "node scripts/run-app.cjs start",
     "build": "node scripts/run-app.cjs build",
+    "build:check": "node scripts/run-app.cjs check-build",
     "lint": "eslint src --ext .ts,.tsx --max-warnings=0",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
@@ -34,7 +35,8 @@
     "deploy": "gh-pages -d build",
     "prepare:ocr": "node scripts/prepare-ocr.cjs",
     "prestart": "npm run prepare:ocr",
-    "prebuild": "npm run prepare:ocr"
+    "prebuild": "npm run prepare:ocr",
+    "prebuild:check": "npm run prepare:ocr"
   },
   "eslintConfig": {
     "extends": [
