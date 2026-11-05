@@ -20,6 +20,8 @@ interface JoinPlannerProps {
   referenceTime: Dayjs;
   baselineEndTime: Dayjs | null;
   initialTargetEndTime?: Dayjs | null;
+  referenceLabel?: string;
+  unavailableReason?: string;
 }
 const roundAp = (value: number) =>
   Math.round((value + Number.EPSILON) * 1000) / 1000;
@@ -32,6 +34,8 @@ const JoinPlanner = ({
   referenceTime,
   baselineEndTime,
   initialTargetEndTime = null,
+  referenceLabel,
+  unavailableReason = "Enter valid battle values first.",
 }: JoinPlannerProps) => {
   const headingId = useId();
   const [targetEndTime, setTargetEndTime] = useState<Dayjs | null>(
@@ -58,7 +62,7 @@ const JoinPlanner = ({
     : !targetEndTime.isValid()
       ? "Enter a valid date and time."
       : !baselineEndTime
-        ? "Enter valid battle values first."
+        ? unavailableReason
         : secondsUntilTarget <= 0
           ? `Choose an end time after ${formatTime(referenceTime)}.`
           : secondsUntilTarget >= baselineSeconds
@@ -114,7 +118,7 @@ const JoinPlanner = ({
             resetAp();
           }}
           error={Boolean(targetError)}
-          helperText={targetError || (!baselineEndTime ? "Enter valid battle values first." : !targetIsEarlier ? "Set a desired end time to continue." : " ")}
+          helperText={targetError || (!baselineEndTime ? unavailableReason : !targetIsEarlier ? "Set a desired end time to continue." : " ")}
           minDateTime={referenceTime.add(1, "second")}
           maxDateTime={baselineEndTime ?? undefined}
         />
@@ -185,7 +189,7 @@ const JoinPlanner = ({
           <Typography
             variant="caption"
             color="text.secondary"
-            aria-label={`${variant === "planned" ? "Battle start" : "Now"}: ${formatEndpoint(referenceTime)}`}
+            aria-label={`${referenceLabel ?? (variant === "planned" ? "Battle start" : "Now")}: ${formatEndpoint(referenceTime)}`}
           >
             {formatEndpoint(referenceTime)}
           </Typography>

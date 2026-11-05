@@ -18,7 +18,7 @@ interface ReadCallbacks {
   keepPending?: boolean;
   onRead: (result: BattleScreenshotResult, file: File, index: number) => void;
   onError: (
-    failure: { timedOut: boolean; message?: string },
+    failure: { timedOut: boolean; message?: string; stage: string },
     file: File,
   ) => void;
 }
@@ -55,9 +55,11 @@ const useScreenshotReader = () => {
       for (let index = 0; index < files.length; index++) {
         if (controller.signal.aborted) break;
         const file = files[index];
+        let stage = "Opening screenshot…";
         const isCurrent = () =>
           active.current === controller && !controller.signal.aborted;
         const updateProgress = (message: string) => {
+          stage = message;
           if (isCurrent())
             setProgress({
               message,
@@ -104,6 +106,7 @@ const useScreenshotReader = () => {
             callbacks.onError(
               {
                 timedOut,
+                stage,
                 message: error instanceof Error ? error.message : undefined,
               },
               file,
@@ -122,7 +125,9 @@ const useScreenshotReader = () => {
       }
     }
   };
-  return { reading, progress, pendingFiles, readFiles, cancel };
+  const dismissFile = (file: File) =>
+    setPendingFiles((previous) => previous.filter((pending) => pending !== file));
+  return { reading, progress, pendingFiles, readFiles, cancel, dismissFile };
 };
 
 export default useScreenshotReader;

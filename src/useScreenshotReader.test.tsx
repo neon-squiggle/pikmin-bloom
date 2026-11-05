@@ -1,4 +1,5 @@
-import { act, renderHook } from "@testing-library/react";
+import { act, fireEvent, render, renderHook, screen } from "@testing-library/react";
+import { useState } from "react";
 import {
   BattleScreenshotResult,
   readBattleScreenshot,
@@ -6,6 +7,7 @@ import {
 import useScreenshotReader, {
   SCREENSHOT_READ_TIMEOUT_MS,
 } from "./useScreenshotReader";
+import ScreenshotReadingStatus from "./ScreenshotReadingStatus";
 
 jest.mock("./readBattleScreenshot", () => ({
   readBattleScreenshot: jest.fn(),
@@ -25,13 +27,50 @@ const file = (name: string) =>
   new File(["pixels"], name, { type: "image/png" });
 const pending = () => {
   let resolve!: (value: BattleScreenshotResult) => void;
-  const promise = new Promise<BattleScreenshotResult>((done) => {
+  let reject!: (reason: Error) => void;
+  const promise = new Promise<BattleScreenshotResult>((done, fail) => {
     resolve = done;
+    reject = fail;
   });
-  return { promise, resolve };
+  return { promise, resolve, reject };
 };
 beforeEach(() => read.mockReset());
 afterEach(() => jest.useRealTimers());
+
+it("shows batch progress by finished files, including failures, rather than OCR stage updates", async () => {
+  const first = pending(), second = pending(), third = pending();
+  read.mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise).mockReturnValueOnce(third.promise);
+  const files = [file("first.png"), file("bad.png"), file("last.png")];
+  const onRead = jest.fn(), onError = jest.fn();
+  const Batch = () => {
+    const { progress, readFiles } = useScreenshotReader();
+    const [reviewCount, setReviewCount] = useState(0);
+    return <>
+      <button onClick={() => void readFiles(files, { onRead, onError: (failure, file) => {
+        onError(failure, file);
+        setReviewCount((count) => count + 1);
+      } })}>Read batch</button>
+      <ScreenshotReadingStatus progress={progress} batch reviewCount={reviewCount} />
+    </>;
+  };
+  render(<Batch />);
+  fireEvent.click(screen.getByRole("button", { name: "Read batch" }));
+  const percent = () => Number(screen.getByRole("progressbar", { name: "Reading screenshots" }).getAttribute("aria-valuenow"));
+  expect(screen.getByRole("progressbar").getAttribute("aria-valuenow")).toBe("0");
+  expect(screen.getByText("0/3 processed · 0 need review")).not.toBeNull();
+  await act(async () => first.resolve(sample));
+  expect(percent()).toBe(33);
+  expect(screen.getByText("1/3 processed · 0 need review")).not.toBeNull();
+  await act(async () => second.reject(new Error("Unreadable")));
+  expect(percent()).toBe(67);
+  expect(screen.getByText("2/3 processed · 1 needs review")).not.toBeNull();
+  act(() => read.mock.calls[2][2]?.("Reading countdown…"));
+  expect(percent()).toBe(67);
+  await act(async () => third.resolve(sample));
+  expect(screen.queryByRole("progressbar")).toBeNull();
+  expect(onRead).toHaveBeenCalledTimes(2);
+  expect(onError).toHaveBeenCalledTimes(1);
+});
 
 it("reads a batch sequentially, keeps successful files after a failure, and requests identity only when needed", async () => {
   read
@@ -50,7 +89,7 @@ it("reads a batch sequentially, keeps successful files after a failure, and requ
     "two.png",
   ]);
   expect(onError).toHaveBeenCalledWith(
-    { timedOut: false, message: "Invalid image" },
+    { timedOut: false, message: "Invalid image", stage: "Opening screenshot…" },
     files[1],
   );
   expect(read.mock.calls.every((call) => call[3] === true)).toBe(true);

@@ -1,6 +1,5 @@
 import { useRef, useState } from "react";
 import {
-  Alert,
   Box,
   Button,
   Fab,
@@ -17,6 +16,7 @@ import {
 import SectionAccordion from "./SectionAccordion";
 import AddIcon from "@mui/icons-material/Add";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import MushroomTypeField from "./MushroomTypeField";
 import AddPhotoAlternateOutlinedIcon from "@mui/icons-material/AddPhotoAlternateOutlined";
 import useScreenshotReader from "./useScreenshotReader";
@@ -44,6 +44,9 @@ import ResponsiveDialog from "./ResponsiveDialog";
 import { formatPlannerDateTime } from "./plannerDateTime";
 import PlannerTryDateField from "./PlannerTryDateField";
 import { validTryDate } from "./hypotheticalTries";
+import ScreenshotPreview from "./ScreenshotPreview";
+
+interface ReviewDraft extends ScreenshotDraft { file: File; manual?: boolean }
 
 const validDraft = (draft: ScreenshotDraft, finishes: PlannerFinish[], timezone: string) => {
   const tryDay = screenshotTryDay(draft, finishes);
@@ -62,7 +65,7 @@ const ReviewRow = ({
   onChange,
   onSkip,
 }: {
-  draft: ScreenshotDraft;
+  draft: ReviewDraft;
   finishes: PlannerFinish[];
   matchesExisting: boolean;
   timezone: string;
@@ -81,6 +84,7 @@ const ReviewRow = ({
     draft.capturedAt ? String(Date.parse(draft.capturedAt)) : "",
   );
   const end = draftFinishTime(draft);
+  const needsReview = !validDraft(draft, finishes, timezone);
   const countdownError =
     !draft.countdown || !parseTimeRemaining(draft.countdown);
   const setCaptureTime = (wallTime: string, choice: string) => {
@@ -92,16 +96,22 @@ const ReviewRow = ({
   return (
     <SectionAccordion
       headingLevel="h3"
-      data-needs-review={!validDraft(draft, finishes, timezone)}
+      data-needs-review={needsReview}
       component="section"
       aria-label={`Review ${draft.filename}`}
       expanded={expanded}
       onChange={(_, value) => setExpanded(value)}
       title={
         <Stack component="span" spacing={0.5} sx={{ minWidth: 0 }}>
-          <Typography component="span" variant="subtitle2" sx={{ overflowWrap: "anywhere" }}>
-            {draft.title || draft.filename}
-          </Typography>
+          <Box component="span" sx={{ display: "flex", alignItems: "center", gap: 1, minWidth: 0 }}>
+            {needsReview && <ErrorOutlineIcon color="error" fontSize="small" titleAccess="Needs review" sx={{ flexShrink: 0 }} />}
+            <Typography component="span" variant="subtitle2" sx={{ overflowWrap: "anywhere", minWidth: 0 }}>
+              {draft.title || draft.filename}
+            </Typography>
+          </Box>
+          {draft.title && <Typography variant="caption" color="text.secondary">
+            {draft.filename}
+          </Typography>}
           <Typography variant="caption" color="text.secondary">
             {draft.type}
             {end != null ? ` · ${formatPlannerDateTime(end, timezone)}` : ""}
@@ -115,12 +125,14 @@ const ReviewRow = ({
       }
     >
       <Stack spacing={2}>
-        {draft.warnings.length > 0 && (
-          <AppNotice severity="warning" message={draft.warnings.join(" ")} />
+        <ScreenshotPreview file={draft.file} />
+        {needsReview && draft.warnings.length > 0 && (
+          <AppNotice severity="error" message={draft.warnings.join(" ")} />
         )}
         <TextField
           fullWidth
           required
+          autoFocus={draft.manual}
           label="Title"
           error={!draft.title.trim()}
           helperText={!draft.title.trim() ? "Enter a title." : undefined}
@@ -221,28 +233,50 @@ const CalendarScreenshotUpload = ({
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const input = useRef<HTMLInputElement>(null);
+  const fileIds = useRef(new WeakMap<File, string>());
+  const nextFileId = useRef(0);
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   const [open, setOpen] = useState(false);
-  const { reading, progress, pendingFiles, readFiles, cancel } =
+  const { reading, progress, pendingFiles, readFiles, cancel, dismissFile } =
     useScreenshotReader();
-  const [drafts, setDrafts] = useState<ScreenshotDraft[]>([]);
-  const [errors, setErrors] = useState<string[]>([]);
+  const [drafts, setDrafts] = useState<ReviewDraft[]>([]);
+  const [errors, setErrors] = useState<Map<File, string>>(new Map());
+  const invalidDraftCount = drafts.filter((draft) => !validDraft(draft, finishes, timezone)).length;
+  const reviewCount = invalidDraftCount + (reading ? errors.size : pendingFiles.length);
+  const reviewDescription = reviewCount === 1 ? "1 screenshot needs review" : `${reviewCount} screenshots need review`;
+  const dismissPendingFile = (file: File) => {
+    dismissFile(file);
+    setErrors((previous) => {
+      const next = new Map(previous);
+      next.delete(file);
+      return next;
+    });
+  };
   const upload = (files: File[], append: boolean) => {
+    files.forEach((file) => {
+      if (!fileIds.current.has(file)) fileIds.current.set(file, `screenshot-${Date.now()}-${nextFileId.current++}`);
+    });
     setAnchor(null);
     if (!append) {
       setDrafts([]);
-      setErrors([]);
+      setErrors(new Map());
     }
+    setErrors((previous) => {
+      const next = new Map(previous);
+      files.forEach((file) => next.delete(file));
+      return next;
+    });
     setOpen(true);
     void readFiles(files, {
       includeIdentity: true,
       keepPending: append,
-      onRead: (result, file, index) =>
+      onRead: (result, file) =>
         setDrafts((previous) => [
           ...previous,
           {
-            id: `screenshot-${Date.now()}-${index}-${Math.random().toString(36).slice(2)}`,
+            id: fileIds.current.get(file)!,
             filename: file.name,
+            file,
             title: result.title ?? "",
             type: result.mushroomType ?? "",
             capturedAt: result.capturedAt,
@@ -252,11 +286,10 @@ const CalendarScreenshotUpload = ({
             ),
           },
         ]),
-      onError: ({ timedOut, message }, file) =>
-        setErrors((previous) => [
-          ...previous,
-          `${file.name}: ${timedOut ? "Reading took too long." : (message ?? "Could not read this screenshot.")}`,
-        ]),
+      onError: ({ timedOut, message, stage }, file) =>
+        setErrors((previous) => new Map(previous).set(file,
+          `${file.name}: ${timedOut ? "Reading took too long." : (message ?? "Could not read this screenshot.")} Stopped at: ${stage}`,
+        )),
     });
   };
   const close = () => {
@@ -277,6 +310,7 @@ const CalendarScreenshotUpload = ({
         <Fab
           className="screenshot-fab"
           aria-label="Add mushrooms"
+          title={reviewCount > 0 ? reviewDescription : undefined}
           onClick={(event) => setAnchor(event.currentTarget)}
           variant="extended"
           color="primary"
@@ -290,12 +324,16 @@ const CalendarScreenshotUpload = ({
         >
           <AddIcon />
           Add mushrooms
+          {reviewCount > 0 && <ErrorOutlineIcon color="error" fontSize="small" titleAccess="Screenshots need review" />}
         </Fab>
       ) : (
         <Button
+          aria-label="Add mushrooms"
+          title={reviewCount > 0 ? reviewDescription : undefined}
           variant="contained"
           onClick={(event) => setAnchor(event.currentTarget)}
           startIcon={<AddIcon />}
+          endIcon={reviewCount > 0 ? <ErrorOutlineIcon color="error" titleAccess="Screenshots need review" /> : undefined}
           sx={{ whiteSpace: "nowrap" }}
         >
           Add mushrooms
@@ -319,11 +357,14 @@ const CalendarScreenshotUpload = ({
         </MenuItem>
         {(drafts.length > 0 || pendingFiles.length > 0) && (
           <MenuItem
+            aria-label="Resume screenshots"
+            title={reviewCount > 0 ? reviewDescription : undefined}
             onClick={() => {
               setAnchor(null);
               setOpen(true);
             }}
           >
+            {reviewCount > 0 && <ListItemIcon><ErrorOutlineIcon color="error" titleAccess="Screenshots need review" /></ListItemIcon>}
             Resume screenshots
           </MenuItem>
         )}
@@ -371,8 +412,7 @@ const CalendarScreenshotUpload = ({
               onClick={() => {
                 onSave(mergeScreenshotDrafts(finishes, drafts));
                 setDrafts([]);
-                setErrors([]);
-                setOpen(false);
+                setOpen(pendingFiles.length > 0);
               }}
             >
               Save {drafts.length || ""} mushrooms
@@ -382,14 +422,13 @@ const CalendarScreenshotUpload = ({
       >
         {reading && (
           <Box sx={{ mb: 2 }}>
-            <ScreenshotReadingStatus progress={progress} batch />
+            <ScreenshotReadingStatus progress={progress} batch reviewCount={reviewCount} />
           </Box>
         )}
         {!reading && pendingFiles.length > 0 && (
           <Box sx={{ mb: 2 }}>
             <Button
               onClick={() => {
-                setErrors([]);
                 upload(pendingFiles, true);
               }}
             >
@@ -398,10 +437,10 @@ const CalendarScreenshotUpload = ({
             </Button>
           </Box>
         )}
-        {!reading && drafts.some((draft) => !validDraft(draft, finishes, timezone)) && (
+        {!reading && invalidDraftCount > 0 && (
           <AppNotice
             severity="error"
-            message={`${drafts.filter((draft) => !validDraft(draft, finishes, timezone)).length} screenshots need review`}
+            message={invalidDraftCount === 1 ? "1 screenshot needs review" : `${invalidDraftCount} screenshots need review`}
             sx={{ mb: 2 }}
             action={
               <Button
@@ -431,11 +470,31 @@ const CalendarScreenshotUpload = ({
             }
           />
         )}
-        {errors.length > 0 && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {errors.length === 1 ? errors[0] : `${errors.length} screenshots could not be read. Retry the pending screenshots.`}
-          </Alert>
-        )}
+        {pendingFiles.map((file) => (
+          <Stack key={fileIds.current.get(file)} component="section" aria-label={`Unread ${file.name}`}
+            spacing={1.5} sx={{ p: 2, mb: 2, border: 1, borderColor: "divider", borderRadius: 1 }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              {(!reading || errors.has(file)) && <ErrorOutlineIcon color="error" fontSize="small" titleAccess="Needs review" />}
+              <Typography component="h3" variant="subtitle2" sx={{ overflowWrap: "anywhere", minWidth: 0 }}>{file.name}</Typography>
+            </Box>
+            <ScreenshotPreview file={file} />
+            <Typography variant="body2" role={errors.has(file) ? "alert" : undefined}>
+              {errors.get(file) ?? (reading ? "Waiting for screenshot reading." : "Not read yet. Reading stopped before this screenshot was completed.")}
+            </Typography>
+            <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+              <Button disabled={reading} onClick={() => upload([file], true)}>Retry</Button>
+              <Button disabled={reading} onClick={() => {
+                setDrafts((previous) => [...previous, {
+                  id: fileIds.current.get(file)!,
+                  file, manual: true, filename: file.name, title: "", type: "", capturedAt: null, countdown: null,
+                  warnings: [errors.get(file) ?? "Automatic reading did not finish. Enter the screenshot values below."],
+                }]);
+                dismissPendingFile(file);
+              }}>Enter manually</Button>
+              <Button disabled={reading} onClick={() => dismissPendingFile(file)}>Skip screenshot</Button>
+            </Box>
+          </Stack>
+        ))}
         {drafts.map((draft, index) => (
           <ReviewRow
             key={draft.id}

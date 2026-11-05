@@ -111,7 +111,7 @@ export const readBattleScreenshot = async (
   }
   if (file.size > 20 * 1024 * 1024)
     throw new Error("Choose a screenshot smaller than 20 MB.");
-  onProgress("Finding battle stats…");
+  onProgress("Opening screenshot…");
   const image = await loadPixels(file, signal).catch((error) => {
     if (error instanceof Error && error.name === "EncodingError")
       throw new Error(
@@ -119,6 +119,7 @@ export const readBattleScreenshot = async (
       );
     throw error;
   });
+  onProgress("Finding battle stats…");
   const stats = findStatsRegion(image);
   const fields = locateBattleFields(image, stats);
   if (!Object.keys(fields).length)

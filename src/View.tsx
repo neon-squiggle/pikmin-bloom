@@ -19,6 +19,7 @@ import MushCalcRadio from "./MushCalcRadio";
 import MushroomPlanner from "./MushroomPlanner";
 import { mobileNavigationHeight, Mode } from "./types";
 import useTabScrollRestoration from "./useTabScrollRestoration";
+import BuildVersion from "./BuildVersion";
 
 const View = ({ keyboardOpen = false }: { keyboardOpen?: boolean }) => {
   const [planningRequest, setPlanningRequest] =
@@ -213,6 +214,7 @@ const View = ({ keyboardOpen = false }: { keyboardOpen?: boolean }) => {
           }}
         />
       </Box>
+      <BuildVersion />
     </Box>
   );
 };

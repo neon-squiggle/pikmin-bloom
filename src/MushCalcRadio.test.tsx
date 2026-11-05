@@ -5,6 +5,7 @@ import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 
 import MushCalcRadio from "./MushCalcRadio";
+import userEvent from "@testing-library/user-event";
 
 const renderCalculator = () =>
   render(
@@ -18,6 +19,21 @@ const renderCalculator = () =>
 describe("MushCalcRadio", () => {
   beforeEach(() => {
     window.localStorage.clear();
+  });
+
+  it("allows the exact type, click away, refocus and single-digit deletion sequence", () => {
+    renderCalculator();
+    const health = screen.getByRole("textbox", { name: "Health" }) as HTMLInputElement;
+    userEvent.type(health, "12345");
+    userEvent.click(screen.getByRole("heading", { name: "Mushroom calculator" }));
+    expect(health.value).toBe("12,345");
+    userEvent.click(health);
+    userEvent.type(health, "{arrowright}{backspace}", { skipClick: true });
+    expect(health.value).toBe("1234");
+    expect(health.getAttribute("aria-invalid")).not.toBe("true");
+    expect(screen.queryByText("Enter a whole number.")).toBeNull();
+    userEvent.click(screen.getByRole("heading", { name: "Mushroom calculator" }));
+    expect(health.value).toBe("1,234");
   });
 
   it("starts blank with end time selected as the calculation target", () => {

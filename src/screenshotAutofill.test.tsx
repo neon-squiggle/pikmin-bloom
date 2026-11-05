@@ -55,8 +55,31 @@ beforeEach(() => {
   jest.useFakeTimers();
   jest.setSystemTime(new Date("2026-10-30T18:00:00Z"));
   read.mockReset();
+  URL.createObjectURL = jest.fn(() => "blob:calculator-screenshot");
+  URL.revokeObjectURL = jest.fn();
 });
 afterEach(() => jest.useRealTimers());
+
+it.each(["success", "failure"])("keeps an optional original preview after parsing %s", async (outcome) => {
+  const view = renderCalculator();
+  if (outcome === "success") read.mockResolvedValueOnce(sample);
+  else read.mockRejectedValueOnce(new Error("Couldn't read the battle stats."));
+  fireEvent.change(screen.getByLabelText("Upload battle screenshot"), {
+    target: { files: [new File(["pixels"], "verify.png", { type: "image/png" })] },
+  });
+  await waitFor(() => expect(input("Upload battle screenshot").disabled).toBe(false));
+  expect(screen.queryByRole("dialog", { name: "verify.png" })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "View screenshot verify.png" }));
+  const preview = within(screen.getByRole("dialog", { name: "verify.png" }));
+  expect(preview.getByRole("img", { name: "Screenshot verify.png" })).toBeInTheDocument();
+  expect(preview.getByRole("link", { name: "Open full size" })).toHaveAttribute("href", "blob:calculator-screenshot");
+  fireEvent.click(preview.getByRole("button", { name: "Close preview" }));
+  await waitFor(() => expect(screen.queryByRole("dialog", { name: "verify.png" })).not.toBeInTheDocument());
+  expect(input("Health remaining").value).toBe(outcome === "success" ? "17,510" : "");
+  expect(read).toHaveBeenCalledTimes(1);
+  view.unmount();
+  expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:calculator-screenshot");
+});
 
 it("fills editable stats and bases the planner's finish on capture time", async () => {
   renderCalculator();
@@ -142,9 +165,20 @@ it("ignores a canceled read and restores manual entry", async () => {
   expect(screen.queryByRole("alert")).toBeNull();
 });
 
-it("disables planning for screenshots whose countdown has ended", async () => {
+it("accepts completed battles and can calculate from their capture time", async () => {
   renderCalculator();
   await upload({ ...sample, capturedAt: "2026-10-01T17:56:19Z" });
   expect(input("Desired end time").disabled).toBe(true);
-  expect(screen.getByText(/countdown has already ended/)).not.toBeNull();
+  expect(screen.queryByRole("alert")).toBeNull();
+  expect(screen.getByText(/projected finish is in the past/i)).toBeInTheDocument();
+  expect(input("Health remaining").value).toBe("17,510");
+  fireEvent.click(screen.getByRole("button", { name: "Calculate at capture time" }));
+  expect(input("Desired end time").disabled).toBe(false);
+  expect(screen.getByText(/Calculating from screenshot capture time/)).toBeInTheDocument();
+  const dayjs = (await import("dayjs")).default;
+  setDateField(screen.getByRole("group", { name: "Desired end time" }), dayjs("2026-10-03T17:00:00Z").format("MM/DD/YYYY hh:mm A"));
+  // 17,510 HP over 169,421 seconds requires 10.335 AP in total.
+  expect(input("Additional AP").value).toBe("0.335");
+  fireEvent.click(screen.getByRole("button", { name: "Calculate from now" }));
+  expect(input("Desired end time").disabled).toBe(true);
 });

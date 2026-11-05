@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Box, Stack, Typography } from "@mui/material";
+import { Box, Button, Stack, Typography } from "@mui/material";
 import dayjs, { Dayjs } from "dayjs";
 
 import JoinPlanner from "./JoinPlanner";
@@ -46,6 +46,8 @@ const ExistingMushroomCalc = ({
     useState<BattleScreenshotResult | null>(null);
   const [isReadingScreenshot, setIsReadingScreenshot] = useState(false);
   const [snapshotRevision, setSnapshotRevision] = useState(0);
+  const [calculateAtCapture, setCalculateAtCapture] = useState(false);
+  const referenceTime = calculateAtCapture && snapshotTime?.isValid() ? snapshotTime : planningTime;
   const hasAnyTimeRemainingInput = Object.values(timeRemaining).some(
     (value) => value != null,
   );
@@ -83,13 +85,13 @@ const ExistingMushroomCalc = ({
   const screenshotHasEnded = Boolean(
     importedScreenshot &&
     reportedEndTime &&
-    !reportedEndTime.isAfter(planningTime),
+    !reportedEndTime.isAfter(referenceTime),
   );
   const healthForPlanning = snapshotTime
     ? calculateRemainingHealth(
         healthRemaining ?? 0,
         currentAp ?? 0,
-        planningTime.diff(snapshotTime, "second"),
+        referenceTime.diff(snapshotTime, "second"),
       )
     : 0;
 
@@ -100,6 +102,7 @@ const ExistingMushroomCalc = ({
     setTimeRemaining(result.countdown ?? emptyTimeRemaining);
     setSnapshotTime(result.capturedAt ? dayjs(result.capturedAt) : null);
     setPlanningTime(dayjs());
+    setCalculateAtCapture(false);
     setImportedScreenshot(result);
     setSnapshotRevision((revision) => revision + 1);
   };
@@ -165,7 +168,22 @@ const ExistingMushroomCalc = ({
           </Box>
 
           {screenshotHasEnded && (
-            <Typography variant="body2" color="error" role="alert">This screenshot’s countdown has already ended. Upload a newer screenshot to plan this battle.</Typography>
+            <Typography variant="body2" role="status">
+              This battle’s projected finish is in the past ({reportedEndTime?.format("MMM D, YYYY · h:mm A")}).
+              The screenshot was read successfully. You can keep these values or calculate from its capture time.
+            </Typography>
+          )}
+          {importedScreenshot && snapshotTime?.isValid() && !captureIsFuture && (
+            <Stack spacing={1}>
+              {calculateAtCapture && <Typography variant="body2" role="status">
+                Calculating from screenshot capture time ({snapshotTime.format("MMM D, YYYY · h:mm:ss A")}).
+              </Typography>}
+              <Button sx={{ alignSelf: "flex-start" }} onClick={() => {
+                setCalculateAtCapture(!calculateAtCapture);
+                setPlanningTime(dayjs());
+                setSnapshotRevision((revision) => revision + 1);
+              }}>{calculateAtCapture ? "Calculate from now" : "Calculate at capture time"}</Button>
+            </Stack>
           )}
 
           <Box>
@@ -181,7 +199,9 @@ const ExistingMushroomCalc = ({
               variant="in-progress"
               currentAp={currentAp ?? 0}
               healthRemaining={healthForPlanning}
-              referenceTime={planningTime}
+              referenceTime={referenceTime}
+              referenceLabel={calculateAtCapture ? "Screenshot capture" : "Now"}
+              unavailableReason={screenshotHasEnded ? "This battle has ended. Calculate at capture time to explore it." : undefined}
               baselineEndTime={
                 captureIsFuture || screenshotHasEnded ? null : reportedEndTime
               }
