@@ -1,8 +1,47 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { useState } from "react";
 
 import NumberSpinner from "./NumberSpinner";
 
 describe("NumberSpinner", () => {
+  it("allows deleting and replacing individual digits after grouped formatting", () => {
+    const Field = () => {
+      const [value, setValue] = useState<number | null>(123456);
+      return <>
+        <NumberSpinner label="Health" value={value} allowDecimal={false} onValueChange={setValue} />
+        <output aria-label="Current health">{String(value)}</output>
+      </>;
+    };
+    render(<Field />);
+    const input = screen.getByRole("textbox", { name: "Health" }) as HTMLInputElement;
+    expect(input.value).toBe("123,456");
+    userEvent.click(input);
+    input.setSelectionRange(input.value.length, input.value.length);
+    userEvent.type(input, "{backspace}", { skipClick: true });
+    expect(screen.getByLabelText("Current health").textContent).toBe("12345");
+    expect(input.getAttribute("aria-invalid")).not.toBe("true");
+    userEvent.tab();
+    expect(input.value).toBe("12,345");
+
+    userEvent.click(input);
+    input.setSelectionRange(2, 3);
+    userEvent.type(input, "9", { skipClick: true });
+    expect(screen.getByLabelText("Current health").textContent).toBe("12945");
+    userEvent.tab();
+    expect(input.value).toBe("12,945");
+  });
+
+  it("keeps the focus selection available for replacing a formatted value", () => {
+    const onChange = jest.fn();
+    render(<NumberSpinner label="AP" value={123456} allowDecimal={false} onValueChange={onChange} />);
+    const input = screen.getByRole("textbox", { name: "AP" }) as HTMLInputElement;
+    userEvent.click(input);
+    userEvent.type(input, "42", { skipClick: true });
+    expect(input.value).toBe("42");
+    expect(onChange).toHaveBeenLastCalledWith(42);
+  });
+
   it("keeps a formatted integer valid and editable after repeated edits", () => {
     const onValueChange = jest.fn();
     render(
@@ -87,6 +126,8 @@ it.each(["1.5", "-2", "words"])(
     expect(
       Number.isNaN(onChange.mock.calls[onChange.mock.calls.length - 1][0]),
     ).toBe(true);
+    fireEvent.focus(input);
+    expect(input.value).toBe(raw);
     fireEvent.change(input, { target: { value: "2" } });
     expect(onChange).toHaveBeenLastCalledWith(2);
   },
@@ -109,6 +150,43 @@ it("does not silently clamp an out-of-range countdown", () => {
   fireEvent.blur(input);
   expect(input.value).toBe("24");
   expect(screen.getByText("Enter 0–23.")).not.toBeNull();
+});
+
+it.each(["en-US", "de-DE", "fr-FR", "hi-IN", "ar-EG"])(
+  "allows individual edits with localized grouping and decimals in %s",
+  (locale) => {
+    const onChange = jest.fn();
+    const formatted = (value: number, useGrouping = true) =>
+      new Intl.NumberFormat(locale, { maximumFractionDigits: 3, useGrouping }).format(value);
+    const view = render(<NumberSpinner locale={locale} label="AP" value={1234567}
+      allowDecimal={false} onValueChange={onChange} />);
+    const input = screen.getByRole("textbox", { name: "AP" }) as HTMLInputElement;
+    expect(input.value).toBe(formatted(1234567));
+    userEvent.click(input);
+    expect(input.value).toBe(formatted(1234567, false));
+    input.setSelectionRange(input.value.length, input.value.length);
+    userEvent.type(input, "{backspace}", { skipClick: true });
+    expect(onChange).toHaveBeenLastCalledWith(123456);
+    userEvent.tab();
+    expect(input.value).toBe(formatted(123456));
+
+    view.rerender(<NumberSpinner locale={locale} label="AP" value={1234.5}
+      onValueChange={onChange} />);
+    userEvent.click(input);
+    expect(input.value).toBe(formatted(1234.5, false));
+    input.setSelectionRange(input.value.length, input.value.length);
+    userEvent.type(input, "7", { skipClick: true });
+    expect(onChange).toHaveBeenLastCalledWith(1234.57);
+    userEvent.tab();
+    expect(input.value).toBe(formatted(1234.57));
+  },
+);
+
+it("keeps read-only numbers grouped when focused", () => {
+  render(<NumberSpinner label="Calculated health" value={1234567} readOnly />);
+  const input = screen.getByRole("textbox", { name: "Calculated health" }) as HTMLInputElement;
+  fireEvent.focus(input);
+  expect(input.value).toBe("1,234,567");
 });
 
 it.each(["de-DE", "fr-FR", "ar-EG"])(

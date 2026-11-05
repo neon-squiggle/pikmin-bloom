@@ -34,7 +34,7 @@ const View = ({ keyboardOpen = false }: { keyboardOpen?: boolean }) => {
   const [initialCardHeight, setInitialCardHeight] = useState<number>();
   const selectMode = useTabScrollRestoration({
     value: mode, onChange: setMode, active: isMobile,
-    // The planner initializes its first view to today in its own layout effect.
+    // The planner initializes its own scroll target in its layout effect.
     initialPosition: () => mode === "calendar" ? window.scrollY : 0,
   });
   // Reselecting the current destination returns to its top.

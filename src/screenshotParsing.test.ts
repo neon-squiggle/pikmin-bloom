@@ -58,6 +58,19 @@ describe("battle screenshot parsing", () => {
     });
   });
 
+  it.each([
+    "2 days 0 hrs Bmins 38 secs 26",
+    "1 days -2 hrs 3 mins 4 secs",
+    "1 days +2 hrs 3 mins 4 secs",
+    "1 Pays 2 hrs 3 mins 4 secs",
+    "1 days 2 hrs 3 hrs 4 secs",
+    "1 2 3 4",
+    "1 day 2 hours 3 minutes 4 seconds extra",
+    "4 secs 3 mins 2 hrs 1 day",
+  ])("rejects a malformed four-number countdown: %p", (text) => {
+    expect(parseScreenshotCountdown(text)).toBeNull();
+  });
+
   it("identifies omitted units only when labels make them unambiguous", () => {
     expect(parseScreenshotCountdown("8 mins. 16 secs. left")).toEqual({
       days: 0,

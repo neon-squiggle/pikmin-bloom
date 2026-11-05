@@ -19,48 +19,50 @@ export const parseStatNumber = (text: string): number | null => {
   return Number.isSafeInteger(number) && number > 0 ? number : null;
 };
 
+// Explicit labels are required even when all four values are present.
+// English UI labels plus the German abbreviations already supported by the
+// reader; unfamiliar or damaged labels must never become positional guesses.
+const COUNTDOWN_LABELS = "days?|hours?|hrs?|minutes?|mins?|seconds?|secs?|tage?|std|sek";
+
 export const parseScreenshotCountdown = (
   text: string,
 ): TimeRemaining | null => {
   const normalized = normalizeDigits(text).replace(
-    /\b[Oo]\b(?=\s*(?:days?|hrs?|hours?|mins?|minutes?|secs?|seconds?)\b)/gi,
+    new RegExp(`\\b[Oo]\\b(?=\\s*(?:${COUNTDOWN_LABELS})\\b)`, "gi"),
     "0",
   );
   const numbers = normalized.match(/\d+/g)?.map(Number) ?? [];
-  if (numbers.length === 4) {
-    const [days, hours, minutes, seconds] = numbers;
-    return parseTimeRemaining({ days, hours, minutes, seconds });
-  }
-  // A shorter timer is safe only when its unit labels identify omitted units.
+  const unitValue = new RegExp(`(\\d+)\\s*(${COUNTDOWN_LABELS})\\b`, "gi");
   const matches = Array.from(
-    normalized.matchAll(
-      /(\d+)\s*(days?|hours?|hrs?|minutes?|mins?|seconds?|secs?)\b/gi,
-    ),
+    normalized.matchAll(unitValue),
   );
   // A visible unit with an unreadable value (for example "Bmins") is not an
   // omitted unit. Do not silently replace that unreadable number with zero.
-  const labels = normalized.match(/(?:days?|hours?|hrs?|minutes?|mins?|seconds?|secs?)\b/gi) ?? [];
+  const labels = normalized.match(new RegExp(`(?:${COUNTDOWN_LABELS})\\b`, "gi")) ?? [];
   if (!matches.length || matches.length !== numbers.length || labels.length !== matches.length)
     return null;
   // A damaged label such as "Pays" may have lost its day value too. Unknown
   // words must not be interpreted as an omitted unit with a value of zero.
   const unparsed = normalized
-    .replace(/\d+\s*(days?|hours?|hrs?|minutes?|mins?|seconds?|secs?)\b/gi, "")
+    .replace(unitValue, "")
     .replace(/\bleft\b/gi, "")
     .replace(/[\s.,:;…]/g, "");
   if (unparsed) return null;
   const countdown = { days: 0, hours: 0, minutes: 0, seconds: 0 };
-  const seen = new Set<string>();
+  let previousUnit = -1;
+  const units = ["days", "hours", "minutes", "seconds"] as const;
   for (const [, value, label] of matches) {
-    const field = label.toLowerCase().startsWith("d")
+    const name = label.toLowerCase();
+    const field = name.startsWith("d") || name.startsWith("tag")
       ? "days"
-      : label.toLowerCase().startsWith("h")
+      : name.startsWith("h") || name === "std"
         ? "hours"
-        : label.toLowerCase().startsWith("m")
+        : name.startsWith("m")
           ? "minutes"
           : "seconds";
-    if (seen.has(field)) return null;
-    seen.add(field);
+    const index = units.indexOf(field);
+    if (index <= previousUnit) return null;
+    previousUnit = index;
     countdown[field] = Number(value);
   }
   return parseTimeRemaining(countdown);

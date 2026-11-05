@@ -1,4 +1,4 @@
-import { findBattleStatAnchors, isApGreen, isHealthRed } from "./battleStatAnchors";
+import { findBattleStatAnchors } from "./battleStatAnchors";
 
 export interface PixelImage {
   data: Uint8ClampedArray;
@@ -52,7 +52,7 @@ export const findStatsRegion = ({
 };
 
 export type BattleField = "health" | "ap" | "countdown";
-export type BattleFieldRegions = Partial<Record<BattleField, ImageRegion>>;
+export type BattleFieldRegions = Partial<Record<BattleField, ImageRegion & { inkHue?: number }>>;
 
 // Icon dimensions provide the font scale and spacing. Screenshot height is
 // deliberately absent from these offsets: adding space below the battle must
@@ -69,7 +69,7 @@ export const locateBattleFields = (image: PixelImage, stats: ImageRegion): Battl
   if (ap) {
     const left = ap.left + ap.width + ap.unit;
     fields.ap = { left, top: ap.top - 2 * ap.unit,
-      width: image.width * 0.99 - left, height: ap.height + 6 * ap.unit };
+      width: image.width * 0.99 - left, height: ap.height + 6 * ap.unit, inkHue: ap.inkHue };
   }
   const anchor = health ?? ap;
   if (anchor) {
@@ -82,41 +82,15 @@ export const locateBattleFields = (image: PixelImage, stats: ImageRegion): Battl
   return fields;
 };
 
-export const maskBattleField = (
+export const cropBattleCountdown = (
   image: PixelImage,
   stats: ImageRegion,
-  field: BattleField,
   regions = locateBattleFields(image, stats),
 ): PixelImage => {
-  const region = regions[field];
+  const region = regions.countdown;
   if (!region || region.width <= 0 || region.height <= 0)
-    throw new Error(`Couldn't locate ${field} in the screenshot.`);
-  const crop = cropRegion(image, region);
-  // Keep the main white timer line separate from white outlines of health
-  // commas above it. Red/green number strokes are never eroded or edited.
-  if (field === "countdown") return maskCountdownLine(crop);
-  const mask = new Uint8Array(crop.width * crop.height);
-  let left = crop.width, right = -1, top = crop.height, bottom = -1;
-  for (let y = 0; y < crop.height; y++) for (let x = 0; x < crop.width; x++) {
-    const i = (y * crop.width + x) * 4;
-    if (!(field === "health" ? isHealthRed : isApGreen)(crop.data[i], crop.data[i + 1], crop.data[i + 2]))
-      continue;
-    mask[y * crop.width + x] = 1;
-    left = Math.min(left, x);
-    right = Math.max(right, x);
-    top = Math.min(top, y);
-    bottom = Math.max(bottom, y);
-  }
-  if (right < left || bottom < top)
-    throw new Error(`Couldn't locate ${field} in the screenshot.`);
-  const width = right - left + 25, height = bottom - top + 25;
-  const data = new Uint8ClampedArray(width * height * 4).fill(255);
-  for (let y = top; y <= bottom; y++) for (let x = left; x <= right; x++) {
-    if (!mask[y * crop.width + x]) continue;
-    const i = ((y - top + 12) * width + x - left + 12) * 4;
-    data[i] = data[i + 1] = data[i + 2] = 0;
-  }
-  return { width, height, data };
+    throw new Error("Couldn't locate countdown in the screenshot.");
+  return maskCountdownLine(cropRegion(image, region));
 };
 
 const maskCountdownLine = (crop: PixelImage): PixelImage => {

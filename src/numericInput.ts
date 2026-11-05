@@ -1,10 +1,11 @@
 export const formatNumericInput = (
   value: number | null | undefined,
   locale?: string,
+  useGrouping = true,
 ) =>
   value == null || !Number.isFinite(value)
     ? ""
-    : new Intl.NumberFormat(locale, { maximumFractionDigits: 3 }).format(value);
+    : new Intl.NumberFormat(locale, { maximumFractionDigits: 3, useGrouping }).format(value);
 
 export const parseNumericInput = (
   raw: string,

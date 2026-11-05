@@ -44,6 +44,8 @@ const addPlannedTry = (end = "11/01/2026 12:00:00 AM", start = "10/31/2026") => 
 };
 
 beforeEach(() => {
+  // Daily-try fixtures start on October 31; do not let the real date hide them.
+  jest.spyOn(Date, "now").mockReturnValue(Date.parse("2026-10-31T12:00:00Z"));
   localStorage.clear();
   localStorage.setItem(
     PLANNER_STORAGE_KEY,
@@ -548,51 +550,73 @@ it("saves an end-only hypothetical without inventing its start day", () => {
   expect(saved.endAt).toBeTruthy();
 });
 
-it("initializes today's view only while visible and restores each desktop tab independently", () => {
+it.each([false, true])("initializes at the current stage and today's end-time heading, preserving tab positions (mobile=%p)", (mobile) => {
   jest.spyOn(Date, "now").mockReturnValue(Date.parse("2026-11-04T15:00:00Z"));
+  const originalMedia = window.matchMedia;
+  window.matchMedia = jest.fn().mockImplementation((query: string) => ({
+    matches: mobile && query.includes("max-width:599.95px"), media: query,
+    addListener: jest.fn(), removeListener: jest.fn(),
+    addEventListener: jest.fn(), removeEventListener: jest.fn(),
+  }));
+  const originalY = Object.getOwnPropertyDescriptor(window, "scrollY");
+  let pageOffset = 0;
+  Object.defineProperty(window, "scrollY", { configurable: true, get: () => pageOffset });
+  const pageScroll = jest.spyOn(window, "scrollTo").mockImplementation(((options: ScrollToOptions) => {
+    pageOffset = options.top ?? 0;
+  }) as typeof window.scrollTo);
   const originalScroll = Object.getOwnPropertyDescriptor(Element.prototype, "scrollTo");
   const scroll = jest.fn(function (this: HTMLElement, options: ScrollToOptions) {
     this.scrollTop = options.top ?? 0;
   });
   Object.defineProperty(Element.prototype, "scrollTo", { configurable: true, value: scroll });
   const rect = jest.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
-    const top = this.dataset.finishDate === "2026-11-04" ? 500 : 0;
+    const top = this.dataset.stage === "2" ? 700
+      : this.dataset.finishDay === "2026-11-04" ? 500
+      : this.dataset.finishDate === "2026-11-04" ? 950 : 0;
     return { top, bottom: top + 48, height: 48, width: 0, left: 0, right: 0, x: 0, y: top, toJSON: () => ({}) } as DOMRect;
   });
   try {
     const view = render(<MushroomPlanner active={false} />);
     expect(scroll).not.toHaveBeenCalled();
+    expect(pageScroll).not.toHaveBeenCalled();
     const rerender = (active: boolean) => view.rerender(
       <LocalizationProvider dateAdapter={AdapterDayjs}>
         <MushroomPlanner active={active} />
       </LocalizationProvider>,
     );
     rerender(true);
-    const container = scroll.mock.instances[0] as unknown as HTMLElement;
-    expect(container.scrollTop).toBe(440);
-    container.scrollTop = 850;
+    const container = mobile ? null : scroll.mock.instances[0] as unknown as HTMLElement;
+    const position = () => mobile ? pageOffset : container!.scrollTop;
+    const setPosition = (top: number) => { if (mobile) pageOffset = top; else container!.scrollTop = top; };
+    expect(position()).toBe(640);
+    expect(mobile ? scroll : pageScroll).not.toHaveBeenCalled();
+    setPosition(850);
     fireEvent.click(screen.getByRole("tab", { name: "End times" }));
-    expect(container.scrollTop).toBe(1290);
-    container.scrollTop = 120;
+    expect(position()).toBe(1290);
+    setPosition(120);
     fireEvent.click(screen.getByRole("tab", { name: "Stages" }));
-    expect(container.scrollTop).toBe(850);
-    container.scrollTop = 920;
+    expect(position()).toBe(850);
+    setPosition(920);
     fireEvent.click(screen.getByRole("tab", { name: "End times" }));
-    expect(container.scrollTop).toBe(120);
+    expect(position()).toBe(120);
     fireEvent.click(screen.getByRole("tab", { name: "Stages" }));
-    expect(container.scrollTop).toBe(920);
-    const calls = scroll.mock.calls.length;
+    expect(position()).toBe(920);
+    const targetScroll = mobile ? pageScroll : scroll;
+    const calls = targetScroll.mock.calls.length;
     rerender(false);
     rerender(true);
-    expect(scroll).toHaveBeenCalledTimes(calls);
+    expect(targetScroll).toHaveBeenCalledTimes(calls);
   } finally {
+    window.matchMedia = originalMedia;
+    pageScroll.mockRestore();
+    if (originalY) Object.defineProperty(window, "scrollY", originalY);
     rect.mockRestore();
     if (originalScroll) Object.defineProperty(Element.prototype, "scrollTo", originalScroll);
     else Reflect.deleteProperty(Element.prototype, "scrollTo");
   }
 });
 
-it("remembers separate page positions on phones and starts an unseen view at the top without today's mushrooms", () => {
+it("finds the current stage without today's mushrooms and defaults End times to the top on phones", () => {
   const originalMedia = window.matchMedia;
   window.matchMedia = jest.fn().mockImplementation((query: string) => ({
     matches: query.includes("max-width:599.95px"), media: query,
@@ -603,9 +627,14 @@ it("remembers separate page positions on phones and starts an unseen view at the
   let offset = 0;
   Object.defineProperty(window, "scrollY", { configurable: true, get: () => offset });
   const scroll = jest.spyOn(window, "scrollTo").mockImplementation(((options: ScrollToOptions) => { offset = options.top ?? 0; }) as typeof window.scrollTo);
-  jest.spyOn(Date, "now").mockReturnValue(Date.parse("2026-10-30T15:00:00Z"));
+  jest.spyOn(Date, "now").mockReturnValue(Date.parse("2026-11-05T15:00:00Z"));
+  const rect = jest.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
+    const top = this.dataset.stage === "2" ? 600 : 0;
+    return { top, bottom: top + 48, height: 48, width: 0, left: 0, right: 0, x: 0, y: top, toJSON: () => ({}) } as DOMRect;
+  });
   try {
     render(<MushroomPlanner />);
+    expect(offset).toBe(540);
     offset = 800;
     fireEvent.click(screen.getByRole("tab", { name: "End times" }));
     expect(offset).toBe(0);
@@ -617,6 +646,7 @@ it("remembers separate page positions on phones and starts an unseen view at the
   } finally {
     window.matchMedia = originalMedia;
     scroll.mockRestore();
+    rect.mockRestore();
     if (originalY) Object.defineProperty(window, "scrollY", originalY);
   }
 });

@@ -3,7 +3,7 @@ import {
   cropMushroomTypeField,
   findStatsRegion,
   locateBattleFields,
-  maskBattleField,
+  cropBattleCountdown,
   cropTitleField,
   PixelImage,
 } from "./screenshotImage";
@@ -12,9 +12,9 @@ import {
   parseMushroomTitle,
   parseMushroomType,
   parseScreenshotCountdown,
-  parseStatNumber,
 } from "./screenshotParsing";
 import { TimeRemaining } from "./types";
+import { readBattleNumber } from "./readBattleNumber";
 import { numericReadingNeedsReview } from "./screenshotConfidence";
 
 export interface BattleScreenshotResult {
@@ -67,8 +67,7 @@ const loadPixels = async (
         "This image is too large. Use the original phone screenshot or resize it below 24 megapixels.",
       );
     const canvas = document.createElement("canvas");
-    // Normalize small images before locating strokes: a fixed 3-pixel icon
-    // filter must not erase digits in a screenshot resized for sharing.
+    // Keep enough detail for icon outlines and OCR within the pixel limit.
     const scale = Math.min(
       Math.min(1600, Math.max(1000, image.width)) / image.width,
       Math.sqrt(24_000_000 / (image.width * image.height)),
@@ -192,9 +191,18 @@ export const readBattleScreenshot = async (
       onProgress(
         `Reading ${field === "health" ? "remaining health" : field === "ap" ? "AP" : "countdown"}…`,
       );
+      if (field !== "countdown") {
+        const reading = readBattleNumber(image, fields[field], field);
+        if (field === "health") result.healthRemaining = reading?.value ?? null;
+        else result.currentAp = reading?.value ?? null;
+        if (!reading) result.warnings.push(
+          `Couldn't confidently read ${field === "health" ? "remaining health" : "AP"}. Enter it manually.`,
+        );
+        continue;
+      }
       let canvas: HTMLCanvasElement;
       try {
-        canvas = toCanvas(maskBattleField(image, stats, field, fields));
+        canvas = toCanvas(cropBattleCountdown(image, stats, fields));
       } catch {
         result.warnings.push(`Couldn't locate ${field}. Enter it manually.`);
         continue;
@@ -203,22 +211,11 @@ export const readBattleScreenshot = async (
         worker.recognize(canvas, {}, { blocks: true }),
         signal,
       );
-      if (field === "countdown")
-        result.countdown = parseScreenshotCountdown(data.text);
-      else {
-        const number = parseStatNumber(data.text);
-        if (field === "health") result.healthRemaining = number;
-        else result.currentAp = number;
-      }
-      const value =
-        field === "health"
-          ? result.healthRemaining
-          : field === "ap"
-            ? result.currentAp
-            : result.countdown;
+      result.countdown = parseScreenshotCountdown(data.text);
+      const value = result.countdown;
       if (value == null)
         result.warnings.push(
-          `Couldn't read ${field === "health" ? "remaining health" : field}. Enter it manually.`,
+          "Couldn't read countdown. Enter it manually.",
         );
       else if (
         numericReadingNeedsReview(
@@ -229,8 +226,9 @@ export const readBattleScreenshot = async (
           ) ?? [],
         )
       ) {
+        result.countdown = null;
         result.warnings.push(
-          `Check ${field === "health" ? "remaining health" : field === "ap" ? "AP" : "countdown"}; some digits were unclear.`,
+          "Couldn't confidently read countdown. Enter it manually.",
         );
       }
     }

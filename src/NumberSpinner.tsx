@@ -50,7 +50,16 @@ export default function NumberSpinner({
     formatNumericInput(value, locale),
   );
   const focusedRef = React.useRef(false);
+  const inputRef = React.useRef<HTMLInputElement>(null);
+  const selectAfterFormatting = React.useRef(false);
   const [touched, setTouched] = React.useState(false);
+
+  React.useLayoutEffect(() => {
+    if (selectAfterFormatting.current) {
+      inputRef.current?.select();
+      selectAfterFormatting.current = false;
+    }
+  }, [inputValue]);
 
   React.useEffect(() => {
     if (
@@ -111,12 +120,26 @@ export default function NumberSpinner({
       <Box sx={{ display: "flex" }}>
         <OutlinedInput
           id={id}
+          inputRef={inputRef}
           value={inputValue}
           disabled={disabled}
           readOnly={readOnly}
-          onFocus={(event) => {
+          onFocus={() => {
             focusedRef.current = true;
-            event.currentTarget.querySelector("input")?.select();
+            // Grouping belongs to display formatting. Keeping separators in
+            // an editable draft makes a single-digit deletion invalid.
+            if (!readOnly) {
+              const parsed = parseNumericInput(inputValue, allowDecimal, locale);
+              if (parsed != null) {
+                const draft = formatNumericInput(parsed, locale, false);
+                if (draft !== inputValue) {
+                  // Restore select-on-focus after React replaces the formatted text.
+                  selectAfterFormatting.current = true;
+                  setInputValue(draft);
+                }
+              }
+            }
+            inputRef.current?.select();
           }}
           onBlur={() => {
             focusedRef.current = false;

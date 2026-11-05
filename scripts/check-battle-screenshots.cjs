@@ -8,18 +8,27 @@ const { isDeepStrictEqual } = require('node:util');
 const ts = require('typescript');
 const { createWorker, PSM } = require('tesseract.js');
 
-const [directory, option, reportPath] = process.argv.slice(2);
-if (!directory || (option && (option !== '--report' || !reportPath))) {
-  console.error('Usage: node scripts/check-battle-screenshots.cjs <screenshot-directory> [--report <json-path>]');
+const [directory, ...options] = process.argv.slice(2);
+let reportPath, allowRejections = false;
+const usage = () => {
+  console.error('Usage: node scripts/check-battle-screenshots.cjs <screenshot-directory> [--report <json-path>] [--allow-rejections]');
   process.exit(1);
+};
+if (!directory) usage();
+for (let i = 0; i < options.length; i++) {
+  if (options[i] === '--allow-rejections') allowRejections = true;
+  else if (options[i] === '--report' && options[i + 1] && !options[i + 1].startsWith('--'))
+    reportPath = options[++i];
+  else usage();
 }
 require.extensions['.ts'] = (module, filename) => module._compile(
   ts.transpileModule(fs.readFileSync(filename, 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, esModuleInterop: true },
   }).outputText, filename,
 );
-const { findStatsRegion, locateBattleFields, maskBattleField } = require('../src/screenshotImage.ts');
-const { parseStatNumber, parseScreenshotCountdown } = require('../src/screenshotParsing.ts');
+const { findStatsRegion, locateBattleFields, cropBattleCountdown } = require('../src/screenshotImage.ts');
+const { readBattleNumber } = require('../src/readBattleNumber.ts');
+const { parseScreenshotCountdown } = require('../src/screenshotParsing.ts');
 const { numericReadingNeedsReview } = require('../src/screenshotConfidence.ts');
 const expectedReadings = require('../src/testFixtures/battleScreenshotReadings.json');
 
@@ -70,7 +79,7 @@ const encodeBmp = (pixels) => {
     });
     await worker.setParameters({ tessedit_pageseg_mode: PSM.SINGLE_LINE });
     for (const expected of expectedReadings) {
-      const row = { filename: expected.filename, fields: {}, failures: [] };
+      const row = { filename: expected.filename, fields: {}, rejections: [], failures: [] };
       try {
         const converted = path.join(temporary, 'source.bmp');
         execFileSync('sips', ['-s', 'format', 'bmp', path.join(directory, expected.filename), '--out', converted],
@@ -79,14 +88,31 @@ const encodeBmp = (pixels) => {
         const stats = findStatsRegion(image), regions = locateBattleFields(image, stats);
         for (const field of ['health', 'ap', 'countdown']) {
           try {
-            const pixels = maskBattleField(image, stats, field, regions);
+            if (field !== 'countdown') {
+              const reading = readBattleNumber(image, regions[field], field);
+              row.fields[field] = { ...reading, value: reading?.value ?? null, region: regions[field] };
+              if (!reading) row.rejections.push({ field, reason: 'Ambiguous or incomplete font match' });
+              else if (reading.value !== expected[field])
+                row.failures.push({ field, expected: expected[field], actual: reading.value });
+              continue;
+            }
+            let pixels;
+            try {
+              pixels = cropBattleCountdown(image, stats, regions);
+            } catch (error) {
+              row.rejections.push({ field, reason: error.message });
+              continue;
+            }
             const { data } = await worker.recognize(encodeBmp(pixels), {}, { blocks: true });
-            const value = field === 'countdown' ? parseScreenshotCountdown(data.text) : parseStatNumber(data.text);
+            const parsed = parseScreenshotCountdown(data.text);
             const words = data.blocks?.flatMap(block => block.paragraphs.flatMap(paragraph =>
               paragraph.lines.flatMap(line => line.words))) ?? [];
-            row.fields[field] = { text: data.text.trim(), value,
-              needsReview: numericReadingNeedsReview(words), region: regions[field] };
-            if (!isDeepStrictEqual(value, expected[field]))
+            const needsReview = numericReadingNeedsReview(words);
+            const value = needsReview ? null : parsed;
+            row.fields[field] = { text: data.text.trim(), value, needsReview, region: regions[field] };
+            if (value == null) row.rejections.push({ field,
+              reason: parsed == null ? 'Invalid OCR text' : 'Insufficient digit confidence' });
+            else if (!isDeepStrictEqual(value, expected[field]))
               row.failures.push({ field, expected: expected[field], actual: value });
           } catch (error) {
             row.failures.push({ field, error: error.message });
@@ -97,16 +123,20 @@ const encodeBmp = (pixels) => {
       }
       results.push(row);
       if (row.failures.length) console.error(`FAIL ${row.filename}: ${JSON.stringify(row.failures)}`);
+      if (row.rejections.length) console.log(`MANUAL ${row.filename}: ${JSON.stringify(row.rejections)}`);
     }
   } finally {
     await worker?.terminate();
     fs.rmSync(temporary, { recursive: true, force: true });
   }
-  const passed = results.filter(row => !row.failures.length).length;
-  const report = { screenshots: results.length, passed, failed: results.length - passed, results };
+  const passed = results.filter(row => !row.failures.length && !row.rejections.length).length;
+  const failed = results.filter(row => row.failures.length).length;
+  const rejected = results.filter(row => row.rejections.length).length;
+  const report = { screenshots: results.length, passed, failed, rejected, results };
   if (reportPath) fs.writeFileSync(reportPath, JSON.stringify(report, null, 2) + '\n');
   console.log(`${passed}/${results.length} original screenshots matched health, AP, and countdown exactly.`);
-  const reviews = results.flatMap(row => Object.values(row.fields)).filter(field => field.needsReview).length;
-  if (reviews) console.log(`${reviews} fields also carry the app's digit-confidence review warning.`);
-  if (passed !== results.length) process.exitCode = 1;
+  const rejections = results.flatMap(row => row.rejections).length;
+  if (rejections) console.log(`${rejections} fields rejected for manual entry.`);
+  console.log(`${failed} screenshots had incorrect accepted values or processing errors.`);
+  if (failed || (rejected && !allowRejections)) process.exitCode = 1;
 })().catch(error => { console.error(error); process.exitCode = 1; });

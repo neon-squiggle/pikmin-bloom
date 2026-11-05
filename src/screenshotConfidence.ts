@@ -1,4 +1,4 @@
-// This is a review heuristic, not a probability that the reading is correct.
+// A minimum acceptance threshold, not a probability that the reading is correct.
 export const NUMERIC_OCR_REVIEW_THRESHOLD = 75;
 
 interface OcrWord {
@@ -7,23 +7,28 @@ interface OcrWord {
   symbols?: { text: string; confidence: number }[];
 }
 
-const isLowConfidence = (confidence: number) =>
+const isConfident = (confidence: number) =>
   Number.isFinite(confidence) &&
-  confidence >= 0 &&
-  confidence < NUMERIC_OCR_REVIEW_THRESHOLD;
+  confidence >= NUMERIC_OCR_REVIEW_THRESHOLD && confidence <= 100;
 
 // Ignore labels/language and inspect digits individually so a confident field
 // average cannot hide an uncertain digit. Fall back only for purely numeric words.
-export const numericReadingNeedsReview = (words: OcrWord[]) =>
-  words.some((word) => {
+export const numericReadingNeedsReview = (words: OcrWord[]) => {
+  let foundDigits = false;
+  for (const word of words) {
+    const count = word.text.normalize("NFKC").match(/\p{Nd}/gu)?.length ?? 0;
+    if (!count) continue;
+    foundDigits = true;
     const digits =
-      word.symbols?.filter((symbol) =>
-        /\p{Nd}/u.test(symbol.text.normalize("NFKC")),
-      ) ?? [];
-    if (digits.length)
-      return digits.some((symbol) => isLowConfidence(symbol.confidence));
-    return (
-      /^\p{Nd}[\p{Nd}\s,.'’]*$/u.test(word.text.normalize("NFKC").trim()) &&
-      isLowConfidence(word.confidence)
-    );
-  });
+      word.symbols?.flatMap((symbol) =>
+        (symbol.text.normalize("NFKC").match(/\p{Nd}/gu) ?? []).map(() => symbol.confidence),
+      );
+    if (digits?.length) {
+      if (digits.length !== count || digits.some((confidence) => !isConfident(confidence))) return true;
+    } else if (
+      !/^\p{Nd}[\p{Nd}\s,.'’]*$/u.test(word.text.normalize("NFKC").trim()) ||
+      !isConfident(word.confidence)
+    ) return true;
+  }
+  return !foundDigits;
+};

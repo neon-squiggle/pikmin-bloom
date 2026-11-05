@@ -34,12 +34,15 @@ const seedPlan = () =>
   );
 
 beforeEach(() => {
+  // Keep the fixed November 2 planned entry in the future on every run.
+  jest.spyOn(Date, "now").mockReturnValue(Date.parse("2026-10-31T12:00:00Z"));
   localStorage.clear();
   localStorage.setItem(
     PLANNER_STORAGE_KEY,
     JSON.stringify({ version: 3, finishes: initialPlannerFinishes() }),
   );
 });
+afterEach(() => jest.restoreAllMocks());
 
 it("opens the calculator by default and preserves inputs across calendar visits", () => {
   render(

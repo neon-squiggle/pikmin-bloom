@@ -50,10 +50,10 @@ it("supports numeric word confidence when symbol detail is unavailable", () => {
     ]),
   ).toBe(false);
   expect(numericReadingNeedsReview([{ text: "10sec", confidence: 10 }])).toBe(
-    false,
+    true,
   );
 });
-it("handles Unicode digits while ignoring missing or invalid confidence scores", () => {
+it("handles Unicode digits and requires usable confidence evidence", () => {
   expect(
     numericReadingNeedsReview([
       {
@@ -69,6 +69,12 @@ it("handles Unicode digits while ignoring missing or invalid confidence scores",
       { text: "10", confidence: -1 },
       { text: "10", confidence: Number.NaN },
     ]),
-  ).toBe(false);
-  expect(numericReadingNeedsReview([])).toBe(false);
+  ).toBe(true);
+  expect(numericReadingNeedsReview([])).toBe(true);
+});
+it("rejects incomplete digit confidence even when every reported symbol is confident", () => {
+  expect(numericReadingNeedsReview([{
+    text: "1821", confidence: 99,
+    symbols: [{ text: "1", confidence: 99 }, { text: "8", confidence: 99 }, { text: "2", confidence: 99 }],
+  }])).toBe(true);
 });

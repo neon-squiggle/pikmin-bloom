@@ -1,11 +1,13 @@
 import { createWorker } from "tesseract.js";
+import { readBattleNumber } from "./readBattleNumber";
 import { readBattleScreenshot } from "./readBattleScreenshot";
-import { locateBattleFields } from "./screenshotImage";
+import { locateBattleFields, cropBattleCountdown } from "./screenshotImage";
 
 jest.mock("tesseract.js", () => ({
   createWorker: jest.fn(),
   PSM: { SINGLE_LINE: "7", SINGLE_BLOCK: "6" },
 }));
+jest.mock("./readBattleNumber", () => ({ readBattleNumber: jest.fn() }));
 jest.mock("exifr", () => ({
   parse: async () => ({ DateTimeOriginal: "2026-10-30T17:00:00Z" }),
 }));
@@ -18,7 +20,7 @@ jest.mock("./screenshotImage", () => {
   return {
     findStatsRegion: () => ({}),
     locateBattleFields: jest.fn(() => ({ health: {}, ap: {}, countdown: {} })),
-    maskBattleField: pixels,
+    cropBattleCountdown: jest.fn(pixels),
     cropTitleField: pixels,
     cropMushroomTypeField: pixels,
   };
@@ -56,6 +58,10 @@ let originalCreate: typeof URL.createObjectURL;
 let originalRevoke: typeof URL.revokeObjectURL;
 beforeEach(() => {
   recognize.mockReset();
+  (readBattleNumber as jest.Mock).mockReset().mockImplementation((_, __, field) => ({
+    text: field === "health" ? "399,006" : "1821", value: field === "health" ? 399006 : 1821, score: 0.99,
+  }));
+  (cropBattleCountdown as jest.Mock).mockImplementation(() => ({ width: 1, height: 1, data: new Uint8ClampedArray(4) }));
   (locateBattleFields as jest.Mock).mockReturnValue({ health: {}, ap: {}, countdown: {} });
   (createWorker as jest.Mock).mockReset().mockResolvedValue({
     recognize,
@@ -93,10 +99,10 @@ afterEach(() => {
   URL.revokeObjectURL = originalRevoke;
 });
 
-it("requests digit confidence for stats and warns only for uncertain numeric readings", async () => {
+it("leaves uncertain numeric fields blank while retaining confident fields and identity", async () => {
+  (readBattleNumber as jest.Mock).mockReturnValueOnce(null)
+    .mockReturnValueOnce({ text: "10", value: 10, score: 0.99 });
   recognize
-    .mockResolvedValueOnce(numericResult("17510", 60))
-    .mockResolvedValueOnce(numericResult("10", 99))
     .mockResolvedValueOnce(numericResult("2 days 0 hrs 38 mins 26 secs", 60))
     .mockResolvedValueOnce({
       data: { text: "Die trauernde Frau", confidence: 3 },
@@ -111,17 +117,45 @@ it("requests digit confidence for stats and warns only for uncertain numeric rea
     true,
   );
   expect(result.warnings).toEqual([
-    "Check remaining health; some digits were unclear.",
-    "Check countdown; some digits were unclear.",
+    "Couldn't confidently read remaining health. Enter it manually.",
+    "Couldn't confidently read countdown. Enter it manually.",
   ]);
+  expect(result.healthRemaining).toBeNull();
+  expect(result.currentAp).toBe(10);
+  expect(result.countdown).toBeNull();
   expect(result.title).toBe("Die trauernde Frau");
   expect(result.mushroomType).toBe("Small White Mushroom");
   expect(
-    recognize.mock.calls.slice(0, 3).every((call) => call[2]?.blocks === true),
+    recognize.mock.calls.slice(0, 1).every((call) => call[2]?.blocks === true),
   ).toBe(true);
   expect(
-    recognize.mock.calls.slice(3).every((call) => call[2] === undefined),
+    recognize.mock.calls.slice(1).every((call) => call[2] === undefined),
   ).toBe(true);
+});
+
+it("does not fall back to generic OCR when a whole-number font match is ambiguous", async () => {
+  (readBattleNumber as jest.Mock).mockReturnValueOnce({ text: "399,006", value: 399006, score: 0.99 })
+    .mockReturnValueOnce(null);
+  recognize.mockResolvedValueOnce(numericResult("6 hrs. 5 mins. 11 secs. left", 99));
+  const result = await readBattleScreenshot(
+    new File(["pixels"], "battle.png", { type: "image/png" }),
+    new AbortController().signal, jest.fn(),
+  );
+  expect(result.healthRemaining).toBe(399006);
+  expect(result.currentAp).toBeNull();
+  expect(result.countdown).toEqual({ days: 0, hours: 6, minutes: 5, seconds: 11 });
+  expect(result.warnings).toContain("Couldn't confidently read AP. Enter it manually.");
+  expect(recognize).toHaveBeenCalledTimes(1);
+});
+
+it("rejects malformed four-number countdowns even when OCR reports high confidence", async () => {
+  recognize.mockResolvedValueOnce(numericResult("2 days 0 hrs Bmins 38 secs 26", 99));
+  const result = await readBattleScreenshot(
+    new File(["pixels"], "battle.png", { type: "image/png" }),
+    new AbortController().signal, jest.fn(),
+  );
+  expect(result.countdown).toBeNull();
+  expect(result.warnings).toContain("Couldn't read countdown. Enter it manually.");
 });
 
 it("requests manual entry before OCR when the battle icons cannot be located", async () => {

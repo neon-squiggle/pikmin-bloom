@@ -142,6 +142,8 @@ const MushroomPlanner = ({
     };
   }, [state.finishes, state.timezone, now]);
   const today = localDateTime(now, state.timezone).slice(0, 10);
+  const currentStage = plan.rows.find((row) => !row.presumedComplete)?.stage ??
+    plan.rows[plan.rows.length - 1]?.stage;
   const changeView = useTabScrollRestoration({
     value: view,
     onChange: setView,
@@ -152,7 +154,7 @@ const MushroomPlanner = ({
     initialPosition: () => {
       const container = contentRef.current;
       const target = container?.querySelector<HTMLElement>(
-        `[data-finish-date="${today}"]`,
+        view === "stages" ? `[data-stage="${currentStage}"]` : `[data-finish-day="${today}"]`,
       );
       if (!container || !target) return 0;
       const offset = (toolbarRef.current?.getBoundingClientRect().height ?? 48) + 12;
@@ -372,7 +374,7 @@ const MushroomPlanner = ({
                   ),
                 ),
               ).map((day) => (
-                <Box component="li" key={day} sx={{ listStyle: "none", mb: 2 }}>
+                <Box component="li" key={day} data-finish-day={day} sx={{ listStyle: "none", mb: 2 }}>
                   <Typography
                     component="h2"
                     variant="subtitle1"
@@ -405,6 +407,7 @@ const MushroomPlanner = ({
                   <Box
                     component="section"
                     key={stage}
+                    data-stage={stage}
                     aria-label={`Stage ${stage}`}
                     sx={{ mb: 3 }}
                   >
