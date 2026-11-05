@@ -1,17 +1,17 @@
 {
   "files": {
     "main.css": "/pikmin-bloom/static/css/main.38ca587b.css",
-    "main.js": "/pikmin-bloom/static/js/main.b1368bbd.js",
+    "main.js": "/pikmin-bloom/static/js/main.c3dbfc88.js",
     "static/js/477.7575b487.chunk.js": "/pikmin-bloom/static/js/477.7575b487.chunk.js",
     "static/js/257.ff7ac5c6.chunk.js": "/pikmin-bloom/static/js/257.ff7ac5c6.chunk.js",
     "index.html": "/pikmin-bloom/index.html",
     "main.38ca587b.css.map": "/pikmin-bloom/static/css/main.38ca587b.css.map",
-    "main.b1368bbd.js.map": "/pikmin-bloom/static/js/main.b1368bbd.js.map",
+    "main.c3dbfc88.js.map": "/pikmin-bloom/static/js/main.c3dbfc88.js.map",
     "477.7575b487.chunk.js.map": "/pikmin-bloom/static/js/477.7575b487.chunk.js.map",
     "257.ff7ac5c6.chunk.js.map": "/pikmin-bloom/static/js/257.ff7ac5c6.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.38ca587b.css",
-    "static/js/main.b1368bbd.js"
+    "static/js/main.c3dbfc88.js"
   ]
 }
