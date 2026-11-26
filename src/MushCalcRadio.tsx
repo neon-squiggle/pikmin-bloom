@@ -107,7 +107,7 @@ const MushCalcRadio = ({
 
   const handleMushChange = (newMush: NewMushroomFormState["mush"]) => {
     if (!newMush) {
-      updateForm({ mush: null, health: Number.NaN });
+      updateForm({ mush: null });
       return;
     }
     updateForm({
@@ -118,7 +118,6 @@ const MushCalcRadio = ({
   };
 
   const hasCompleteBattlePlan = Boolean(
-    mush &&
     startTime?.isValid() &&
     endTime?.isValid() &&
     endTime.isAfter(startTime) &&

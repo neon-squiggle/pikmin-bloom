@@ -27,14 +27,9 @@ describe("new mushroom calculations", () => {
     expect(recomputeDerived(state)).toEqual(state);
   });
 
-  it("clears the derived result when the mushroom is cleared", () => {
-    const state = createState({ derived: "ap", mush: null });
-    expect(Number.isNaN(recomputeDerived(state).pikminAp)).toBe(true);
-  });
-
   it("derives AP from health and elapsed time", () => {
     const result = recomputeDerived(
-      createState({ derived: "ap", pikminAp: 0 }),
+      createState({ derived: "ap", pikminAp: 0, mush: null }),
     );
     expect(result.pikminAp).toBe(100);
   });
@@ -43,6 +38,7 @@ describe("new mushroom calculations", () => {
     const result = recomputeDerived(
       createState({
         derived: "health",
+        mush: null,
         health: 0,
         pikminAp: 33,
         endTime: dayjs("2024-01-01T10:00:10"),
@@ -56,6 +52,7 @@ describe("new mushroom calculations", () => {
     const result = recomputeDerived(
       createState({
         derived: "startTime",
+        mush: null,
         startTime: null,
         endTime,
       }),
@@ -70,6 +67,7 @@ describe("new mushroom calculations", () => {
     const result = recomputeDerived(
       createState({
         derived: "endTime",
+        mush: null,
         startTime,
         endTime: null,
       }),

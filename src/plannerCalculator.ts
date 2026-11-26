@@ -34,7 +34,6 @@ export const finishFromCalculator = (
 ): PlannerFinish | null => {
   if (
     !isPlannedMushroom(original) ||
-    !form.mush ||
     !form.startTime?.isValid() ||
     !form.endTime?.isValid() ||
     !form.endTime.isAfter(form.startTime) ||
@@ -50,7 +49,7 @@ export const finishFromCalculator = (
     ...original,
     status: "planned",
     type:
-      originalPreset || !original.type
+      form.mush && (originalPreset || !original.type)
         ? `${form.mush.label} Mushroom`
         : original.type,
     startAt: form.startTime.toISOString(),

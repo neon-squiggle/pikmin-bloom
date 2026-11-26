@@ -1,4 +1,5 @@
 import { initialPlannerFinishes } from "./testFixtures/screenshotMushrooms";
+import { recomputeDerived } from "./mushroomCalculator";
 import {
   calculatorFormForFinish,
   finishFromCalculator,
@@ -34,4 +35,20 @@ it("cannot apply a calculated start to a running screenshot battle", () => {
   expect(
     finishFromCalculator(original, calculatorFormForFinish(original)),
   ).toBeNull();
+});
+
+it("uses manually entered health for an unknown mushroom without requiring a preset", () => {
+  const original = {
+    ...initialPlannerFinishes()[0],
+    source: "hypothetical" as const,
+    type: "Large Festival Mushroom",
+  };
+  const form = recomputeDerived({
+    ...calculatorFormForFinish(original),
+    health: 3600,
+    pikminAp: 100,
+  });
+  const result = finishFromCalculator(original, form)!;
+  expect(result.type).toBe(original.type);
+  expect(Date.parse(result.endAt) - Date.parse(result.startAt!)).toBe(3600 * 1000);
 });

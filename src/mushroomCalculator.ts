@@ -28,7 +28,7 @@ const isPositiveFinite = (value: number) => Number.isFinite(value) && value > 0;
 export const recomputeDerived = (
   state: NewMushroomFormState,
 ): NewMushroomFormState => {
-  const { derived, mush, health, pikminAp, startTime, endTime } = state;
+  const { derived, health, pikminAp, startTime, endTime } = state;
 
   const cleared =
     derived === "ap"
@@ -40,8 +40,6 @@ export const recomputeDerived = (
           : derived === "endTime"
             ? { ...state, endTime: null }
             : state;
-  if (!mush) return cleared;
-
   if (
     derived === "ap" &&
     startTime?.isValid() &&

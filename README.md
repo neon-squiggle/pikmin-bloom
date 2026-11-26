@@ -8,6 +8,8 @@ Run `npx tsc --noEmit`, `npm run lint`, `CI=true npm test -- --watchAll=false --
 
 The numeric field no longer has unused stepper or hidden-label modes, and countdown fields no longer expose unused focus callbacks.
 
+New battle calculations use health, AP and times directly; mushroom selection is an optional preset. Clearing the selection preserves battle values and calculated results. Additional-player planning and the planner handoff also work without a preset when the numeric and time inputs are complete.
+
 `NumberSpinner`, `CountdownFields`, `SimpleDateTimeInput`, `MushroomTypeField`, `formStyles` and `theme` share form behavior. Pickers use MUI’s default appearance, device detection and accessible section-based fields; keep only domain validation, limits and time shortcuts in their wrappers. `SectionAccordion` uses MUI’s default surface/disclosure styling and shares unique summary/panel IDs and heading levels across Settings and screenshot review. `useScreenshotReader` owns cancellable local OCR queues; the two upload surfaces decide whether results autofill immediately or remain drafts.
 
 `useTabScrollRestoration` shares scroll capture and restoration across mobile tool navigation and the planner’s Stages/End times tabs. Each planner view remembers its own position. On desktop and mobile, the first Stages visit shows the current projected stage (the first unfinished step's stage); End times starts at today's date heading, or the top if today has no mushrooms. Card and page positions are kept separately, and month/timezone/date changes initialize the new context.

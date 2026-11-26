@@ -98,6 +98,31 @@ describe("MushCalcRadio", () => {
     ).toBe("1,040");
   });
 
+  it("calculates and enables additional-player planning without a mushroom selection", () => {
+    renderCalculator();
+    fireEvent.change(screen.getByRole("textbox", { name: "Health" }), {
+      target: { value: "3600" },
+    });
+    fireEvent.change(screen.getByRole("textbox", { name: "AP" }), {
+      target: { value: "100" },
+    });
+    setDateField(screen.getByRole("group", { name: "Battle start time" }), "01/02/2030 12:00 PM");
+
+    expect(readDateField(screen.getByRole("group", { name: "End time" }))).toBe("01/02/2030 01:00 PM");
+    expect((screen.getByLabelText("Mushroom type") as HTMLInputElement).value).toBe("");
+    expect((within(screen.getByRole("group", { name: "Desired end time" })).getByRole("button", { name: "Choose date" }) as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it("preserves battle values and its result when the optional mushroom selection is cleared", () => {
+    renderCalculator();
+    fireEvent.change(screen.getByLabelText("Mushroom type"), { target: { value: "Normal Fire" } });
+    fireEvent.click(screen.getByRole("option", { name: "Normal Fire" }));
+    const endTime = readDateField(screen.getByRole("group", { name: "End time" }));
+    fireEvent.click(screen.getByTitle("Clear"));
+    expect((screen.getByRole("textbox", { name: "Health" }) as HTMLInputElement).value).toBe("3,850,200");
+    expect(readDateField(screen.getByRole("group", { name: "End time" }))).toBe(endTime);
+  });
+
   it("keeps the estimated end time visible and makes it editable for another target", () => {
     renderCalculator();
     const getEndTimeInput = () => within(screen.getByRole("group", { name: "End time" })).getByRole("spinbutton", { name: "Month" });
