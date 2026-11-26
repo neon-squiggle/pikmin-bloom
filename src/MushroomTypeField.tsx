@@ -27,11 +27,7 @@ const MushroomTypeField = (props: MushroomTypeFieldProps) => {
         value={props.value}
         onChange={(_, value) => props.onChange(value)}
         renderInput={(params) => (
-          <TextField
-            {...params}
-            label="Mushroom type"
-            helperText="Optional. You can enter health directly."
-          />
+          <TextField {...params} label="Mushroom type" />
         )}
       />
     );
