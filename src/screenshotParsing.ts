@@ -27,7 +27,9 @@ const COUNTDOWN_LABELS = "days?|hours?|hrs?|minutes?|mins?|seconds?|secs?|tage?|
 export const parseScreenshotCountdown = (
   text: string,
 ): TimeRemaining | null => {
-  const normalized = normalizeDigits(text).replace(
+  // The game's English countdown ends at "left"; flowers beyond it can also
+  // produce OCR characters, but are not part of the countdown.
+  const normalized = normalizeDigits(text).split(/\bleft\b/i, 1)[0].replace(
     new RegExp(`\\b[Oo]\\b(?=\\s*(?:${COUNTDOWN_LABELS})\\b)`, "gi"),
     "0",
   );
@@ -45,7 +47,6 @@ export const parseScreenshotCountdown = (
   // words must not be interpreted as an omitted unit with a value of zero.
   const unparsed = normalized
     .replace(unitValue, "")
-    .replace(/\bleft\b/gi, "")
     .replace(/[\s.,:;…]/g, "");
   if (unparsed) return null;
   const countdown = { days: 0, hours: 0, minutes: 0, seconds: 0 };

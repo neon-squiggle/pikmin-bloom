@@ -49,6 +49,12 @@ describe("battle screenshot parsing", () => {
     });
   });
 
+  it("ends the countdown at the game's left label, excluding background OCR", () => {
+    expect(parseScreenshotCountdown("5 days 2 hrs. 44 mins. 54 secs. left < ‘")).toEqual({
+      days: 5, hours: 2, minutes: 44, seconds: 54,
+    });
+  });
+
   it("accepts four numeric units in another language", () => {
     expect(parseScreenshotCountdown("4 Tage 17 Std. 1 Min. 38 Sek.")).toEqual({
       days: 4,

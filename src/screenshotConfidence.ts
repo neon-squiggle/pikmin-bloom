@@ -15,7 +15,9 @@ const isConfident = (confidence: number) =>
 // average cannot hide an uncertain digit. Fall back only for purely numeric words.
 export const numericReadingNeedsReview = (words: OcrWord[]) => {
   let foundDigits = false;
-  for (const word of words) {
+  // Match the countdown parser's terminal label, excluding background OCR.
+  const end = words.findIndex((word) => /\bleft\b/i.test(word.text));
+  for (const word of end < 0 ? words : words.slice(0, end + 1)) {
     const count = word.text.normalize("NFKC").match(/\p{Nd}/gu)?.length ?? 0;
     if (!count) continue;
     foundDigits = true;

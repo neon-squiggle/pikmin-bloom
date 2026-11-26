@@ -78,3 +78,14 @@ it("rejects incomplete digit confidence even when every reported symbol is confi
     symbols: [{ text: "1", confidence: 99 }, { text: "8", confidence: 99 }, { text: "2", confidence: 99 }],
   }])).toBe(true);
 });
+
+it("ignores background OCR beyond the countdown's left label", () => {
+  const words = [
+    { text: "54", confidence: 99 },
+    { text: "secs.", confidence: 99 },
+    { text: "left", confidence: 99 },
+    { text: "8", confidence: 10 },
+  ];
+  expect(numericReadingNeedsReview(words)).toBe(false);
+  expect(numericReadingNeedsReview([{ text: "54", confidence: 10 }, ...words.slice(1)])).toBe(true);
+});

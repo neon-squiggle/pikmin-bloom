@@ -290,7 +290,7 @@ const MushCalcRadio = ({
               />
               <NumberSpinner
                 label="AP"
-                min={2}
+                min={1}
                 value={pikminAp}
                 readOnly={derived === "ap"}
                 allowDecimal={false}
