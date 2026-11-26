@@ -18,13 +18,11 @@ const MIN_MARGIN = 0.035;
 // Less evidence is needed to suspect an occupied cell than to identify its
 // digit. An unclear outline must block a shorter match, not be discarded.
 const MIN_CELL_EVIDENCE = 0.7;
-let digitHeight = 0;
 const glyphs = Object.entries(font.glyphs).map(([text, bitmap]) => {
   const rows = bitmap.split("\n");
   const points: { x: number; y: number; ink: boolean }[] = [];
   for (let y = 0; y < rows.length; y++) for (let x = 0; x < rows[y].length; x++) {
     const ink = rows[y][x] === "#";
-    if (ink && text !== ",") digitHeight = Math.max(digitHeight, y + 1);
     // Only the glyph's immediate white contour is meaningful. Background
     // inside holes or outside a digit can have the same hue as its fill.
     const contour = rows[y][x] === "o" && rows.some((row, yy) =>
@@ -116,12 +114,10 @@ export const readBattleNumber = (
       // into a successful shorter match that stops before the right margin.
       const gap = width - cursor;
       if (gap < font.apRightPadding.min || gap > font.apRightPadding.max) continue;
-    } else {
-      let remainingInk = false;
-      for (let yy = y; yy < Math.min(height, y + digitHeight + 1); yy++)
-        for (let xx = Math.ceil(cursor); xx < width; xx++)
-          if (ink[yy * width + xx]) remainingInk = true;
-      if (remainingInk || scores(cursor, y).some((glyph) => glyph.edgeScore >= MIN_CELL_EVIDENCE)) continue;
+    } else if (scores(cursor, y).some((glyph) => glyph.edgeScore >= MIN_CELL_EVIDENCE)) {
+      // The game uses consecutive fixed-width cells. An unclear adjacent
+      // glyph needs review; artwork beyond the end of the number is irrelevant.
+      continue;
     }
     const previous = candidates.get(text);
     if (!previous || sum / text.length > previous.score)

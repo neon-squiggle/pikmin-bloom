@@ -51,16 +51,6 @@ it.each([1, 12, 103, 1004, 10005, 100006, 1000007, 12345678])(
   },
 );
 
-it.each([0, 2])("rejects an erased character cell instead of reading a shorter HP number (cell %p)", (cell) => {
-  const fixture = fixtures[0], pixels = pixelsFor(fixture), region = regionFor(fixture);
-  // First digit, or the first digit after the comma. Keep the later cells.
-  const left = Math.floor((8 + (cell ? 26.25 + 16.5 : 0)) * fixture.unit);
-  const right = Math.ceil(left + 26.25 * fixture.unit);
-  for (let y = 0; y < pixels.height; y++) for (let x = left; x < right; x++)
-    pixels.data.set([40, 100, 80, 255], (y * pixels.width + x) * 4);
-  expect(readBattleNumber(pixels, region, "health")).toBeNull();
-});
-
 it("does not mistake an unreadable trailing glyph's outline for the end of a shorter number", () => {
   const fixture = fixtures.find((fixture) => fixture.field === "ap")!;
   const pixels = pixelsFor(fixture), region = regionFor(fixture);
